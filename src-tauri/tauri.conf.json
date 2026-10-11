@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "lm-overlay",
+  "productName": "Mulsanne",
   "version": "0.1.0",
   "identifier": "com.lm-overlay.app",
   "build": {
@@ -12,9 +12,15 @@
   "app": {
     "windows": [
       {
-        "title": "lm-overlay",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "Mulsanne",
+        "backgroundColor": "#09090b",
+        "url": "index.html",
+        "width": 1360,
+        "height": 860,
+        "decorations": false,
+        "minWidth": 960,
+        "minHeight": 600
       }
     ],
     "security": {

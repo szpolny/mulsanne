@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1c21"/>
+      <stop offset="1" stop-color="#08080a"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff3341"/>
+      <stop offset="1" stop-color="#c50c19"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="200" fill="url(#bg)"/>
+  <rect x="33" y="33" width="958" height="958" rx="199" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="2"/>
+  <!-- Livery stripes (same geometry as the in-app logo, scaled 13.6x around the centre) -->
+  <g transform="translate(512 512) scale(13.6) translate(-33 -32)">
+    <path d="M6 52 L22 12 H32 L16 52 Z" fill="#ffffff"/>
+    <path d="M20 52 L36 12 H46 L30 52 Z" fill="url(#red)"/>
+    <path d="M34 52 L50 12 H60 L44 52 Z" fill="url(#red)" opacity="0.55"/>
+  </g>
+  <rect x="232" y="836" width="560" height="18" rx="9" fill="#e3101f"/>
+</svg>

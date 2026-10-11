@@ -1,0 +1,209 @@
+@import "tailwindcss";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+/* Logo wordmark only */
+@import "@fontsource/barlow-condensed/800-italic.css";
+
+@theme {
+  --font-sans: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+
+  /* Surfaces */
+  --color-bg: #0b0b0e;
+  --color-surface: #131317;
+  --color-surface-2: #1a1a1f;
+  --color-surface-3: #24242b;
+  --color-line: #2a2a31;
+  --color-fg: #f4f4f6;
+  --color-muted: #9a9aa6;
+  --color-faint: #63636e;
+
+  /* Racing red */
+  --color-accent: #e3101f;
+  --color-accent-hi: #ff3341;
+  --color-accent-lo: #7d0911;
+
+  /* Overlay panels */
+  --color-hud: rgb(14 14 17 / 0.9);
+  --color-hud-2: rgb(255 255 255 / 0.06);
+  --color-hud-line: rgb(255 255 255 / 0.08);
+
+  /* Semantics */
+  --color-throttle: #22c55e;
+  --color-brake: #ef4444;
+  --color-clutch: #38bdf8;
+  --color-steer: #f5f5f5;
+  --color-best: #b85cff;
+  --color-good: #22c55e;
+  --color-bad: #ff4646;
+  --color-warn: #f5a524;
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  body.companion {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    color-scheme: dark;
+  }
+  body.overlay {
+    background: transparent;
+    color: var(--color-fg);
+    overflow: hidden;
+  }
+  #app {
+    height: 100%;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  input[type="range"] {
+    accent-color: var(--color-accent);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surface-3);
+    border: 2px solid var(--color-bg);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Overlay ---------- */
+
+/* Base panel for every overlay widget: flat, dark, rounded, easy to read over any background. */
+@utility hud {
+  background: var(--color-hud);
+  border: 1px solid var(--color-hud-line);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+/* Small caption above a value. */
+@utility hud-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Widget title row text. */
+@utility hud-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Large readout numbers. */
+@utility hud-value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility hud-tile {
+  background: var(--color-hud-2);
+  border-radius: 6px;
+}
+
+/* ---------- Companion ---------- */
+
+@utility page-title {
+  font-size: 26px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@utility section-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+@utility card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--color-surface-3);
+  color: var(--color-fg);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  &:hover {
+    background: var(--color-line);
+  }
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+
+@utility btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+  &:hover {
+    background: var(--color-accent-hi);
+  }
+}
+
+@utility field {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: var(--color-fg);
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+}
+
+@utility kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-line);
+}

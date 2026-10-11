@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated demo data for the browser preview
+src/dev/fixtures/
+
+# Claude
+.claude

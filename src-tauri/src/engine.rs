@@ -1,0 +1,173 @@
+//! Background threads: the data loop (game or demo -> recorder -> UI events)
+//! and the database writer for finished laps.
+
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::mpsc::{self, Receiver};
+use std::sync::{Arc, RwLock};
+use std::thread;
+use std::time::{Duration, Instant};
+
+use serde::Serialize;
+use tauri::{AppHandle, Emitter};
+
+use crate::db::{self, Db, NewLap};
+use crate::demo::DemoSim;
+use crate::lmu::{self, layout, shm::LmuSharedMemory};
+use crate::model::Snapshot;
+use crate::recorder::Recorder;
+
+pub struct Shared {
+    pub latest: RwLock<Snapshot>,
+    pub demo: AtomicBool,
+    /// Max snapshot events per second sent to the windows.
+    pub emit_hz: AtomicU32,
+    pub reload_reference: AtomicBool,
+}
+
+impl Shared {
+    pub fn new() -> Self {
+        Self {
+            latest: RwLock::new(Snapshot::default()),
+            demo: AtomicBool::new(false),
+            emit_hz: AtomicU32::new(30),
+            reload_reference: AtomicBool::new(false),
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LapRecorded {
+    lap_id: i64,
+    session_id: i64,
+    lap_number: i32,
+    lap_time: f64,
+    valid: bool,
+    personal_best: bool,
+    track: String,
+}
+
+pub fn spawn(app: AppHandle, shared: Arc<Shared>, db: Arc<Db>) {
+    let (tx, rx) = mpsc::channel::<NewLap>();
+    {
+        let app = app.clone();
+        let db = db.clone();
+        thread::Builder::new()
+            .name("lap-writer".into())
+            .spawn(move || run_writer(app, db, rx))
+            .expect("spawn lap writer");
+    }
+    thread::Builder::new()
+        .name("telemetry".into())
+        .spawn(move || run_loop(app, shared, Recorder::new(db, tx)))
+        .expect("spawn telemetry loop");
+}
+
+fn run_writer(app: AppHandle, db: Arc<Db>, rx: Receiver<NewLap>) {
+    for lap in rx {
+        let s = &lap.session;
+        let previous_best = db.best_lap(&s.track, &s.car).ok().flatten();
+        let id = match db.insert_lap(&lap) {
+            Ok(id) => id,
+            Err(e) => {
+                eprintln!("failed to store lap: {e}");
+                continue;
+            }
+        };
+        let clean = lap.valid && !lap.out_lap && !lap.in_lap;
+        let personal_best = clean && previous_best.is_none_or(|(_, t, _)| lap.lap_time < t);
+        let has_map = db.track_map(&s.track).ok().flatten().is_some();
+        if clean && (personal_best || !has_map) && s.track_length > 0.0 {
+            let map = db::track_map_from_trace(&s.track, s.track_length, &lap.trace, 5.0);
+            if db.save_track_map(&map, id).is_ok() {
+                let _ = app.emit("track-map-updated", &s.track);
+            }
+        }
+        let _ = app.emit(
+            "lap-recorded",
+            LapRecorded {
+                lap_id: id,
+                session_id: s.id,
+                lap_number: lap.lap_number,
+                lap_time: lap.lap_time,
+                valid: lap.valid,
+                personal_best,
+                track: s.track.clone(),
+            },
+        );
+    }
+}
+
+fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
+    let mut buf = vec![0u8; layout::TOTAL_SIZE];
+    let mut shm: Option<LmuSharedMemory> = None;
+    let mut next_open = Instant::now();
+    let mut demo: Option<DemoSim> = None;
+    let mut last_tick = Instant::now();
+    let mut last_emit = Instant::now() - Duration::from_secs(1);
+    let mut last_change = Instant::now();
+    let mut last_key = (f64::NAN, f64::NAN);
+    let mut frame = 0u64;
+
+    loop {
+        if shared.reload_reference.swap(false, Ordering::AcqRel) {
+            recorder.invalidate_reference();
+        }
+
+        let mut snap = if shared.demo.load(Ordering::Acquire) {
+            shm = None;
+            thread::sleep(Duration::from_millis(16));
+            let now = Instant::now();
+            let dt = (now - last_tick).as_secs_f64().min(0.1);
+            last_tick = now;
+            demo.get_or_insert_with(DemoSim::new).step(dt)
+        } else {
+            demo = None;
+            if shm.is_none() && Instant::now() >= next_open {
+                shm = LmuSharedMemory::open();
+                next_open = Instant::now() + Duration::from_secs(2);
+                last_change = Instant::now();
+            }
+            match &shm {
+                None => {
+                    thread::sleep(Duration::from_millis(250));
+                    Snapshot::default()
+                }
+                Some(mem) => {
+                    let got_frame = mem.wait_for_frame(250);
+                    if !mem.copy_into(&mut buf) {
+                        continue;
+                    }
+                    if !mem.game_alive(&buf) {
+                        shm = None;
+                        Snapshot::default()
+                    } else {
+                        let s = lmu::parse(&buf);
+                        let key = (s.session.current_et, s.player.as_ref().map_or(0.0, |p| p.elapsed_time));
+                        if key != last_key {
+                            last_key = key;
+                            last_change = Instant::now();
+                        } else if !got_frame && last_change.elapsed() > Duration::from_secs(20) {
+                            // No updates for a long time: re-open to detect a closed game.
+                            shm = None;
+                        }
+                        s
+                    }
+                }
+            }
+        };
+
+        frame += 1;
+        snap.frame = frame;
+        recorder.update(&mut snap);
+
+        let hz = shared.emit_hz.load(Ordering::Relaxed).clamp(1, 120);
+        if last_emit.elapsed() >= Duration::from_secs_f64(1.0 / hz as f64) {
+            last_emit = Instant::now();
+            let _ = app.emit("snapshot", &snap);
+            if let Ok(mut latest) = shared.latest.write() {
+                *latest = snap;
+            }
+        }
+    }
+}
