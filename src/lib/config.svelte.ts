@@ -21,8 +21,6 @@ export interface WidgetConfig {
   enabled: boolean;
   x: number;
   y: number;
-  scale: number;
-  opacity: number;
   options: Record<string, any>;
 }
 
@@ -37,6 +35,10 @@ export interface AppConfig {
     hideUnfocused: boolean;
     /** Grid snap in edit mode (px). */
     snap: number;
+    /** Size multiplier applied to every widget. */
+    scale: number;
+    /** Opacity applied to every widget. */
+    opacity: number;
   };
   widgets: Record<string, WidgetConfig>;
 }
@@ -209,11 +211,11 @@ export const widgetMeta = (id: string) => WIDGETS.find((w) => w.id === id)!;
 function defaults(): AppConfig {
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, snap: 4 },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, snap: 4, scale: 1, opacity: 0.92 },
     widgets: Object.fromEntries(
       WIDGETS.map((w) => [
         w.id,
-        { ...w.defaults, scale: 1, opacity: 0.92, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
+        { ...w.defaults, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
       ]),
     ),
   };
@@ -225,7 +227,8 @@ function merge(stored: any): AppConfig {
   if (!stored || typeof stored !== "object") return base;
   const out: AppConfig = { ...base, general: { ...base.general, ...(stored.general ?? {}) } };
   for (const id of Object.keys(base.widgets)) {
-    const s = stored.widgets?.[id] ?? {};
+    // Drop legacy per-widget scale/opacity; those are global now.
+    const { scale: _scale, opacity: _opacity, ...s } = stored.widgets?.[id] ?? {};
     out.widgets[id] = {
       ...base.widgets[id],
       ...s,
@@ -273,7 +276,7 @@ export function resetLayout() {
   for (const [id, w] of Object.entries(config.value.widgets)) {
     w.x = d.widgets[id].x;
     w.y = d.widgets[id].y;
-    w.scale = 1;
   }
+  config.value.general.scale = 1;
   saveConfig();
 }

@@ -8,6 +8,7 @@
   let { meta }: { meta: WidgetMeta } = $props();
 
   const cfg = $derived(config.value.widgets[meta.id]);
+  const g = $derived(config.value.general);
   const Widget = $derived(COMPONENTS[meta.id]);
 
   // Real telemetry while driving; otherwise preview-only demo data that never reaches the overlay.
@@ -44,9 +45,9 @@
   const PAD = 24;
   const MAX_H = 360;
   const fit = $derived(
-    naturalW && naturalH ? Math.min(1, (stageW - PAD * 2) / (naturalW * cfg.scale), MAX_H / (naturalH * cfg.scale)) : 1,
+    naturalW && naturalH ? Math.min(1, (stageW - PAD * 2) / (naturalW * g.scale), MAX_H / (naturalH * g.scale)) : 1,
   );
-  const scale = $derived(cfg.scale * fit);
+  const scale = $derived(g.scale * fit);
 </script>
 
 <div
@@ -61,7 +62,7 @@
     <div
       class="pointer-events-none w-max origin-top-left"
       style:transform="scale({scale})"
-      style:opacity={cfg.opacity}
+      style:opacity={g.opacity}
       bind:clientWidth={naturalW}
       bind:clientHeight={naturalH}
     >

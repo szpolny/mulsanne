@@ -8,6 +8,7 @@
   let selectedId = $state(WIDGETS[0].id);
   const meta = $derived(WIDGETS.find((w) => w.id === selectedId)!);
   const cfg = $derived(config.value.widgets[selectedId]);
+  const g = $derived(config.value.general);
 </script>
 
 <div class="mx-auto max-w-6xl p-6">
@@ -25,6 +26,20 @@
         {live.status.editMode ? "Finish editing" : "Edit layout on screen"}
       </button>
     </div>
+  </div>
+
+  <div class="mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 card px-5 py-3 text-sm">
+    <span class="text-xs font-semibold tracking-wider text-muted uppercase">All widgets</span>
+    <label class="flex items-center gap-3">
+      <span class="text-muted">Scale</span>
+      <input type="range" min="0.4" max="3" step="0.05" bind:value={g.scale} oninput={saveConfig} class="w-40 accent-accent" />
+      <span class="w-10 text-right tnum">{Math.round(g.scale * 100)}%</span>
+    </label>
+    <label class="flex items-center gap-3">
+      <span class="text-muted">Opacity</span>
+      <input type="range" min="0.2" max="1" step="0.01" bind:value={g.opacity} oninput={saveConfig} class="w-40 accent-accent" />
+      <span class="w-10 text-right tnum">{Math.round(g.opacity * 100)}%</span>
+    </label>
   </div>
 
   <div class="grid grid-cols-[320px_1fr] gap-4">
@@ -74,14 +89,6 @@
       </div>
 
       <div class="mt-6 grid max-w-lg grid-cols-[160px_1fr_60px] items-center gap-x-4 gap-y-4 text-sm">
-        <span class="text-muted">Scale</span>
-        <input type="range" min="0.4" max="3" step="0.05" bind:value={cfg.scale} oninput={saveConfig} class="accent-accent" />
-        <span class="text-right tnum">{Math.round(cfg.scale * 100)}%</span>
-
-        <span class="text-muted">Opacity</span>
-        <input type="range" min="0.2" max="1" step="0.01" bind:value={cfg.opacity} oninput={saveConfig} class="accent-accent" />
-        <span class="text-right tnum">{Math.round(cfg.opacity * 100)}%</span>
-
         <span class="text-muted">Position</span>
         <span class="col-span-2 text-muted tnum">x {Math.round(cfg.x)} · y {Math.round(cfg.y)}</span>
 

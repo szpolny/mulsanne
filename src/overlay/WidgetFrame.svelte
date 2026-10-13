@@ -5,6 +5,7 @@
   let { id, name, edit, children }: { id: string; name: string; edit: boolean; children: Snippet } = $props();
 
   const cfg: WidgetConfig = $derived(config.value.widgets[id]);
+  const g = $derived(config.value.general);
 
   let dragging = $state(false);
   let start = { px: 0, py: 0, x: 0, y: 0 };
@@ -38,7 +39,7 @@
     if (!edit) return;
     e.preventDefault();
     const step = e.deltaY < 0 ? 0.05 : -0.05;
-    cfg.scale = Math.min(3, Math.max(0.4, Math.round((cfg.scale + step) * 100) / 100));
+    g.scale = Math.min(3, Math.max(0.4, Math.round((g.scale + step) * 100) / 100));
     saveConfig();
   }
 </script>
@@ -47,8 +48,8 @@
   class="absolute top-0 left-0 origin-top-left"
   class:cursor-move={edit}
   class:z-10={dragging}
-  style:transform="translate({cfg.x}px, {cfg.y}px) scale({cfg.scale})"
-  style:opacity={cfg.opacity}
+  style:transform="translate({cfg.x}px, {cfg.y}px) scale({g.scale})"
+  style:opacity={g.opacity}
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}
@@ -65,7 +66,7 @@
       class="pointer-events-none absolute -top-6 left-0 flex items-center gap-2 rounded-md bg-accent px-2 py-0.5 text-[12px] font-semibold whitespace-nowrap text-white"
     >
       {name}
-      <span class="font-normal opacity-80">{Math.round(cfg.scale * 100)}%</span>
+      <span class="font-normal opacity-80">{Math.round(g.scale * 100)}%</span>
     </div>
   {/if}
   <div class:pointer-events-none={edit}>
