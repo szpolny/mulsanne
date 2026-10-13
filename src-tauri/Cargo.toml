@@ -1,5 +1,6 @@
 [package]
 name = "lm-overlay"
+# The app version lives in package.json (tauri.conf.json reads it from there).
 version = "0.1.0"
 description = "Mulsanne: overlay and telemetry companion for Le Mans Ultimate"
 authors = ["Szymon Polny"]
@@ -20,6 +21,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 rusqlite = { version = "0.37", features = ["bundled"] }

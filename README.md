@@ -29,3 +29,9 @@ pnpm tauri dev
 ```
 
 Run checks with `pnpm check` and `cargo test --manifest-path src-tauri/Cargo.toml`.
+
+## Releases
+
+Download the installer from [GitHub Releases](https://github.com/szpolny/lm-overlay/releases). The app checks for updates on launch and offers to install them.
+
+Releases are automated with [release-please](https://github.com/googleapis/release-please). Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `feat!:`) on `master`. release-please keeps a release PR open with the next version and changelog, and merging that PR tags the release and builds the signed installer. The version lives in `package.json` only.

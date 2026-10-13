@@ -1,6 +1,7 @@
 <script lang="ts">
   import { config, saveConfig } from "../../lib/config.svelte";
   import { live } from "../../lib/live.svelte";
+  import { checkForUpdate, installUpdate, updater } from "../../lib/updater.svelte";
   import Toggle from "../components/Toggle.svelte";
 
   const g = $derived(config.value.general);
@@ -58,6 +59,33 @@
       <div class="font-medium">Data folder</div>
       <div class="mt-1 font-mono text-xs break-all text-muted">{live.status.dataDir}</div>
       <div class="mt-1 text-muted">Laps are stored in <code>laps.db</code> (SQLite) in this folder.</div>
+    </div>
+    <div class="flex items-center justify-between gap-6 p-4">
+      <div>
+        <div class="font-medium">Version {updater.version}</div>
+        <div class="text-muted">
+          {#if updater.phase === "checking"}
+            Checking for updates…
+          {:else if updater.phase === "available"}
+            Version {updater.available} is available.
+          {:else if updater.phase === "downloading"}
+            Downloading update… {Math.round(updater.progress * 100)}%
+          {:else if updater.phase === "upToDate"}
+            You're on the latest version.
+          {:else if updater.phase === "error"}
+            <span title={updater.error}>Couldn't check for updates.</span>
+          {:else}
+            Updates are checked when the app starts.
+          {/if}
+        </div>
+      </div>
+      {#if updater.phase === "available"}
+        <button class="btn btn-primary" onclick={installUpdate}>Install and restart</button>
+      {:else}
+        <button class="btn" disabled={updater.phase === "checking" || updater.phase === "downloading"} onclick={checkForUpdate}>
+          Check for updates
+        </button>
+      {/if}
     </div>
   </div>
 </div>

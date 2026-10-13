@@ -4,6 +4,7 @@
   import { loadConfig } from "../lib/config.svelte";
   import { live, startLive } from "../lib/live.svelte";
   import Logo from "../lib/Logo.svelte";
+  import { initUpdater, installUpdate, updater } from "../lib/updater.svelte";
   import { nav, type Page } from "./nav.svelte";
   import Analysis from "./pages/Analysis.svelte";
   import Live from "./pages/Live.svelte";
@@ -17,6 +18,7 @@
   onMount(() => {
     startLive();
     loadConfig();
+    void initUpdater();
 
     if (!("__TAURI_INTERNALS__" in window)) return;
 
@@ -130,10 +132,21 @@
           </button>
         {/each}
       </div>
-      <div class="mt-auto border-t border-line px-4 py-3 text-xs">
-        <div class="flex items-center gap-2">
-          <span class={["h-2 w-2 rounded-full", statusColor]}></span>
-          <span class="truncate text-muted" title={statusText}>{statusText}</span>
+      <div class="mt-auto">
+        {#if updater.phase === "available" || updater.phase === "downloading"}
+          <div class="mx-2 mb-2 rounded-lg border border-line bg-surface-2 p-3 text-xs">
+            <div class="font-medium text-fg">Update available</div>
+            <div class="mt-0.5 text-muted">Version {updater.available} is ready to install.</div>
+            <button class="btn btn-primary mt-2 w-full" disabled={updater.phase === "downloading"} onclick={installUpdate}>
+              {updater.phase === "downloading" ? `Downloading ${Math.round(updater.progress * 100)}%` : "Install and restart"}
+            </button>
+          </div>
+        {/if}
+        <div class="border-t border-line px-4 py-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class={["h-2 w-2 rounded-full", statusColor]}></span>
+            <span class="truncate text-muted" title={statusText}>{statusText}</span>
+          </div>
         </div>
       </div>
     </nav>
