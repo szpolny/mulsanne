@@ -51,6 +51,24 @@ export async function install() {
           return fx.filters;
         case "get_track_map":
           return fx.trackMap;
+        case "daily_races": {
+          const at = (min: number) => Math.ceil(Date.now() / 300_000) * 300_000 + min * 60_000;
+          const race = (name: string, tier: string, track: string, duration: string, first: number, every: number) => ({
+            name, tier, track, duration, image: null,
+            starts: [0, 1, 2, 3].map((i) => at(first + i * every)).filter((t) => t < at(0) + 4 * 3_600_000),
+          });
+          return [
+            race("Logitech McLaren G Challenge Winter - Q2", "beginner", "Monza", "30 minutes", 5, 45),
+            race("LMP3 Fixed", "beginner", "Le Mans", "32 minutes", 15, 45),
+            race("LMGT3 Fixed", "beginner", "Fuji Wec 2023", "32 minutes", 25, 45),
+            race("ELMS Sprint Trophy", "intermediate", "Spa Francorchamps", "44 minutes", 10, 60),
+            race("LMGT3 Sprint Cup", "intermediate", "Laguna Seca", "44 minutes", 30, 60),
+            race("Prototype Fixed", "intermediate", "Long Beach 2026", "44 minutes", 40, 60),
+            race("One Stint Sprint", "advanced", "Bahrain Wec 2023", "55 minutes", 20, 90),
+            race("ELMS Super 60", "advanced", "Portimao Wec 2023", "1h 13 minutes", 50, 90),
+            race("WEC-Xperience", "advanced", "Silverstone 2025", "1h 14 minutes", 70, 90),
+          ];
+        }
         default:
           return null;
       }

@@ -314,3 +314,13 @@ export interface LapRecordedEvent {
   personalBest: boolean;
   track: string;
 }
+
+export interface DailyRace {
+  name: string;
+  tier: string;
+  track: string;
+  duration: string;
+  image: string | null;
+  /** Start times as Unix milliseconds. */
+  starts: number[];
+}

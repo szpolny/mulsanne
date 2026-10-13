@@ -27,6 +27,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 flate2 = "1"
+# Same HTTP client and TLS stack the updater already pulls in.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 windows = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",

@@ -5,6 +5,7 @@ mod engine;
 pub mod lmu;
 pub mod model;
 pub mod recorder;
+pub mod schedule;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -139,6 +140,7 @@ pub fn run() {
             commands::get_track_map,
             commands::delete_lap,
             commands::delete_session,
+            commands::daily_races,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

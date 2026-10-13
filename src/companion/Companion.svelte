@@ -10,6 +10,7 @@
   import Live from "./pages/Live.svelte";
   import Overlays from "./pages/Overlays.svelte";
   import Records from "./pages/Records.svelte";
+  import Schedule from "./pages/Schedule.svelte";
   import Sessions from "./pages/Sessions.svelte";
   import Settings from "./pages/Settings.svelte";
 
@@ -51,6 +52,7 @@
     { id: "sessions", label: "Sessions", icon: "M4 6h16 M4 12h16 M4 18h10" },
     { id: "analysis", label: "Analysis", icon: "M4 19V5 M4 19h16 M7 15l4-5 3 3 5-7" },
     { id: "records", label: "Records", icon: "M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0z M17 6h3v2a3 3 0 0 1-3 3 M7 6H4v2a3 3 0 0 0 3 3" },
+    { id: "schedule", label: "Schedule", icon: "M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M12 13v3l2 1" },
     { id: "settings", label: "Settings", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19 12h2 M3 12h2 M12 3v2 M12 19v2 M17 7l1.5-1.5 M5.5 18.5 7 17 M17 17l1.5 1.5 M5.5 5.5 7 7" },
   ];
 
@@ -162,6 +164,8 @@
         <Analysis />
       {:else if nav.page === "records"}
         <Records />
+      {:else if nav.page === "schedule"}
+        <Schedule />
       {:else}
         <Settings />
       {/if}

@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap};
 use crate::engine::PreviewSim;
 use crate::model::Snapshot;
+use crate::schedule::DailyRace;
 use crate::AppState;
 
 type CmdResult<T> = Result<T, String>;
@@ -161,4 +162,9 @@ pub fn delete_session(state: State<AppState>, session_id: i64) -> CmdResult<()> 
     state.db.delete_session(session_id)?;
     state.shared.reload_reference.store(true, Ordering::Release);
     Ok(())
+}
+
+#[tauri::command]
+pub async fn daily_races() -> CmdResult<Vec<DailyRace>> {
+    crate::schedule::fetch_daily_races().await
 }

@@ -8,6 +8,7 @@ Mulsanne is a customizable in-game overlay and telemetry companion for **Le Mans
 
 - A movable, scalable HUD with live timing, standings, relative gaps, fuel and energy estimates, tyres, flags, and a track map.
 - Automatic lap recording with personal bests, telemetry traces, and lap comparison in the companion app.
+- An upcoming daily race schedule from RaceControl, shown in your local time without running the game.
 - Demo data for arranging the overlay without running the game.
 
 ## Use

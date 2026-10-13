@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  DailyRace,
   Filters,
   LapRecord,
   LapTrace,
@@ -30,4 +31,5 @@ export const api = {
   getTrackMap: (track: string) => invoke<TrackMap | null>("get_track_map", { track }),
   deleteLap: (lapId: number) => invoke<void>("delete_lap", { lapId }),
   deleteSession: (sessionId: number) => invoke<void>("delete_session", { sessionId }),
+  dailyRaces: () => invoke<DailyRace[]>("daily_races"),
 };

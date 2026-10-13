@@ -1,4 +1,4 @@
-export type Page = "live" | "overlays" | "sessions" | "analysis" | "records" | "settings";
+export type Page = "live" | "overlays" | "sessions" | "analysis" | "records" | "schedule" | "settings";
 
 class Nav {
   page = $state<Page>("live");
