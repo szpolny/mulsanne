@@ -14,7 +14,9 @@
 
   const edit = $derived(live.status.editMode);
   const onTrack = $derived(!!live.snap?.player && live.snap.inRealtime);
-  const show = $derived(config.loaded && (edit || !config.value.general.onlyOnTrack || onTrack));
+  const trackOk = $derived(!config.value.general.onlyOnTrack || onTrack);
+  const focusOk = $derived(!config.value.general.hideUnfocused || live.status.gameFocused || live.status.demo);
+  const show = $derived(config.loaded && (edit || (trackOk && focusOk)));
 </script>
 
 {#if edit}

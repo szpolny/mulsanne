@@ -16,6 +16,7 @@ pub struct Status {
     demo: bool,
     edit_mode: bool,
     overlay_visible: bool,
+    game_focused: bool,
     data_dir: String,
 }
 
@@ -30,6 +31,7 @@ pub fn get_status(state: State<AppState>) -> Status {
         demo: state.shared.demo.load(Ordering::Acquire),
         edit_mode: state.edit_mode.load(Ordering::Acquire),
         overlay_visible: state.overlay_visible.load(Ordering::Acquire),
+        game_focused: state.shared.game_focused.load(Ordering::Acquire),
         data_dir: state.data_dir.display().to_string(),
     }
 }

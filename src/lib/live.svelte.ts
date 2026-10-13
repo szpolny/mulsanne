@@ -5,7 +5,7 @@ import type { Snapshot, Status } from "./types";
 class Live {
   /** Latest telemetry snapshot. `$state.raw` avoids deep-proxying ~40 KB of data at 30 Hz. */
   snap = $state.raw<Snapshot | null>(null);
-  status = $state.raw<Status>({ demo: false, editMode: false, overlayVisible: true, dataDir: "" });
+  status = $state.raw<Status>({ demo: false, editMode: false, overlayVisible: true, gameFocused: false, dataDir: "" });
 }
 
 export const live = new Live();
@@ -23,6 +23,9 @@ export async function startLive() {
   });
   await listen<boolean>("overlay-visible", (e) => {
     live.status = { ...live.status, overlayVisible: e.payload };
+  });
+  await listen<boolean>("game-focused", (e) => {
+    live.status = { ...live.status, gameFocused: e.payload };
   });
   await listen<boolean>("demo-mode", (e) => {
     live.status = { ...live.status, demo: e.payload };

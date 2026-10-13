@@ -13,7 +13,7 @@ use windows::Win32::System::Memory::{
 use windows::Win32::System::Threading::{
     CreateEventA, OpenEventA, SetEvent, WaitForSingleObject, SYNCHRONIZATION_SYNCHRONIZE,
 };
-use windows::Win32::UI::WindowsAndMessaging::IsWindow;
+use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId, IsWindow};
 
 use super::layout::{self, ApplicationState};
 
@@ -220,12 +220,37 @@ impl LmuSharedMemory {
     /// The game keeps the mapping alive as long as we hold a handle, so use the
     /// game window to detect that it has exited.
     pub fn game_alive(&self, buf: &[u8]) -> bool {
-        let app: ApplicationState = layout::read_at(buf, layout::OFF_GENERIC_APP_INFO);
-        let hwnd = app.app_window;
+        let hwnd = game_window(buf);
         if hwnd == 0 {
             // Window not created yet (still starting up); assume alive.
             return true;
         }
         unsafe { IsWindow(Some(HWND(hwnd as *mut _))).as_bool() }
+    }
+}
+
+/// The game's main window handle as published in shared memory (0 if not created yet).
+pub fn game_window(buf: &[u8]) -> u64 {
+    let app: ApplicationState = layout::read_at(buf, layout::OFF_GENERIC_APP_INFO);
+    app.app_window
+}
+
+/// Whether the foreground window belongs to the same process as `hwnd`.
+pub fn is_foreground(hwnd: u64) -> bool {
+    if hwnd == 0 {
+        return false;
+    }
+    unsafe {
+        let fg = GetForegroundWindow();
+        if fg.0.is_null() {
+            return false;
+        }
+        if fg.0 as u64 == hwnd {
+            return true;
+        }
+        let (mut fg_pid, mut game_pid) = (0u32, 0u32);
+        GetWindowThreadProcessId(fg, Some(&mut fg_pid));
+        GetWindowThreadProcessId(HWND(hwnd as *mut _), Some(&mut game_pid));
+        game_pid != 0 && fg_pid == game_pid
     }
 }

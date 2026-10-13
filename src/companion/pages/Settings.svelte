@@ -27,6 +27,13 @@
       </div>
       <Toggle checked={g.onlyOnTrack} label="Hide off track" onchange={(v) => { g.onlyOnTrack = v; saveConfig(); }} />
     </div>
+    <div class="flex items-center justify-between p-4">
+      <div>
+        <div class="font-medium">Hide overlay when game is not focused</div>
+        <div class="text-muted">Hide widgets while you alt-tab to another window (always shown in the layout editor and demo mode).</div>
+      </div>
+      <Toggle checked={g.hideUnfocused} label="Hide when unfocused" onchange={(v) => { g.hideUnfocused = v; saveConfig(); }} />
+    </div>
     <div class="flex items-center justify-between gap-6 p-4">
       <div>
         <div class="font-medium">Overlay refresh rate</div>

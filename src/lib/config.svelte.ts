@@ -33,6 +33,8 @@ export interface AppConfig {
     updateHz: number;
     /** Hide widgets while in menus/garage (always shown in edit mode). */
     onlyOnTrack: boolean;
+    /** Hide widgets while the game window is not focused (always shown in edit/demo mode). */
+    hideUnfocused: boolean;
     /** Grid snap in edit mode (px). */
     snap: number;
   };
@@ -207,7 +209,7 @@ export const widgetMeta = (id: string) => WIDGETS.find((w) => w.id === id)!;
 function defaults(): AppConfig {
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, snap: 4 },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, snap: 4 },
     widgets: Object.fromEntries(
       WIDGETS.map((w) => [
         w.id,

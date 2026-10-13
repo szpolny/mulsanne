@@ -1,7 +1,7 @@
 //! Background threads: the data loop (game or demo -> recorder -> UI events)
 //! and the database writer for finished laps.
 
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -12,7 +12,7 @@ use tauri::{AppHandle, Emitter};
 
 use crate::db::{self, Db, NewLap};
 use crate::demo::DemoSim;
-use crate::lmu::{self, layout, shm::LmuSharedMemory};
+use crate::lmu::{self, layout, shm::{self, LmuSharedMemory}};
 use crate::model::Snapshot;
 use crate::recorder::Recorder;
 
@@ -22,6 +22,10 @@ pub struct Shared {
     /// Max snapshot events per second sent to the windows.
     pub emit_hz: AtomicU32,
     pub reload_reference: AtomicBool,
+    /// HWND of the running game window, 0 when not connected.
+    pub game_window: AtomicU64,
+    /// Whether the game window currently has keyboard focus.
+    pub game_focused: AtomicBool,
 }
 
 impl Shared {
@@ -31,6 +35,8 @@ impl Shared {
             demo: AtomicBool::new(false),
             emit_hz: AtomicU32::new(30),
             reload_reference: AtomicBool::new(false),
+            game_window: AtomicU64::new(0),
+            game_focused: AtomicBool::new(false),
         }
     }
 }
@@ -56,6 +62,14 @@ pub fn spawn(app: AppHandle, shared: Arc<Shared>, db: Arc<Db>) {
             .name("lap-writer".into())
             .spawn(move || run_writer(app, db, rx))
             .expect("spawn lap writer");
+    }
+    {
+        let app = app.clone();
+        let shared = shared.clone();
+        thread::Builder::new()
+            .name("focus-watch".into())
+            .spawn(move || run_focus_watch(app, shared))
+            .expect("spawn focus watcher");
     }
     thread::Builder::new()
         .name("telemetry".into())
@@ -98,6 +112,18 @@ fn run_writer(app: AppHandle, db: Arc<Db>, rx: Receiver<NewLap>) {
     }
 }
 
+/// Polls the foreground window and emits `game-focused` when the game gains or
+/// loses focus, so the overlay can hide while alt-tabbed.
+fn run_focus_watch(app: AppHandle, shared: Arc<Shared>) {
+    loop {
+        let focused = shm::is_foreground(shared.game_window.load(Ordering::Acquire));
+        if shared.game_focused.swap(focused, Ordering::AcqRel) != focused {
+            let _ = app.emit("game-focused", focused);
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+}
+
 fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
     let mut buf = vec![0u8; layout::TOTAL_SIZE];
     let mut shm: Option<LmuSharedMemory> = None;
@@ -112,6 +138,10 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
     loop {
         if shared.reload_reference.swap(false, Ordering::AcqRel) {
             recorder.invalidate_reference();
+        }
+
+        if shm.is_none() {
+            shared.game_window.store(0, Ordering::Release);
         }
 
         let mut snap = if shared.demo.load(Ordering::Acquire) {
@@ -142,6 +172,7 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
                         shm = None;
                         Snapshot::default()
                     } else {
+                        shared.game_window.store(shm::game_window(&buf), Ordering::Release);
                         let s = lmu::parse(&buf);
                         let key = (s.session.current_et, s.player.as_ref().map_or(0.0, |p| p.elapsed_time));
                         if key != last_key {

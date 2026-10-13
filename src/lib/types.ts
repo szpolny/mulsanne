@@ -216,6 +216,8 @@ export interface Status {
   demo: boolean;
   editMode: boolean;
   overlayVisible: boolean;
+  /** LMU window has focus (always false when the game is not running). */
+  gameFocused: boolean;
   dataDir: string;
 }
 

@@ -21,7 +21,7 @@ export async function install() {
         case "get_snapshot":
           return fx.frames[0];
         case "get_status":
-          return { demo: true, editMode, overlayVisible: true, dataDir: "C:\\mock" };
+          return { demo: true, editMode, overlayVisible: true, gameFocused: false, dataDir: "C:\\mock" };
         case "get_config":
           return config;
         case "save_config":
