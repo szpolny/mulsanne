@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
   import { temp, tempUnit } from "../../lib/format";
-  import { live } from "../../lib/live.svelte";
+  import { useLive } from "../../lib/live.svelte";
+
+  const live = useLive();
 
   let { units }: { opts: Record<string, any>; units: Units; edit: boolean } = $props();
 

@@ -5,7 +5,9 @@
   import type { Units } from "../../lib/config.svelte";
   import { classColor } from "../../lib/format";
   import { fit, pathFrom, project } from "../../lib/geometry";
-  import { live } from "../../lib/live.svelte";
+  import { useLive } from "../../lib/live.svelte";
+
+  const live = useLive();
 
   let { opts }: { opts: Record<string, any>; units: Units; edit: boolean } = $props();
 

@@ -8,7 +8,7 @@ pub mod recorder;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -20,6 +20,8 @@ pub struct AppState {
     pub data_dir: PathBuf,
     pub edit_mode: AtomicBool,
     pub overlay_visible: AtomicBool,
+    /// Created on first use by the companion's widget previews.
+    pub preview: Mutex<Option<engine::PreviewSim>>,
 }
 
 /// Transparent, click-through, always-on-top window covering the primary
@@ -94,6 +96,7 @@ pub fn run() {
                 data_dir,
                 edit_mode: AtomicBool::new(false),
                 overlay_visible: AtomicBool::new(true),
+                preview: Mutex::new(None),
             });
 
             create_overlay(app)?;
@@ -124,6 +127,7 @@ pub fn run() {
             commands::set_edit_mode,
             commands::set_overlay_visible,
             commands::set_demo_mode,
+            commands::get_preview_snapshot,
             commands::list_sessions,
             commands::list_laps,
             commands::list_track_laps,

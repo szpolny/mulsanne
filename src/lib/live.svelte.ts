@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { getContext, setContext } from "svelte";
 import { api } from "./api";
 import type { Snapshot, Status } from "./types";
 
@@ -9,6 +10,23 @@ class Live {
 }
 
 export const live = new Live();
+
+/** Where widgets read telemetry from. */
+export interface LiveSource {
+  readonly snap: Snapshot | null;
+}
+
+const LIVE_KEY = Symbol("live");
+
+/** Gives child widgets a different telemetry source (e.g. the companion's preview). */
+export function provideLive(source: LiveSource) {
+  setContext(LIVE_KEY, source);
+}
+
+/** The telemetry source for a widget: the one provided by a parent, else the global live data. */
+export function useLive(): LiveSource {
+  return getContext<LiveSource | undefined>(LIVE_KEY) ?? live;
+}
 
 let started = false;
 

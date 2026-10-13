@@ -202,3 +202,72 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
         }
     }
 }
+
+/// Demo data for the widget previews in the companion app. Runs its own
+/// simulation, separate from demo mode, so it never shows up on the overlay
+/// and finished laps are discarded instead of being written to the database.
+pub struct PreviewSim {
+    sim: DemoSim,
+    recorder: Recorder,
+    last: Instant,
+    frame: u64,
+}
+
+impl PreviewSim {
+    /// Simulated time run up front so lap times, deltas and fuel averages are
+    /// already filled in when the preview first appears.
+    const WARMUP_SECS: f64 = 300.0;
+    const STEP_SECS: f64 = 0.02;
+
+    pub fn new(db: Arc<Db>) -> Self {
+        // The receiver is dropped, so laps the recorder finishes go nowhere.
+        let (tx, _) = mpsc::channel::<NewLap>();
+        let mut preview = Self { sim: DemoSim::new(), recorder: Recorder::new(db, tx), last: Instant::now(), frame: 0 };
+        preview.advance(Self::WARMUP_SECS);
+        preview
+    }
+
+    /// Advances the simulation by the wall time since the previous call
+    /// (capped, so it resumes smoothly after the preview was hidden).
+    pub fn next(&mut self) -> Snapshot {
+        let now = Instant::now();
+        let dt = (now - self.last).as_secs_f64().min(0.1);
+        self.last = now;
+        self.advance(dt)
+    }
+
+    fn advance(&mut self, secs: f64) -> Snapshot {
+        let steps = (secs / Self::STEP_SECS).ceil().max(1.0) as usize;
+        let dt = secs / steps as f64;
+        let mut snap = Snapshot::default();
+        for _ in 0..steps {
+            snap = self.sim.step(dt);
+            self.frame += 1;
+            snap.frame = self.frame;
+            self.recorder.update(&mut snap);
+        }
+        snap
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preview_is_warmed_up_and_not_recorded() {
+        let dir = std::env::temp_dir().join(format!("lmo-preview-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("p.db");
+        let _ = std::fs::remove_file(&path);
+        let db = Arc::new(Db::open(&path).unwrap());
+
+        let mut preview = PreviewSim::new(db.clone());
+        let snap = preview.next();
+
+        assert!(snap.player.is_some());
+        assert!(snap.timing.last_lap_time > 0.0);
+        assert!(snap.strategy.fuel_per_lap > 0.0);
+        assert!(db.list_sessions(None, None, 10, 0).unwrap().is_empty());
+    }
+}

@@ -5,6 +5,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap};
+use crate::engine::PreviewSim;
 use crate::model::Snapshot;
 use crate::AppState;
 
@@ -92,6 +93,13 @@ pub fn set_overlay_visible(app: AppHandle, visible: bool) {
 pub fn set_demo_mode(app: AppHandle, state: State<AppState>, enabled: bool) {
     state.shared.demo.store(enabled, Ordering::Release);
     let _ = app.emit("demo-mode", enabled);
+}
+
+/// Next frame of the companion's preview-only demo data (see `PreviewSim`).
+#[tauri::command]
+pub async fn get_preview_snapshot(state: State<'_, AppState>) -> CmdResult<Snapshot> {
+    let mut preview = state.preview.lock().unwrap_or_else(|e| e.into_inner());
+    Ok(preview.get_or_insert_with(|| PreviewSim::new(state.db.clone())).next())
 }
 
 #[tauri::command]

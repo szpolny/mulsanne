@@ -3,6 +3,7 @@
   import { config, resetLayout, saveConfig, WIDGETS } from "../../lib/config.svelte";
   import { live } from "../../lib/live.svelte";
   import Toggle from "../components/Toggle.svelte";
+  import WidgetPreview from "../components/WidgetPreview.svelte";
 
   let selectedId = $state(WIDGETS[0].id);
   const meta = $derived(WIDGETS.find((w) => w.id === selectedId)!);
@@ -52,7 +53,7 @@
       {/each}
     </div>
 
-    <div class="card p-5">
+    <div class="min-w-0 card p-5">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="section-title text-lg">{meta.name}</h2>
@@ -66,6 +67,10 @@
             saveConfig();
           }}
         />
+      </div>
+
+      <div class="mt-5">
+        <WidgetPreview {meta} />
       </div>
 
       <div class="mt-6 grid max-w-lg grid-cols-[160px_1fr_60px] items-center gap-x-4 gap-y-4 text-sm">

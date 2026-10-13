@@ -2,8 +2,10 @@
   import { compoundStyle } from "../../lib/brands";
   import type { Units } from "../../lib/config.svelte";
   import { pressure, temp } from "../../lib/format";
-  import { live } from "../../lib/live.svelte";
+  import { useLive } from "../../lib/live.svelte";
   import type { Wheel } from "../../lib/types";
+
+  const live = useLive();
 
   let { opts, units }: { opts: Record<string, any>; units: Units; edit: boolean } = $props();
 

@@ -1,9 +1,11 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
   import { classColor, shortName } from "../../lib/format";
-  import { live } from "../../lib/live.svelte";
+  import { useLive } from "../../lib/live.svelte";
   import type { Vehicle } from "../../lib/types";
   import CarLogo from "../CarLogo.svelte";
+
+  const live = useLive();
 
   let { opts }: { opts: Record<string, any>; units: Units; edit: boolean } = $props();
 

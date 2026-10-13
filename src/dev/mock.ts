@@ -1,6 +1,7 @@
 // Browser-only preview: fakes the Tauri backend with demo fixtures so the UI can
 // be developed in a normal browser (`pnpm dev`, then open http://localhost:1420
-// or http://localhost:1420/#overlay). Generate fixtures first:
+// or http://localhost:1420/#overlay; add ?nolive to simulate the game not running).
+// Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
@@ -14,12 +15,16 @@ export async function install() {
   const fx = await res.json();
   let config: unknown = null;
   let editMode = location.hash.includes("edit");
+  const noLive = new URLSearchParams(location.search).has("nolive");
+  let previewFrame = 0;
 
   mockIPC(
     (cmd, args: any) => {
       switch (cmd) {
         case "get_snapshot":
-          return fx.frames[0];
+          return noLive ? null : fx.frames[0];
+        case "get_preview_snapshot":
+          return fx.frames[previewFrame++ % fx.frames.length];
         case "get_status":
           return { demo: true, editMode, overlayVisible: true, gameFocused: false, dataDir: "C:\\mock" };
         case "get_config":
@@ -53,6 +58,7 @@ export async function install() {
     { shouldMockEvents: true },
   );
 
+  if (noLive) return;
   let i = 0;
   setInterval(() => {
     emit("snapshot", fx.frames[i++ % fx.frames.length]);
