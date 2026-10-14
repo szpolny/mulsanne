@@ -41,9 +41,9 @@
     }
     if (s.phase === 6 || s.yellowFlagState > 0) {
       banners.push({ text: "Full course yellow", bg: "#ffd400", fg: "#111" });
-    } else {
-      const sectors = s.sectorYellow.flatMap((y, i) => (y ? [`S${i + 1}`] : []));
-      if (sectors.length) banners.push({ text: "Yellow flag", sub: sectors.join(" · "), bg: "#ffd400", fg: "#111" });
+    } else if (me && !me.inPits && s.sectorYellow[me.sector - 1]) {
+      // Only warn about a local yellow in the sector the player is driving through.
+      banners.push({ text: "Yellow flag", sub: `S${me.sector}`, bg: "#ffd400", fg: "#111" });
     }
     if (s.phase === 7) banners.push({ text: "Session stopped", bg: "#e3101f", fg: "#fff" });
     if (s.phase === 8) banners.push({ text: "Chequered flag", bg: "#f4f4f6", fg: "#111" });
