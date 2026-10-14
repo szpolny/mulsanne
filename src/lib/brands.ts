@@ -34,6 +34,12 @@ export interface Brand {
 /** Simple Icons glyphs use a 24×24 box. */
 const si = (icon: { path: string }): LogoData => ({ viewBox: "0 0 24 24", paths: [{ d: icon.path }] });
 
+/** Just the speedmark (the first subpath) of the Simple Icons McLaren logo, without the wordmark. */
+const mclarenSpeedmark: LogoData = {
+  viewBox: "19.06 10.21 4.94 2.75",
+  paths: [{ d: siMclaren.path.slice(0, siMclaren.path.indexOf("z") + 1) }],
+};
+
 const BRANDS: { match: RegExp; brand: Brand }[] = [
   { match: /porsche/i, brand: { name: "Porsche", logo: si(siPorsche), mono: "P" } },
   { match: /ferrari/i, brand: { name: "Ferrari", logo: si(siFerrari), mono: "F" } },
@@ -45,7 +51,7 @@ const BRANDS: { match: RegExp; brand: Brand }[] = [
   { match: /lamborghini|huracan|sc63/i, brand: { name: "Lamborghini", logo: si(siLamborghini), mono: "L" } },
   { match: /corvette|chevrolet/i, brand: { name: "Chevrolet", logo: si(siChevrolet), mono: "C" } },
   { match: /mustang|ford/i, brand: { name: "Ford", logo: si(siFord), mono: "F" } },
-  { match: /mclaren/i, brand: { name: "McLaren", logo: si(siMclaren), mono: "M" } },
+  { match: /mclaren/i, brand: { name: "McLaren", logo: mclarenSpeedmark, mono: "M" } },
   { match: /audi/i, brand: { name: "Audi", logo: si(siAudi), mono: "A" } },
   { match: /honda|acura|nsx/i, brand: { name: "Honda", logo: si(siHonda), mono: "H" } },
   { match: /nissan/i, brand: { name: "Nissan", logo: si(siNissan), mono: "N" } },

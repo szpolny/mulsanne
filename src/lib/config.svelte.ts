@@ -47,25 +47,25 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "dashboard",
     name: "Dashboard",
-    description: "Speed, gear, RPM bar, pedal bars and car settings at a glance.",
+    description: "Speed, gear, RPM bar and car settings at a glance.",
     defaults: { enabled: true, x: 760, y: 830 },
     options: [
-      { key: "showPedals", label: "Pedal bars", type: "boolean" },
       { key: "showSettings", label: "TC / ABS / map / bias row", type: "boolean" },
     ],
-    optionDefaults: { showPedals: true, showSettings: true },
+    optionDefaults: { showSettings: true },
   },
   {
     id: "inputs",
     name: "Input trace",
-    description: "Rolling throttle, brake and steering graph.",
+    description: "Rolling throttle, brake and steering graph with live pedal bars.",
     defaults: { enabled: true, x: 1110, y: 960 },
     options: [
       { key: "seconds", label: "History (s)", type: "number", min: 2, max: 20, step: 1 },
       { key: "showSteering", label: "Steering line", type: "boolean" },
+      { key: "showPedals", label: "Throttle / brake / clutch bars", type: "boolean" },
       { key: "width", label: "Width (px)", type: "number", min: 200, max: 600, step: 10 },
     ],
-    optionDefaults: { seconds: 6, showSteering: true, width: 320 },
+    optionDefaults: { seconds: 6, showSteering: true, showPedals: true, width: 320 },
   },
   {
     id: "delta",
@@ -97,9 +97,10 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "standings",
     name: "Standings",
-    description: "Multi-class timing tower.",
+    description: "Multi-class timing tower with optional session header.",
     defaults: { enabled: true, x: 20, y: 110 },
     options: [
+      { key: "showSession", label: "Session info header", type: "boolean" },
       { key: "maxRows", label: "Rows per class", type: "number", min: 3, max: 40, step: 1 },
       {
         key: "classes",
@@ -111,31 +112,24 @@ export const WIDGETS: WidgetMeta[] = [
         ],
       },
       { key: "showLogo", label: "Car logo", type: "boolean" },
-      { key: "showTyres", label: "Tyres", type: "boolean" },
-      {
-        key: "tyreInfo",
-        label: "Tyre usage as",
-        type: "select",
-        choices: [
-          { value: "wear", label: "Tread used (%)" },
-          { value: "laps", label: "Laps on set" },
-        ],
-      },
+      { key: "showTyres", label: "Tyre compound", type: "boolean" },
+      { key: "showEnergy", label: "Virtual energy left", type: "boolean" },
       { key: "showLast", label: "Last lap", type: "boolean" },
       { key: "showInterval", label: "Interval", type: "boolean" },
     ],
-    optionDefaults: { maxRows: 8, classes: "all", showLogo: true, showTyres: true, tyreInfo: "wear", showLast: true, showInterval: true },
+    optionDefaults: { showSession: false, maxRows: 8, classes: "all", showLogo: true, showTyres: true, showEnergy: true, showLast: true, showInterval: true },
   },
   {
     id: "relative",
     name: "Relative",
-    description: "Cars physically around you on track with time gaps.",
+    description: "Cars physically around you on track with time gaps and virtual energy left.",
     defaults: { enabled: true, x: 1530, y: 560 },
     options: [
       { key: "ahead", label: "Cars ahead", type: "number", min: 1, max: 8, step: 1 },
       { key: "behind", label: "Cars behind", type: "number", min: 1, max: 8, step: 1 },
+      { key: "showEnergy", label: "Virtual energy left", type: "boolean" },
     ],
-    optionDefaults: { ahead: 3, behind: 3 },
+    optionDefaults: { ahead: 3, behind: 3, showEnergy: true },
   },
   {
     id: "fuel",

@@ -4,6 +4,7 @@
   import { useLive } from "../../lib/live.svelte";
   import type { Vehicle } from "../../lib/types";
   import CarLogo from "../CarLogo.svelte";
+  import EnergyBadge from "../EnergyBadge.svelte";
 
   const live = useLive();
 
@@ -52,12 +53,15 @@
     if (r.lapDiff < 0) return "#7fb6ff"; // you are lapping them
     return undefined;
   }
+
+  const showEnergy = $derived(opts.showEnergy ?? true);
 </script>
 
-<div class="hud w-[300px] py-1.5 text-[14px]">
+<div class={["hud py-1.5 text-[14px]", showEnergy ? "w-[346px]" : "w-[300px]"]}>
   {#each rows as r (r.v.id)}
     <div
-      class={["mx-1.5 grid h-[26px] grid-cols-[22px_36px_18px_1fr_auto_48px] items-center gap-x-2 rounded-md px-1.5", r.v.isPlayer && "bg-accent text-white"]}
+      class={["mx-1.5 grid h-[26px] items-center gap-x-2 rounded-md px-1.5", r.v.isPlayer && "bg-accent text-white"]}
+      style:grid-template-columns={showEnergy ? "22px 36px 18px 1fr auto 40px 48px" : "22px 36px 18px 1fr auto 48px"}
     >
       <span class="text-right font-semibold">{r.v.classPlace}</span>
       <span class="rounded-[4px] text-center text-[12px] leading-[18px] font-bold text-white" style:background={classColor(r.v.class)}>{r.v.number || "–"}</span>
@@ -66,6 +70,9 @@
       <span>
         {#if r.v.inPits}<span class="rounded-[4px] bg-white px-1 text-[10px] leading-4 font-bold text-black">PIT</span>{/if}
       </span>
+      {#if showEnergy}
+        <EnergyBadge value={r.v.virtualEnergy} />
+      {/if}
       <span class="text-right font-semibold">{r.v.isPlayer ? "" : (r.gap > 0 ? "−" : "+") + Math.abs(r.gap).toFixed(1)}</span>
     </div>
   {:else}

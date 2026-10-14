@@ -343,6 +343,7 @@ impl DemoSim {
             model: "Porsche 963".into(),
             tyre_compound: "Medium".into(),
             tyre_wear: Some(self.wear),
+            virtual_energy: Some(self.ve),
             ..Default::default()
         });
         for o in &self.opponents {
@@ -369,6 +370,8 @@ impl DemoSim {
                 model: o.vehicle.split_once(' ').map(|(_, m)| m.to_string()).unwrap_or_default(),
                 tyre_compound: ["Soft", "Medium", "Hard"][o.id as usize % 3].into(),
                 tyre_wear: Some((1.0 - self.time * 0.00003 * (1.0 + (o.id % 4) as f64 * 0.3)).max(0.0)),
+                // ~8% per lap, refilled when it runs out.
+                virtual_energy: Some(1.0 - (o.progress / len * 0.08 + (o.id % 7) as f64 * 0.11).rem_euclid(0.95)),
                 ..Default::default()
             });
         }

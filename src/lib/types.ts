@@ -169,6 +169,8 @@ export interface Vehicle {
   tyreWear: number | null;
   /** Laps on the current set. */
   tyreLaps: number;
+  /** Remaining virtual energy 0..1, null when the car has none or it is unknown. */
+  virtualEnergy: number | null;
 }
 
 export interface Timing {

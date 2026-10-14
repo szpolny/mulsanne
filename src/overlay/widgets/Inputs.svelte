@@ -72,6 +72,23 @@
   }
 </script>
 
-<div class="hud p-1.5">
+{#snippet bar(label: string, value: number, color: string)}
+  <div class="flex flex-col items-center gap-1">
+    <div class="relative w-2.5 flex-1 overflow-hidden rounded-full bg-hud-2">
+      <div class="absolute inset-x-0 bottom-0 rounded-full" style:background={color} style:height="{value * 100}%"></div>
+    </div>
+    <span class="text-[10px] leading-none font-semibold text-muted">{label}</span>
+  </div>
+{/snippet}
+
+<div class="hud flex gap-2 p-1.5">
   <canvas bind:this={canvas} style:width="{width}px" style:height="{HEIGHT}px" class="block"></canvas>
+  {#if opts.showPedals ?? true}
+    {@const p = live.snap?.player}
+    <div class="flex gap-1.5 pr-1 pt-0.5" style:height="{HEIGHT}px">
+      {@render bar("C", p?.clutch ?? 0, "var(--color-clutch)")}
+      {@render bar("B", p?.brake ?? 0, p?.absActive ? "var(--color-warn)" : "var(--color-brake)")}
+      {@render bar("T", p?.throttle ?? 0, "var(--color-throttle)")}
+    </div>
+  {/if}
 </div>

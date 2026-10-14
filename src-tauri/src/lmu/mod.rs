@@ -38,7 +38,7 @@ pub fn parse(buf: &[u8]) -> Snapshot {
     let session = parse_session(&info);
 
     let active: u8 = read_at(buf, layout::OFF_TELEMETRY_ACTIVE_VEHICLES);
-    // Telemetry is available for every car, not just the player: use it for tyre info.
+    // Telemetry is available for every car, not just the player: use it for tyre and energy info.
     let telemetry: HashMap<i32, TelemInfo> = (0..(active as usize).min(layout::MAX_VEHICLES))
         .map(|i| {
             let t: TelemInfo = read_at(buf, layout::OFF_TELEMETRY_INFO + i * std::mem::size_of::<TelemInfo>());
@@ -53,6 +53,9 @@ pub fn parse(buf: &[u8]) -> Snapshot {
             let wear = wheels.iter().map(|w| { w.wear }).sum::<f64>() / 4.0;
             // Remote cars may report 0 when the server does not share wear.
             v.tyre_wear = (wear > 0.0 && wear <= 1.0).then_some(wear);
+            // 0 for cars without virtual energy (or when not shared); the value may be 0..1 or 0..100.
+            let ve = t.virtual_energy as f64;
+            v.virtual_energy = (ve > 0.0).then(|| if ve > 1.0001 { ve / 100.0 } else { ve });
         }
     }
     let player_idx: u8 = read_at(buf, layout::OFF_TELEMETRY_PLAYER_IDX);

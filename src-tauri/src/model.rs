@@ -256,6 +256,8 @@ pub struct Vehicle {
     pub tyre_wear: Option<f64>,
     /// Laps completed on the current set (since the last pit stop).
     pub tyre_laps: i32,
+    /// Remaining virtual energy 0..1, if the car uses it and the game shares it.
+    pub virtual_energy: Option<f64>,
 }
 
 /// Lap timing derived by the recorder (not directly available from the game).
