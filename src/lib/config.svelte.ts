@@ -41,6 +41,18 @@ export interface AppConfig {
     opacity: number;
   };
   widgets: Record<string, WidgetConfig>;
+  /** Id of the profile mirrored by `general.scale/opacity` and `widgets`. */
+  activeProfile: string;
+  /** Saved overlay setups: layout, widget options, scale and opacity. */
+  profiles: Record<string, Profile>;
+}
+
+/** A saved overlay setup. App-wide preferences (units, refresh rate, …) are not part of it. */
+export interface Profile {
+  name: string;
+  scale: number;
+  opacity: number;
+  widgets: Record<string, WidgetConfig>;
 }
 
 export const WIDGETS: WidgetMeta[] = [
@@ -202,34 +214,65 @@ export const WIDGETS: WidgetMeta[] = [
 
 export const widgetMeta = (id: string) => WIDGETS.find((w) => w.id === id)!;
 
+function defaultWidgets(): Record<string, WidgetConfig> {
+  return Object.fromEntries(
+    WIDGETS.map((w) => [
+      w.id,
+      { ...w.defaults, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
+    ]),
+  );
+}
+
 function defaults(): AppConfig {
+  const widgets = defaultWidgets();
   return {
     version: 1,
     general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, snap: 4, scale: 1, opacity: 0.92 },
-    widgets: Object.fromEntries(
-      WIDGETS.map((w) => [
-        w.id,
-        { ...w.defaults, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
-      ]),
-    ),
+    widgets,
+    activeProfile: "default",
+    profiles: { default: { name: "Default", scale: 1, opacity: 0.92, widgets: structuredClone(widgets) } },
   };
+}
+
+/** Fills anything missing in stored widget settings from the defaults. */
+function mergeWidgets(stored: any): Record<string, WidgetConfig> {
+  const base = defaultWidgets();
+  for (const id of Object.keys(base)) {
+    // Drop legacy per-widget scale/opacity; those are global now.
+    const { scale: _scale, opacity: _opacity, ...s } = stored?.[id] ?? {};
+    base[id] = { ...base[id], ...s, options: { ...base[id].options, ...(s.options ?? {}) } };
+  }
+  return base;
 }
 
 /** Fills anything missing in a stored config from the defaults. */
 function merge(stored: any): AppConfig {
   const base = defaults();
   if (!stored || typeof stored !== "object") return base;
-  const out: AppConfig = { ...base, general: { ...base.general, ...(stored.general ?? {}) } };
-  for (const id of Object.keys(base.widgets)) {
-    // Drop legacy per-widget scale/opacity; those are global now.
-    const { scale: _scale, opacity: _opacity, ...s } = stored.widgets?.[id] ?? {};
-    out.widgets[id] = {
-      ...base.widgets[id],
-      ...s,
-      options: { ...base.widgets[id].options, ...(s.options ?? {}) },
+  const general = { ...base.general, ...(stored.general ?? {}) };
+  const widgets = mergeWidgets(stored.widgets);
+  const profiles: Record<string, Profile> = {};
+  for (const [id, p] of Object.entries<any>(stored.profiles ?? {})) {
+    if (!p || typeof p !== "object") continue;
+    profiles[id] = {
+      name: typeof p.name === "string" && p.name ? p.name : "Profile",
+      scale: typeof p.scale === "number" ? p.scale : base.general.scale,
+      opacity: typeof p.opacity === "number" ? p.opacity : base.general.opacity,
+      widgets: mergeWidgets(p.widgets),
     };
   }
-  return out;
+  let activeProfile = typeof stored.activeProfile === "string" ? stored.activeProfile : "default";
+  // Configs from before profiles existed: the current setup becomes the first profile.
+  if (!profiles[activeProfile]) {
+    activeProfile = Object.keys(profiles)[0] ?? "default";
+    profiles[activeProfile] ??= {
+      name: "Default",
+      scale: general.scale,
+      opacity: general.opacity,
+      widgets: structuredClone(widgets),
+    };
+  }
+  return { ...base, general, widgets, activeProfile, profiles };
 }
 
 class ConfigStore {
@@ -255,10 +298,22 @@ export async function loadConfig() {
   config.loaded = true;
 }
 
+/** Copies the live layout into the active profile's saved slot. */
+function syncActiveProfile() {
+  const c = config.value;
+  c.profiles[c.activeProfile] = {
+    name: c.profiles[c.activeProfile]?.name ?? "Profile",
+    scale: c.general.scale,
+    opacity: c.general.opacity,
+    widgets: $state.snapshot(c.widgets),
+  };
+}
+
 /** Persists the current config (debounced) and broadcasts it to the other window. */
 export function saveConfig() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
+    syncActiveProfile();
     const snapshot = $state.snapshot(config.value);
     lastSaved = JSON.stringify(snapshot);
     api.saveConfig(snapshot);
@@ -266,11 +321,53 @@ export function saveConfig() {
 }
 
 export function resetLayout() {
-  const d = defaults();
+  const d = defaultWidgets();
   for (const [id, w] of Object.entries(config.value.widgets)) {
-    w.x = d.widgets[id].x;
-    w.y = d.widgets[id].y;
+    w.x = d[id].x;
+    w.y = d[id].y;
   }
   config.value.general.scale = 1;
+  saveConfig();
+}
+
+/** Makes `id` the active profile and loads its layout into the overlay. */
+export function switchProfile(id: string) {
+  const c = config.value;
+  const p = c.profiles[id];
+  if (!p || id === c.activeProfile) return;
+  syncActiveProfile();
+  c.activeProfile = id;
+  c.general.scale = p.scale;
+  c.general.opacity = p.opacity;
+  c.widgets = mergeWidgets($state.snapshot(p.widgets));
+  saveConfig();
+}
+
+/** Creates a profile from the current setup (or the defaults) and switches to it. */
+export function createProfile(name: string, fromDefaults = false) {
+  syncActiveProfile();
+  const c = config.value;
+  const id = `p${Date.now().toString(36)}`;
+  const d = defaults();
+  c.profiles[id] = fromDefaults
+    ? { name, scale: d.general.scale, opacity: d.general.opacity, widgets: d.widgets }
+    : { name, scale: c.general.scale, opacity: c.general.opacity, widgets: $state.snapshot(c.widgets) };
+  switchProfile(id);
+}
+
+export function renameProfile(id: string, name: string) {
+  const p = config.value.profiles[id];
+  if (!p || !name.trim()) return;
+  p.name = name.trim();
+  saveConfig();
+}
+
+/** Deletes a profile; the last remaining one can't be deleted. */
+export function deleteProfile(id: string) {
+  const c = config.value;
+  const ids = Object.keys(c.profiles);
+  if (ids.length < 2 || !c.profiles[id]) return;
+  if (id === c.activeProfile) switchProfile(ids.find((x) => x !== id)!);
+  delete c.profiles[id];
   saveConfig();
 }

@@ -2,6 +2,7 @@
   import { api } from "../../lib/api";
   import { config, resetLayout, saveConfig, WIDGETS } from "../../lib/config.svelte";
   import { live } from "../../lib/live.svelte";
+  import ProfileBar from "../components/ProfileBar.svelte";
   import Toggle from "../components/Toggle.svelte";
   import WidgetPreview from "../components/WidgetPreview.svelte";
 
@@ -27,6 +28,8 @@
       </button>
     </div>
   </div>
+
+  <ProfileBar />
 
   <div class="mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 card px-5 py-3 text-sm">
     <span class="text-xs font-semibold tracking-wider text-muted uppercase">All widgets</span>

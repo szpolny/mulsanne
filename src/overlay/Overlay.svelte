@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../lib/api";
-  import { config, loadConfig, resetLayout, WIDGETS } from "../lib/config.svelte";
+  import { config, loadConfig, resetLayout, switchProfile, WIDGETS } from "../lib/config.svelte";
   import { live, startLive } from "../lib/live.svelte";
   import Logo from "../lib/Logo.svelte";
   import WidgetFrame from "./WidgetFrame.svelte";
@@ -35,6 +35,16 @@
     </div>
     {#if !live.snap?.player}
       <button class="btn px-3! py-1.5! text-xs!" onclick={() => api.setDemoMode(true)}>Demo data</button>
+    {/if}
+    {#if Object.keys(config.value.profiles).length > 1}
+      <select
+        class="field py-1.5! text-xs!"
+        title="Profile"
+        value={config.value.activeProfile}
+        onchange={(e) => switchProfile(e.currentTarget.value)}
+      >
+        {#each Object.entries(config.value.profiles) as [id, p] (id)}<option value={id}>{p.name}</option>{/each}
+      </select>
     {/if}
     <button class="btn px-3! py-1.5! text-xs!" onclick={resetLayout}>Reset</button>
     <button class="btn btn-primary px-4! py-1.5! text-xs!" onclick={() => api.setEditMode(false)}>Done</button>
