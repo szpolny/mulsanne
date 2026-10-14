@@ -4,6 +4,8 @@
 
 Mulsanne is a customizable in-game overlay and telemetry companion for **Le Mans Ultimate**. It reads the game's built-in shared memory, so no game plugin is needed.
 
+Website: [mulsanne.xyz](https://mulsanne.xyz)
+
 ## Features
 
 - A movable, scalable HUD with live timing, standings, relative gaps, fuel and energy estimates, tyres, flags, and a track map.
