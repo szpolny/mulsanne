@@ -4,7 +4,7 @@ Logos are trademarks of their respective owners and are used only to identify ca
 
 ## Wikimedia Commons
 
-Processed with `scripts/process-logos.cjs` to path geometry only (no metadata or other elements), cropped to the emblem and drawn in a single colour.
+Processed to path geometry only (no metadata or other elements), cropped to the emblem and drawn in a single colour.
 
 | Brand | Source file | Licence |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ Processed with `scripts/process-logos.cjs` to path geometry only (no metadata or
 
 ## Provided by the user
 
-Ligier Automotive, Alpine, Duqueine and Ginetta logos were supplied as raster images and converted to single-colour masks in `masks/` with `scripts/make-logo-masks.ps1`.
+Ligier Automotive, Alpine, Duqueine and Ginetta logos were supplied as raster images and converted to single-colour masks in `masks/`.
 
 ## Simple Icons
 

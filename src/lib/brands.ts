@@ -15,7 +15,7 @@ import {
   siToyota,
 } from "simple-icons";
 import { LOGOS, type LogoData } from "./logos/logos";
-// Raster logos converted to single-colour alpha masks by scripts/make-logo-masks.ps1.
+// Raster logos converted to single-colour alpha masks.
 import alpineMask from "./logos/masks/alpine.png";
 import duqueineMask from "./logos/masks/duqueine.png";
 import ginettaMask from "./logos/masks/ginetta.png";
