@@ -47,9 +47,14 @@
       if (!byClass.has(v.class)) byClass.set(v.class, []);
       byClass.get(v.class)!.push(v);
     }
-    const maxRows = Math.max(1, opts.maxRows ?? 8);
-    return [...byClass.entries()].map(([cls, cars]) => {
+    const entries = [...byClass.entries()];
+    if (opts.myClassFirst && myClass != null) entries.sort(([a], [b]) => Number(b === myClass) - Number(a === myClass));
+    const around = Math.max(0, opts.around ?? 1);
+    return entries.map(([cls, cars]) => {
       const leader = cars[0];
+      const limit = Math.max(1, (cls === myClass ? opts.maxRows : opts.maxRowsOther) ?? 8);
+      const bests = cars.map((v) => v.bestLap).filter((t) => t > 0);
+      const classBest = bests.length ? Math.min(...bests) : 0;
       const rows: Row[] = cars.map((v, i) => {
         if (i === 0) return { v, gap: isRace ? "Leader" : lapTime(v.bestLap), interval: "" };
         const prev = cars[i - 1];
@@ -65,13 +70,18 @@
         };
       });
       // Keep the player visible: top rows plus the cars around the player.
-      let visible = rows.slice(0, maxRows);
+      let visible = rows.slice(0, limit);
       const pi = rows.findIndex((r) => r.v.isPlayer);
-      if (pi >= maxRows) {
-        const top = Math.max(1, maxRows - 3);
-        visible = [...rows.slice(0, top), ...rows.slice(pi - 1, pi + 2)].slice(0, maxRows);
+      if (pi >= limit) {
+        const top = Math.max(1, limit - (2 * around + 1));
+        let start = Math.max(top, pi - around);
+        let end = Math.min(rows.length, pi + around + 1);
+        // Not enough room for the whole window: drop cars behind first, then ahead.
+        while (top + end - start > limit && end > pi + 1) end--;
+        while (top + end - start > limit && start < pi) start++;
+        visible = [...rows.slice(0, top), ...rows.slice(start, end)];
       }
-      return { cls, count: cars.length, rows: visible };
+      return { cls, count: cars.length, classBest, rows: visible };
     });
   });
 
@@ -83,14 +93,33 @@
       "minmax(130px,1fr)", // driver
       opts.showTyres ? "18px" : "",
       opts.showEnergy ? "40px" : "",
-      opts.showLast ? "64px" : "",
+      opts.showPits ? "36px" : "",
+      opts.showLast ? "70px" : "",
+      opts.showBest ? "70px" : "",
       "64px", // gap
       opts.showInterval ? "56px" : "",
     ]
       .filter(Boolean)
       .join(" "),
   );
+
+  /** Lap time highlight: purple = class best, green = the driver's personal best (only for last laps). */
+  function tone(t: number, v: Vehicle, classBest: number, personal: boolean): string | undefined {
+    if (!opts.colorTimes || t <= 0) return undefined;
+    if (classBest > 0 && t <= classBest + 1e-4) return "var(--color-best)";
+    if (personal && v.bestLap > 0 && t <= v.bestLap + 1e-4) return "var(--color-good)";
+    return undefined;
+  }
 </script>
+
+{#snippet time(t: number, color: string | undefined, cls: string)}
+  <span class="text-right">
+    <span
+      class={["rounded-[4px] px-1", cls, color && "font-semibold text-white opacity-100!"]}
+      style:background={color}>{lapTime(t)}</span
+    >
+  </span>
+{/snippet}
 
 {#snippet stat(label: string, value: string)}
   <span class="flex items-baseline gap-1.5">
@@ -155,8 +184,16 @@
           <TyreBadge compound={r.v.tyreCompound} wear={r.v.tyreWear} laps={r.v.tyreLaps} />
         {/if}
         {#if opts.showEnergy}<EnergyBadge value={r.v.virtualEnergy} />{/if}
-        {#if opts.showLast}<span class="text-right text-[13px] opacity-75">{lapTime(r.v.lastLap)}</span>{/if}
-        <span class="text-right font-medium">{r.gap}</span>
+        {#if opts.showPits}
+          <span class="text-right text-[13px]"><span class="text-[10px] opacity-50">PS</span> {r.v.numPitstops}</span>
+        {/if}
+        {#if opts.showLast}{@render time(r.v.lastLap, tone(r.v.lastLap, r.v, g.classBest, true), "text-[13px] opacity-75")}{/if}
+        {#if opts.showBest}{@render time(r.v.bestLap, tone(r.v.bestLap, r.v, g.classBest, false), "text-[13px] opacity-75")}{/if}
+        {#if !isRace && i === 0}
+          {@render time(r.v.bestLap, tone(r.v.bestLap, r.v, g.classBest, false), "font-medium")}
+        {:else}
+          <span class="text-right font-medium">{r.gap}</span>
+        {/if}
         {#if opts.showInterval}<span class="text-right text-[13px] opacity-65">{r.interval}</span>{/if}
       </div>
     {/each}
