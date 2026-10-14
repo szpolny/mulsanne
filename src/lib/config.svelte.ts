@@ -78,9 +78,10 @@ export const WIDGETS: WidgetMeta[] = [
       { key: "seconds", label: "History (s)", type: "number", min: 2, max: 20, step: 1 },
       { key: "showSteering", label: "Steering line", type: "boolean" },
       { key: "showPedals", label: "Throttle / brake / clutch bars", type: "boolean" },
+      { key: "showClutch", label: "Clutch bar", type: "boolean" },
       { key: "width", label: "Width (px)", type: "number", min: 200, max: 600, step: 10 },
     ],
-    optionDefaults: { seconds: 6, showSteering: true, showPedals: true, width: 320 },
+    optionDefaults: { seconds: 6, showSteering: true, showPedals: true, showClutch: true, width: 320 },
   },
   {
     id: "delta",

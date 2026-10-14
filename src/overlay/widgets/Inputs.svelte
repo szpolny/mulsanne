@@ -86,7 +86,9 @@
   {#if opts.showPedals ?? true}
     {@const p = live.snap?.player}
     <div class="flex gap-1.5 pr-1 pt-0.5" style:height="{HEIGHT}px">
-      {@render bar("C", p?.clutch ?? 0, "var(--color-clutch)")}
+      {#if opts.showClutch ?? true}
+        {@render bar("C", p?.clutch ?? 0, "var(--color-clutch)")}
+      {/if}
       {@render bar("B", p?.brake ?? 0, p?.absActive ? "var(--color-warn)" : "var(--color-brake)")}
       {@render bar("T", p?.throttle ?? 0, "var(--color-throttle)")}
     </div>
