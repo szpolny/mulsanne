@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/szpolny/mulsanne/compare/v0.2.0...v0.3.0) (2026-10-14)
+
+
+### Features
+
+* add an option to hide the clutch bar ([e79a272](https://github.com/szpolny/mulsanne/commit/e79a272b808e80218eedbe4cffeb292819552db2))
+* add overlay layout profiles ([4868f7c](https://github.com/szpolny/mulsanne/commit/4868f7c5d3af4dd68ee27c85fdcbbb8305edb373))
+* add session progress and class position stats ([fe019e8](https://github.com/szpolny/mulsanne/commit/fe019e8c3a79926a1aa537bf77a78511c50fbbc5))
+* add virtual energy and improve input widgets ([6ea40c7](https://github.com/szpolny/mulsanne/commit/6ea40c7fbf8cad5269083c79ab46b0cdee790f07))
+* customize class standings and lap time highlights ([1ca8dcd](https://github.com/szpolny/mulsanne/commit/1ca8dcd6a5eff02367cd36fe725cdd20a3567040))
+* show finish status and chequered flags ([f8b381e](https://github.com/szpolny/mulsanne/commit/f8b381e0ebf0b7d495c2bc6a193531f52519403a))
+* show upcoming daily race schedule ([39b7ce1](https://github.com/szpolny/mulsanne/commit/39b7ce152871690c282b8d653a36a29a44af96dd))
+* show vehicle status and force feedback on dashboard ([d9ce1a0](https://github.com/szpolny/mulsanne/commit/d9ce1a057e46ee40d012f917a16376cd94014bc5))
+
+
+### Bug Fixes
+
+* show local yellow only in the player's sector ([c5291bf](https://github.com/szpolny/mulsanne/commit/c5291bff3dd04444cc8e75effa64f8190e4f4798))
+
 ## [0.2.0](https://github.com/szpolny/mulsanne/compare/v0.1.0...v0.2.0) (2026-10-13)
 
 
