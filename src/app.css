@@ -135,6 +135,12 @@
   border-radius: 6px;
 }
 
+/* Chequered-flag pattern; --check sets the square size. */
+@utility checkered {
+  background: repeating-conic-gradient(#111 0 25%, #f4f4f6 0 50%) 0 0 / calc(var(--check, 12px) * 2)
+    calc(var(--check, 12px) * 2);
+}
+
 /* ---------- Companion ---------- */
 
 @utility page-title {

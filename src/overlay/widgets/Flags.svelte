@@ -11,6 +11,8 @@
     sub?: string;
     bg: string;
     fg: string;
+    /** Pattern utility drawn behind the banner; text then sits on dark chips (e.g. chequered). */
+    pattern?: string;
   }
 
   const TRACK_LIMITS_SHOW_MS = 6000;
@@ -46,7 +48,7 @@
       banners.push({ text: "Yellow flag", sub: `S${me.sector}`, bg: "#ffd400", fg: "#111" });
     }
     if (s.phase === 7) banners.push({ text: "Session stopped", bg: "#e3101f", fg: "#fff" });
-    if (s.phase === 8) banners.push({ text: "Chequered flag", bg: "#f4f4f6", fg: "#111" });
+    if (s.phase === 8) banners.push({ text: "Chequered flag", bg: "", fg: "#fff", pattern: "checkered" });
     if (me?.flag === 6) banners.push({ text: "Blue flag", sub: "Let faster car pass", bg: "#1d6cf2", fg: "#fff" });
     if (p && now < trackLimitsUntil) {
       const perPoint = Math.max(1, p.trackLimitsStepsPerPoint);
@@ -72,10 +74,17 @@
       </div>
     {/if}
     {#each view.banners as b}
-      <div class="flex items-baseline justify-between rounded-[10px] px-4 py-2 shadow-lg" style:background={b.bg} style:color={b.fg}>
-        <span class="text-[17px] font-bold">{b.text}</span>
-        {#if b.sub}<span class="text-sm font-semibold opacity-75">{b.sub}</span>{/if}
-      </div>
+      {#if b.pattern}
+        <div class={["flex items-center justify-between rounded-[10px] px-2 py-1.5 shadow-lg", b.pattern]} style:color={b.fg}>
+          <span class="rounded-md bg-black/85 px-2 py-0.5 text-[17px] font-bold">{b.text}</span>
+          {#if b.sub}<span class="rounded-md bg-black/85 px-2 py-0.5 text-sm font-semibold">{b.sub}</span>{/if}
+        </div>
+      {:else}
+        <div class="flex items-baseline justify-between rounded-[10px] px-4 py-2 shadow-lg" style:background={b.bg} style:color={b.fg}>
+          <span class="text-[17px] font-bold">{b.text}</span>
+          {#if b.sub}<span class="text-sm font-semibold opacity-75">{b.sub}</span>{/if}
+        </div>
+      {/if}
     {/each}
     {#if edit && !view.banners.length && !view.lights}
       <div class="hud px-4 py-2 text-[17px] font-bold text-muted">Flags</div>

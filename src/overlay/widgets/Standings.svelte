@@ -108,6 +108,7 @@
         class={[
           "mx-1.5 grid h-[26px] items-center gap-x-2 rounded-md px-1.5",
           r.v.isPlayer ? "bg-accent text-white" : i % 2 === 1 && "bg-white/[0.03]",
+          (r.v.finishStatus === 2 || r.v.finishStatus === 3) && "opacity-50",
         ]}
         style:grid-template-columns={columns}
       >
@@ -120,7 +121,17 @@
         {#if opts.showLogo}<CarLogo model={r.v.model} entry={r.v.vehicle} />{/if}
         <span class="flex min-w-0 items-center gap-1.5">
           <span class="truncate font-medium">{shortName(r.v.driver)}</span>
-          {#if r.v.inPits}<span class="rounded-[4px] bg-white px-1 text-[10px] leading-4 font-bold text-black">PIT</span>{/if}
+          {#if r.v.finishStatus === 1}
+            <span class="checkered h-3.5 w-5 shrink-0 rounded-[3px] ring-1 ring-white/40" style="--check: 3.5px" title="Finished"></span>
+          {:else if r.v.finishStatus === 2}
+            <span class="rounded-[4px] bg-white/15 px-1 text-[10px] leading-4 font-bold text-muted">DNF</span>
+          {:else if r.v.finishStatus === 3}
+            <span class="rounded-[4px] bg-bad px-1 text-[10px] leading-4 font-bold text-white">DQ</span>
+          {:else if r.v.inGarage}
+            <span class="rounded-[4px] bg-white/15 px-1 text-[10px] leading-4 font-bold text-fg">GAR</span>
+          {:else if r.v.inPits}
+            <span class="rounded-[4px] bg-white px-1 text-[10px] leading-4 font-bold text-black">PIT</span>
+          {/if}
         </span>
         {#if opts.showTyres}
           <TyreBadge compound={r.v.tyreCompound} wear={r.v.tyreWear} laps={r.v.tyreLaps} />
