@@ -173,6 +173,11 @@ pub struct Player {
     pub speed_limiter: bool,
     pub headlights: bool,
     pub wipers: u8,
+    /// 0 = off, 1 = ignition on, 2 = ignition + starter.
+    pub ignition: u8,
+    pub anti_stall: bool,
+    /// Force feedback output, -1..1 (|1| = clipping).
+    pub ffb: f64,
 
     pub overheating: bool,
     pub detached: bool,

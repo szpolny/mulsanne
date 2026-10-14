@@ -59,12 +59,15 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "dashboard",
     name: "Dashboard",
-    description: "Speed, gear, RPM bar and car settings at a glance.",
+    description: "Speed, gear, RPM bar, status lights, hybrid battery and car settings at a glance.",
     defaults: { enabled: true, x: 760, y: 830 },
     options: [
+      { key: "showIndicators", label: "Status lights (headlights, limiter, TC, ABS, wipers, engine)", type: "boolean" },
+      { key: "showBattery", label: "Hybrid battery bar", type: "boolean" },
+      { key: "showFfb", label: "FFB output meter", type: "boolean" },
       { key: "showSettings", label: "TC / ABS / map / bias row", type: "boolean" },
     ],
-    optionDefaults: { showSettings: true },
+    optionDefaults: { showIndicators: true, showBattery: true, showFfb: false, showSettings: true },
   },
   {
     id: "inputs",

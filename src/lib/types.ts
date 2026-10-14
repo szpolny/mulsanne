@@ -112,6 +112,11 @@ export interface Player {
   speedLimiter: boolean;
   headlights: boolean;
   wipers: number;
+  /** 0 = off, 1 = ignition on, 2 = ignition + starter. */
+  ignition: number;
+  antiStall: boolean;
+  /** Force feedback output, -1..1 (|1| = clipping). */
+  ffb: number;
   overheating: boolean;
   detached: boolean;
   dents: number[];

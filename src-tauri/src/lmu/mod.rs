@@ -67,7 +67,9 @@ pub fn parse(buf: &[u8]) -> Snapshot {
             layout::OFF_TELEMETRY_INFO + player_idx as usize * std::mem::size_of::<TelemInfo>(),
         );
         let scoring = vehicles.iter().find(|v| v.is_player).or_else(|| vehicles.iter().find(|v| v.id == t.id));
-        Some(parse_player(&t, scoring, &info))
+        let mut player = parse_player(&t, scoring, &info);
+        player.ffb = read_at::<f32>(buf, layout::OFF_GENERIC_FFB_TORQUE) as f64;
+        Some(player)
     } else {
         None
     };
@@ -291,6 +293,9 @@ fn parse_player(t: &TelemInfo, scoring: Option<&Vehicle>, info: &ScoringInfo) ->
         speed_limiter: t.speed_limiter_active != 0 || t.speed_limiter != 0,
         headlights: t.headlights != 0,
         wipers: t.wiper_state,
+        ignition: t.ignition_starter,
+        anti_stall: t.anti_stall_activated != 0,
+        ffb: 0.0,
 
         overheating: t.overheating != 0,
         detached: t.detached != 0,
