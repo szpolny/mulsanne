@@ -21,9 +21,15 @@
     if (!s) return "–";
     if (s.maxLaps > 0 && s.maxLaps < 10000 && s.endEt <= 0) {
       const leaderLaps = Math.max(0, ...(snap?.vehicles.map((v) => v.totalLaps) ?? []));
-      return `Lap ${Math.min(leaderLaps + 1, s.maxLaps)} / ${s.maxLaps}`;
+      return `${Math.min(leaderLaps + 1, s.maxLaps)} / ${s.maxLaps}`;
     }
     return clock(s.timeRemaining);
+  });
+  const classSize = $derived(me ? (snap?.vehicles.filter((v) => v.class === me.class).length ?? 0) : 0);
+  // Backend estimate: exact for lap-limited sessions, from average lap time for timed ones.
+  const lapsLeft = $derived.by(() => {
+    const l = snap?.strategy.lapsRemaining ?? 0;
+    return l > 0 && isFinite(l) ? `~${l.toFixed(1)}` : "–";
   });
 
   interface Row {
@@ -86,15 +92,27 @@
   );
 </script>
 
+{#snippet stat(label: string, value: string)}
+  <span class="flex items-baseline gap-1.5">
+    <span class="hud-label">{label}</span>
+    <span class="hud-value text-[14px]">{value}</span>
+  </span>
+{/snippet}
+
 <div class="hud w-max min-w-[380px] py-1.5 text-[14px]">
   {#if opts.showSession && snap}
-    <div class="mx-1.5 mb-1 flex items-center gap-3 border-b border-white/10 px-1.5 pt-0.5 pb-1.5">
-      <span class="hud-title text-fg!">{sessionLabel(snap.session.kind)}</span>
-      <span class="hud-value text-[16px]">{remaining}</span>
-      <span class="ml-auto flex items-baseline gap-3 text-[12px] text-muted">
-        {#if me}<span>Lap <span class="font-semibold text-fg">{me.totalLaps + 1}</span></span>{/if}
-        <span class="font-semibold text-fg">{timeOfDay(snap.session.timeOfDay)}</span>
-      </span>
+    <div class="mx-1.5 mb-1 flex items-baseline gap-3.5 border-b border-white/10 px-1.5 pb-1">
+      {@render stat(sessionLabel(snap.session.kind), remaining)}
+      {#if me}
+        <span class="flex items-baseline gap-1.5">
+          <span class="h-2 w-2 self-center rounded-full" style:background={classColor(me.class)}></span>
+          <span class="hud-value text-[14px]">P{me.classPlace}<span class="text-[11px] text-muted">/{classSize}</span></span>
+        </span>
+        {@render stat("Ovr", `P${me.place}`)}
+      {/if}
+      {@render stat("Laps", String(me?.totalLaps ?? 0))}
+      {@render stat("Left", lapsLeft)}
+      <span class="ml-auto hud-value text-[14px]">{timeOfDay(snap.session.timeOfDay)}</span>
     </div>
   {/if}
   {#each groups as g (g.cls)}
