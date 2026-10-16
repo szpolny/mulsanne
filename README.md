@@ -22,6 +22,10 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 
 Use **Demo data** on the **Live** page to arrange the overlay without running the game. Laps are saved locally in `%APPDATA%\com.lm-overlay.app\laps.db`; valid laps count toward your personal bests.
 
+## Feedback
+
+Use **Report issue** at the bottom of the companion sidebar or [open an issue on GitHub](https://github.com/szpolny/mulsanne/issues/new/choose) to report a bug or request a feature. For bugs, include your Mulsanne version (shown in Settings), Windows version, and steps to reproduce the problem.
+
 ## Development
 
 Built with Tauri 2, Rust, Svelte 5, and SQLite.

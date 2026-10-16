@@ -24,6 +24,9 @@ export async function install() {
       switch (cmd) {
         case "plugin:app|version":
           return version;
+        case "plugin:opener|open_url":
+          window.open(args.url, "_blank", "noopener,noreferrer");
+          return;
         case "get_snapshot":
           return noLive ? null : fx.frames[0];
         case "get_preview_snapshot":

@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a problem with Mulsanne.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues before submitting a report. Include enough detail to reproduce the problem.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem and which page or overlay widget is affected.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the steps that lead to the problem.
+      placeholder: |
+        1. Open Mulsanne...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Mulsanne version
+      description: Find this at the bottom of Settings. For a development build, include the commit if known.
+      placeholder: "e.g. 0.3.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "e.g. Windows 11 24H2"
+    validations:
+      required: true
+  - type: textarea
+    id: game
+    attributes:
+      label: Game and session details
+      description: Include the Le Mans Ultimate version, track, car, session type, and whether this also happens with Demo data, if relevant.
+  - type: textarea
+    id: additional
+    attributes:
+      label: Screenshots and additional context
+      description: Attach screenshots or relevant error messages. Remove personal information before sharing files.

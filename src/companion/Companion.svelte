@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { onMount } from "svelte";
   import { loadConfig } from "../lib/config.svelte";
   import { live, startLive } from "../lib/live.svelte";
@@ -16,6 +17,19 @@
   import Settings from "./pages/Settings.svelte";
 
   let maximized = $state(false);
+  let reportIssueError = $state(false);
+  const ISSUE_URL = "https://github.com/szpolny/mulsanne/issues/new/choose";
+
+  async function reportIssue(event: MouseEvent) {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    event.preventDefault();
+    reportIssueError = false;
+    try {
+      await openUrl(ISSUE_URL);
+    } catch {
+      reportIssueError = true;
+    }
+  }
 
   onMount(() => {
     startLive();
@@ -135,6 +149,23 @@
         {/each}
       </div>
       <div class="mt-auto">
+        <a
+          class="mx-2 mb-2 flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+          href={ISSUE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Report an issue on GitHub (opens in your browser)"
+          onclick={reportIssue}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4 M12 16h.01" /></svg>
+          Report issue
+          <svg class="ml-auto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7 M21 3 10 14 M10 3H3v18h18v-7" /></svg>
+        </a>
+        {#if reportIssueError}
+          <p class="mx-4 mb-3 select-text break-words text-xs text-bad" role="alert">
+            Couldn't open your browser. Visit {ISSUE_URL} to report an issue.
+          </p>
+        {/if}
         {#if updater.phase === "available" || updater.phase === "downloading"}
           <div class="mx-2 mb-2 rounded-lg border border-line bg-surface-2 p-3 text-xs">
             <div class="font-medium text-fg">Update available</div>
