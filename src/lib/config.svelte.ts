@@ -33,6 +33,10 @@ export interface AppConfig {
     onlyOnTrack: boolean;
     /** Hide widgets while the game window is not focused (always shown in edit/demo mode). */
     hideUnfocused: boolean;
+    /** Show release notes once after each app update. */
+    showChangelog: boolean;
+    /** Last installed version whose release notes were handled. */
+    lastSeenVersion: string;
     /** Grid snap in edit mode (px). */
     snap: number;
     /** Size multiplier applied to every widget. */
@@ -255,7 +259,7 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, snap: 4, scale: 1, opacity: 0.92 },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
     widgets,
     activeProfile: "default",
     profiles: { default: { name: "Default", scale: 1, opacity: 0.92, widgets: structuredClone(widgets) } },

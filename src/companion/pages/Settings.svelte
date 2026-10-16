@@ -62,6 +62,13 @@
     </div>
     <div class="flex items-center justify-between gap-6 p-4">
       <div>
+        <div class="font-medium">Show changelog after updates</div>
+        <div class="text-muted">See what's new when you first open a new version.</div>
+      </div>
+      <Toggle checked={g.showChangelog} label="Show changelog after updates" onchange={(v) => { g.showChangelog = v; saveConfig(); }} />
+    </div>
+    <div class="flex items-center justify-between gap-6 p-4">
+      <div>
         <div class="font-medium">Version {updater.version}</div>
         <div class="text-muted">
           {#if updater.phase === "checking"}
@@ -79,13 +86,16 @@
           {/if}
         </div>
       </div>
-      {#if updater.phase === "available"}
-        <button class="btn btn-primary" onclick={installUpdate}>Install and restart</button>
-      {:else}
-        <button class="btn" disabled={updater.phase === "checking" || updater.phase === "downloading"} onclick={checkForUpdate}>
-          Check for updates
-        </button>
-      {/if}
+      <div class="flex shrink-0 flex-wrap justify-end gap-2">
+        <button class="btn" disabled={!updater.version} onclick={() => (updater.changelogOpen = true)}>View changelog</button>
+        {#if updater.phase === "available"}
+          <button class="btn btn-primary" onclick={installUpdate}>Install and restart</button>
+        {:else}
+          <button class="btn" disabled={updater.phase === "checking" || updater.phase === "downloading"} onclick={checkForUpdate}>
+            Check for updates
+          </button>
+        {/if}
+      </div>
     </div>
   </div>
 </div>

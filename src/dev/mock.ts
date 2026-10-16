@@ -5,6 +5,7 @@
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
+import { version } from "../../package.json";
 
 export async function install() {
   const res = await fetch(new URL("./fixtures/fixtures.json", import.meta.url));
@@ -21,6 +22,8 @@ export async function install() {
   mockIPC(
     (cmd, args: any) => {
       switch (cmd) {
+        case "plugin:app|version":
+          return version;
         case "get_snapshot":
           return noLive ? null : fx.frames[0];
         case "get_preview_snapshot":

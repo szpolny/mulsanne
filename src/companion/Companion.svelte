@@ -6,6 +6,7 @@
   import Logo from "../lib/Logo.svelte";
   import { initUpdater, installUpdate, updater } from "../lib/updater.svelte";
   import { nav, type Page } from "./nav.svelte";
+  import ChangelogDialog from "./components/ChangelogDialog.svelte";
   import Analysis from "./pages/Analysis.svelte";
   import Live from "./pages/Live.svelte";
   import Overlays from "./pages/Overlays.svelte";
@@ -18,8 +19,7 @@
 
   onMount(() => {
     startLive();
-    loadConfig();
-    void initUpdater();
+    void loadConfig().then(initUpdater);
 
     if (!("__TAURI_INTERNALS__" in window)) return;
 
@@ -172,3 +172,5 @@
     </main>
   </div>
 </div>
+
+<ChangelogDialog />
