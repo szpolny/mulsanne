@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/szpolny/mulsanne/compare/v0.3.0...v0.4.0) (2026-10-16)
+
+
+### Features
+
+* add issue reporting guidance ([bade695](https://github.com/szpolny/mulsanne/commit/bade695edb271cc895f6c929c261f14066b48c81))
+* show optional lap times in relative widget ([ddc6dd9](https://github.com/szpolny/mulsanne/commit/ddc6dd95ee340a2daed933d6e6c1f6f9780d864d))
+* show release notes after app updates ([4f150d9](https://github.com/szpolny/mulsanne/commit/4f150d91dbfcb4a59240efa31c729b361cbc6ec0))
+* show repair damage in telemetry widget ([6c0aa59](https://github.com/szpolny/mulsanne/commit/6c0aa5964fbe48ab4510bd26d10578105530a20c))
+
+
+### Bug Fixes
+
+* preserve fractional track limit points ([31ce72a](https://github.com/szpolny/mulsanne/commit/31ce72a45aa14a0ef36aab93df88cafcc17fc97b))
+
 ## [0.3.0](https://github.com/szpolny/mulsanne/compare/v0.2.0...v0.3.0) (2026-10-14)
 
 
