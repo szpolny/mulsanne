@@ -18,6 +18,7 @@ use crate::recorder::Recorder;
 
 pub struct Shared {
     pub latest: RwLock<Snapshot>,
+    pub damage: RwLock<Option<crate::damage::Reading>>,
     pub demo: AtomicBool,
     /// Max snapshot events per second sent to the windows.
     pub emit_hz: AtomicU32,
@@ -32,6 +33,7 @@ impl Shared {
     pub fn new() -> Self {
         Self {
             latest: RwLock::new(Snapshot::default()),
+            damage: RwLock::new(None),
             demo: AtomicBool::new(false),
             emit_hz: AtomicU32::new(30),
             reload_reference: AtomicBool::new(false),
@@ -54,6 +56,7 @@ struct LapRecorded {
 }
 
 pub fn spawn(app: AppHandle, shared: Arc<Shared>, db: Arc<Db>) {
+    crate::damage::spawn(shared.clone());
     let (tx, rx) = mpsc::channel::<NewLap>();
     {
         let app = app.clone();
@@ -189,6 +192,11 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
         };
 
         frame += 1;
+        if let Ok(reading) = shared.damage.read() {
+            if let Some(reading) = reading.as_ref() {
+                reading.apply(&mut snap);
+            }
+        }
         snap.frame = frame;
         recorder.update(&mut snap);
 

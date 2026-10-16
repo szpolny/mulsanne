@@ -1,4 +1,5 @@
 mod commands;
+mod damage;
 pub mod db;
 pub mod demo;
 mod engine;

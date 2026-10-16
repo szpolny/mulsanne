@@ -182,6 +182,7 @@ pub struct Player {
     pub overheating: bool,
     pub detached: bool,
     pub dents: [u8; 8],
+    pub damage: Option<Damage>,
     pub last_impact_magnitude: f64,
     pub last_impact_et: f64,
 
@@ -191,6 +192,15 @@ pub struct Player {
     pub front_compound: String,
     pub rear_compound: String,
     pub wheels: [Wheel; 4],
+}
+
+/// Repair-screen wearables. Fractions describe damage (0 = healthy).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Damage {
+    pub aero: f64,
+    /// FL, FR, RL, RR.
+    pub suspension: [f64; 4],
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

@@ -225,7 +225,7 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "damage",
     name: "Damage",
-    description: "Body damage zones, detached parts, overheating and impacts.",
+    description: "Bodywork, aero and suspension damage, detached parts and overheating.",
     defaults: { enabled: false, x: 330, y: 860 },
     options: [],
     optionDefaults: {},

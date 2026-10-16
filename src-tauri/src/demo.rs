@@ -295,6 +295,10 @@ impl DemoSim {
             overheating: false,
             detached: false,
             dents: [0, 0, 1, 0, 0, 0, 0, 2],
+            damage: Some(crate::model::Damage {
+                aero: 0.08,
+                suspension: [0.0, 0.12, 0.0, 0.0],
+            }),
             last_impact_magnitude: 0.0,
             last_impact_et: 0.0,
             gap_ahead: 1.8,

@@ -300,6 +300,7 @@ fn parse_player(t: &TelemInfo, scoring: Option<&Vehicle>, info: &ScoringInfo) ->
         overheating: t.overheating != 0,
         detached: t.detached != 0,
         dents: t.dent_severity,
+        damage: None,
         last_impact_magnitude: t.last_impact_magnitude,
         last_impact_et: t.last_impact_et,
 

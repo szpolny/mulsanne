@@ -120,6 +120,7 @@ export interface Player {
   overheating: boolean;
   detached: boolean;
   dents: number[];
+  damage: Damage | null;
   lastImpactMagnitude: number;
   lastImpactEt: number;
   gapAhead: number;
@@ -127,6 +128,12 @@ export interface Player {
   frontCompound: string;
   rearCompound: string;
   wheels: [Wheel, Wheel, Wheel, Wheel];
+}
+
+/** Repair-screen fractions: 0 = no damage; suspension order FL, FR, RL, RR. */
+export interface Damage {
+  aero: number;
+  suspension: [number, number, number, number];
 }
 
 export interface Vehicle {
