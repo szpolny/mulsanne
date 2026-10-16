@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
-  import { classColor, shortName } from "../../lib/format";
+  import { classColor, lapTime, shortName } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
   import type { Vehicle } from "../../lib/types";
   import CarLogo from "../CarLogo.svelte";
@@ -55,13 +55,56 @@
   }
 
   const showEnergy = $derived(opts.showEnergy ?? true);
+  // Use every car in the session, including those outside the relative rows.
+  const classBests = $derived.by(() => {
+    const bests = new Map<string, number>();
+    for (const v of live.snap?.vehicles ?? []) {
+      if (v.bestLap > 0) bests.set(v.class, Math.min(bests.get(v.class) ?? Infinity, v.bestLap));
+    }
+    return bests;
+  });
+
+  /** Purple = class best; green = personal best on the last lap. */
+  function tone(t: number, v: Vehicle, personal: boolean): string | undefined {
+    if (!opts.colorTimes || t <= 0) return undefined;
+    const classBest = classBests.get(v.class) ?? 0;
+    if (classBest > 0 && t <= classBest + 1e-4) return "var(--color-best)";
+    if (personal && v.bestLap > 0 && t <= v.bestLap + 1e-4) return "var(--color-good)";
+    return undefined;
+  }
+
+  const width = $derived(300 + (showEnergy ? 46 : 0) + (opts.showLast ? 78 : 0) + (opts.showBest ? 78 : 0));
+  const columns = $derived(
+    [
+      "22px", // position
+      "36px", // number
+      "18px", // logo
+      "minmax(0,1fr)", // driver
+      "auto", // pit status
+      showEnergy ? "40px" : "",
+      opts.showLast ? "70px" : "",
+      opts.showBest ? "70px" : "",
+      "48px", // gap
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
 </script>
 
-<div class={["hud py-1.5 text-[14px]", showEnergy ? "w-[346px]" : "w-[300px]"]}>
+{#snippet time(t: number, color: string | undefined, label: string)}
+  <span class="text-right" title={label}>
+    <span
+      class={["rounded-[4px] px-1 text-[13px] opacity-75", color && "font-semibold text-white opacity-100!"]}
+      style:background={color}>{lapTime(t)}</span
+    >
+  </span>
+{/snippet}
+
+<div class="hud py-1.5 text-[14px]" style:width="{width}px">
   {#each rows as r (r.v.id)}
     <div
       class={["mx-1.5 grid h-[26px] items-center gap-x-2 rounded-md px-1.5", r.v.isPlayer && "bg-accent text-white"]}
-      style:grid-template-columns={showEnergy ? "22px 36px 18px 1fr auto 40px 48px" : "22px 36px 18px 1fr auto 48px"}
+      style:grid-template-columns={columns}
     >
       <span class="text-right font-semibold">{r.v.classPlace}</span>
       <span class="rounded-[4px] text-center text-[12px] leading-[18px] font-bold text-white" style:background={classColor(r.v.class)}>{r.v.number || "–"}</span>
@@ -72,6 +115,12 @@
       </span>
       {#if showEnergy}
         <EnergyBadge value={r.v.virtualEnergy} />
+      {/if}
+      {#if opts.showLast}
+        {@render time(r.v.lastLap, tone(r.v.lastLap, r.v, true), "Last lap")}
+      {/if}
+      {#if opts.showBest}
+        {@render time(r.v.bestLap, tone(r.v.bestLap, r.v, false), "Best lap")}
       {/if}
       <span class="text-right font-semibold">{r.v.isPlayer ? "" : (r.gap > 0 ? "−" : "+") + Math.abs(r.gap).toFixed(1)}</span>
     </div>

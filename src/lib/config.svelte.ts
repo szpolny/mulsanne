@@ -159,14 +159,17 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "relative",
     name: "Relative",
-    description: "Cars physically around you on track with time gaps and virtual energy left.",
+    description: "Cars physically around you on track with time gaps, virtual energy left and optional lap times.",
     defaults: { enabled: true, x: 1530, y: 560 },
     options: [
       { key: "ahead", label: "Cars ahead", type: "number", min: 1, max: 8, step: 1 },
       { key: "behind", label: "Cars behind", type: "number", min: 1, max: 8, step: 1 },
       { key: "showEnergy", label: "Virtual energy left", type: "boolean" },
+      { key: "showLast", label: "Last lap", type: "boolean" },
+      { key: "showBest", label: "Best lap", type: "boolean" },
+      { key: "colorTimes", label: "Colour lap times (green = personal best, purple = class best)", type: "boolean" },
     ],
-    optionDefaults: { ahead: 3, behind: 3, showEnergy: true },
+    optionDefaults: { ahead: 3, behind: 3, showEnergy: true, showLast: false, showBest: false, colorTimes: true },
   },
   {
     id: "fuel",
