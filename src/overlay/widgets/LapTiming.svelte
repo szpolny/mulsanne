@@ -29,7 +29,7 @@
 
   const tlPoints = $derived(
     p && p.trackLimitsStepsPerPoint > 0 && p.trackLimitsStepsPerPenalty > 0
-      ? { have: Math.floor(p.trackLimitsSteps / p.trackLimitsStepsPerPoint), max: Math.round(p.trackLimitsStepsPerPenalty / p.trackLimitsStepsPerPoint) }
+      ? { have: p.trackLimitsSteps / p.trackLimitsStepsPerPoint, max: p.trackLimitsStepsPerPenalty / p.trackLimitsStepsPerPoint }
       : null,
   );
 

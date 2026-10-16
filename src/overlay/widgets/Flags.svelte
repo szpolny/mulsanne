@@ -54,7 +54,7 @@
       const perPoint = Math.max(1, p.trackLimitsStepsPerPoint);
       banners.push({
         text: "Track limits",
-        sub: `${Math.floor(p.trackLimitsSteps / perPoint)} / ${Math.round(p.trackLimitsStepsPerPenalty / perPoint)} pts`,
+        sub: `${p.trackLimitsSteps / perPoint} / ${p.trackLimitsStepsPerPenalty / perPoint} pts`,
         bg: "#f5a524",
         fg: "#111",
       });
