@@ -1,7 +1,8 @@
 <script lang="ts">
   import { api } from "../../lib/api";
   import { config, saveConfig } from "../../lib/config.svelte";
-  import { displayNameError } from "../../lib/online";
+  import { openUrl } from "@tauri-apps/plugin-opener";
+  import { displayNameError, generateName, PRIVACY_URL } from "../../lib/online";
   import type { OnlineMe } from "../../lib/types";
   import OnlineDialog from "./OnlineDialog.svelte";
   import Toggle from "./Toggle.svelte";
@@ -70,7 +71,10 @@
   <div class="flex items-center justify-between gap-6 p-4">
     <div>
       <div class="font-medium">Online features</div>
-      <div class="text-muted">Lap rankings and car setup sharing. While off, Mulsanne doesn't contact its server.</div>
+      <div class="text-muted">
+        Lap rankings and telemetry comparison. While off, Mulsanne doesn't contact its server.
+        <button class="text-accent underline underline-offset-2 hover:text-fg" onclick={() => openUrl(PRIVACY_URL)}>Privacy notice</button>
+      </div>
     </div>
     <Toggle checked={online.enabled} label="Online features" onchange={setEnabled} />
   </div>
@@ -92,7 +96,8 @@
           {/if}
         </div>
         <div class="flex shrink-0 items-center gap-2">
-          <input class="field w-44" maxlength="32" placeholder="Anonymous" aria-label="Display name" bind:value={name} />
+          <input class="field w-52" maxlength="32" placeholder="Anonymous" aria-label="Display name" bind:value={name} />
+          <button type="button" class="btn" title="Suggest another name" onclick={() => (name = generateName())}>New name</button>
           <button type="submit" class="btn" disabled={!nameChanged || !!nameError || busy}>Save</button>
         </div>
       </form>

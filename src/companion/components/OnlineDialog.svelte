@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { openUrl } from "@tauri-apps/plugin-opener";
+  import { untrack } from "svelte";
   import { api } from "../../lib/api";
-  import { displayNameError } from "../../lib/online";
+  import { displayNameError, generateName, PRIVACY_URL } from "../../lib/online";
   import type { OnlineMe } from "../../lib/types";
 
   let { open, onclose, onenabled }: { open: boolean; onclose: () => void; onenabled: (me: OnlineMe) => void } = $props();
@@ -14,6 +16,8 @@
   $effect(() => {
     if (open) {
       error = "";
+      // Suggest a name; the user can keep it, roll another, or clear it.
+      if (!untrack(() => name)) name = generateName();
       dialog.showModal();
     } else dialog.close();
   });
@@ -57,8 +61,9 @@
       <ul class="list-disc space-y-2 pl-5 marker:text-accent">
         <li>Turning this on sends only your display name, if you set one.</li>
         <li>
-          When you upload laps or share car setups, their lap and sector times, car, track, conditions and telemetry
-          trace are sent to the server and shown to other drivers.
+          When you upload laps, their lap and sector times, car, track and game version are sent to the server and
+          shown to other drivers. If telemetry upload is on, so is the telemetry of your best lap on each track. Your
+          in-game name is never sent.
         </li>
         <li>
           Without a display name you appear as <span class="text-fg">Anonymous</span>. Other drivers can't see who you
@@ -66,11 +71,20 @@
         </li>
         <li>You can delete everything you've uploaded from Settings at any time.</li>
       </ul>
+      <p>
+        <button type="button" class="text-accent underline underline-offset-2 hover:text-fg" onclick={() => openUrl(PRIVACY_URL)}
+          >Read the privacy notice</button
+        > for the details.
+      </p>
 
       <label class="block">
         <span class="mb-1 block font-medium text-fg">Display name <span class="font-normal text-muted">(optional)</span></span>
-        <input class="field w-full" maxlength="32" placeholder="Anonymous" bind:value={name} />
+        <span class="flex gap-2">
+          <input class="field min-w-0 flex-1" maxlength="32" placeholder="Anonymous" bind:value={name} />
+          <button type="button" class="btn shrink-0" title="Suggest another name" onclick={() => (name = generateName())}>New name</button>
+        </span>
       </label>
+      <p class="text-xs">A suggested name, so your real name isn't needed. Change it, roll a new one, or clear it to appear as Anonymous.</p>
       {#if nameError}
         <p class="text-bad">{nameError}</p>
       {/if}
