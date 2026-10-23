@@ -80,8 +80,12 @@ pub fn run() {
                 .build(),
         )
         .setup(move |app| {
-            let data_dir = app.path().app_data_dir()?;
-            let config_dir = app.path().app_config_dir()?;
+            // Dev builds keep their own laps, identity key and config so they never touch the installed app's.
+            let (mut data_dir, mut config_dir) = (app.path().app_data_dir()?, app.path().app_config_dir()?);
+            if cfg!(debug_assertions) {
+                data_dir.push("dev");
+                config_dir.push("dev");
+            }
             std::fs::create_dir_all(&data_dir)?;
             std::fs::create_dir_all(&config_dir)?;
 
