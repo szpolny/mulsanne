@@ -3,6 +3,8 @@
   import { api } from "../../lib/api";
   import { dateTime, lapTime } from "../../lib/format";
   import type { Filters, LapRecord, SessionSummary } from "../../lib/types";
+  import { config } from "../../lib/config.svelte";
+  import { uploadable, uploads } from "../../lib/uploads.svelte";
   import LapTable from "../components/LapTable.svelte";
   import { nav } from "../nav.svelte";
 
@@ -46,8 +48,23 @@
     await loadSessions();
   }
 
+  const fromGame = $derived(current?.source === "lmu");
+  const toUpload = $derived(fromGame ? laps.filter((l) => uploadable(l) && !uploads.byLap[l.id]) : []);
+  let uploadNote = $state("");
+
+  async function uploadSession() {
+    uploadNote = "";
+    try {
+      const queued = await api.uploadLaps(toUpload.map((l) => l.id));
+      if (queued === 0) uploadNote = "No laps in this session can be uploaded.";
+    } catch (e) {
+      uploadNote = String(e);
+    }
+  }
+
   async function deleteLap(l: LapRecord) {
-    if (!confirm(`Delete lap ${l.lapNumber} (${lapTime(l.lapTime)})?`)) return;
+    const online = uploads.byLap[l.id]?.remoteId ? "\nIt stays on the online rankings; remove it there first if you want it gone." : "";
+    if (!confirm(`Delete lap ${l.lapNumber} (${lapTime(l.lapTime)})?${online}`)) return;
     await api.deleteLap(l.id);
     await loadLaps(nav.sessionId);
     await loadSessions();
@@ -91,7 +108,9 @@
         <div>
           <h1 class="page-title">{current.track}</h1>
           <div class="text-sm text-muted">
-            {current.car} ({current.carClass}) · {current.sessionType} · {dateTime(current.startedAt)}
+            {current.car} ({current.carClass}) · {current.sessionType} · {dateTime(current.startedAt)}{current.gameVersion
+              ? ` · game version ${current.gameVersion}`
+              : ""}
           </div>
         </div>
         <div class="flex gap-2">
@@ -102,9 +121,15 @@
           >
             {selected.length === 2 ? "Compare A vs B" : "Analyse lap"}
           </button>
+          {#if config.value.online.enabled && fromGame}
+            <button class="btn" disabled={toUpload.length === 0} onclick={uploadSession}>
+              {toUpload.length ? `Upload ${toUpload.length} lap${toUpload.length === 1 ? "" : "s"}` : "Nothing to upload"}
+            </button>
+          {/if}
           <button class="btn hover:text-bad" onclick={deleteSession}>Delete session</button>
         </div>
       </div>
+      {#if uploadNote}<p class="mb-2 text-xs text-bad">{uploadNote}</p>{/if}
       <p class="mb-2 text-xs text-muted">Click laps to select (A, then B) for comparison.</p>
       <LapTable
         {laps}
@@ -112,6 +137,7 @@
         onselect={toggle}
         onopen={(l) => nav.openAnalysis(l.track, l.id)}
         ondelete={deleteLap}
+        {fromGame}
       />
     {:else}
       <div class="p-10 text-center text-muted">Select a session.</div>

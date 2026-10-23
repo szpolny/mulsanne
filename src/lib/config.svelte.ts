@@ -48,6 +48,10 @@ export interface AppConfig {
   online: {
     /** Master switch; while off the app makes no requests to the Mulsanne server. */
     enabled: boolean;
+    /** Upload laps only when asked, or every eligible lap as it's recorded. */
+    lapUpload: "manual" | "auto";
+    /** Hide your display name on laps uploaded from now on. */
+    anonymous: boolean;
   };
   widgets: Record<string, WidgetConfig>;
   /** Id of the profile mirrored by `general.scale/opacity` and `widgets`. */
@@ -265,7 +269,7 @@ function defaults(): AppConfig {
   return {
     version: 1,
     general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
-    online: { enabled: false },
+    online: { enabled: false, lapUpload: "manual", anonymous: false },
     widgets,
     activeProfile: "default",
     profiles: { default: { name: "Default", scale: 1, opacity: 0.92, widgets: structuredClone(widgets) } },

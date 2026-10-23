@@ -246,6 +246,8 @@ export interface SessionSummary {
   vehicleName: string;
   carClass: string;
   driver: string;
+  /** LMU build number; null for demo data and older sessions. */
+  gameVersion: number | null;
   lapCount: number;
   validLaps: number;
   bestLap: number | null;
@@ -312,6 +314,8 @@ export interface PersonalBest {
   s3: number | null;
   recordedAt: number;
   lapCount: number;
+  /** Recorded in the game, not demo data; only these can go online. */
+  fromGame: boolean;
 }
 
 export interface Filters {
@@ -346,4 +350,46 @@ export interface OnlineMe {
   displayName: string | null;
   /** Unix seconds. */
   createdAt: number;
+}
+
+/** queued → ranked | held, or failed (retried) | rejected (by the server). */
+export type UploadStatus = "queued" | "ranked" | "held" | "failed" | "rejected";
+
+export interface UploadState {
+  lapId: number;
+  status: UploadStatus;
+  remoteId: string | null;
+  error: string | null;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  lapId: string;
+  /** `null` for anonymous laps. */
+  driver: string | null;
+  car: string;
+  vehicleName: string;
+  sessionType: string;
+  /** LMU build number, when known. */
+  gameVersion: number | null;
+  lapTime: number;
+  s1: number;
+  s2: number;
+  s3: number;
+  /** Unix seconds. */
+  recordedAt: number;
+}
+
+export interface Leaderboard {
+  entries: LeaderboardEntry[];
+  total: number;
+}
+
+export interface BoardSummary {
+  track: string;
+  carClass: string;
+  drivers: number;
+  bestLap: number;
+  /** Game versions with ranked laps, newest first. */
+  gameVersions: number[];
 }

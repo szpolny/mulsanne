@@ -8,13 +8,14 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::db::{self, Db, NewLap};
 use crate::demo::DemoSim;
 use crate::lmu::{self, layout, shm::{self, LmuSharedMemory}};
 use crate::model::Snapshot;
 use crate::recorder::Recorder;
+use crate::AppState;
 
 pub struct Shared {
     pub latest: RwLock<Snapshot>,
@@ -92,6 +93,9 @@ fn run_writer(app: AppHandle, db: Arc<Db>, rx: Receiver<NewLap>) {
             }
         };
         let clean = lap.valid && !lap.out_lap && !lap.in_lap;
+        if clean {
+            queue_auto_upload(&app, id, lap.recorded_at);
+        }
         let personal_best = clean && previous_best.is_none_or(|(_, t, _)| lap.lap_time < t);
         let has_map = db.track_map(&s.track).ok().flatten().is_some();
         if clean && (personal_best || !has_map) && s.track_length > 0.0 {
@@ -112,6 +116,24 @@ fn run_writer(app: AppHandle, db: Arc<Db>, rx: Receiver<NewLap>) {
                 track: s.track.clone(),
             },
         );
+    }
+}
+
+/// Queues a new lap for the online rankings when automatic uploads are on.
+/// Laps that don't qualify (demo data, missing sectors) are skipped.
+fn queue_auto_upload(app: &AppHandle, lap_id: i64, now: i64) {
+    let state = app.state::<AppState>();
+    let settings = crate::online::settings(&state.config_path);
+    if !settings.enabled || !settings.auto_upload {
+        return;
+    }
+    match state.db.enqueue_uploads(&[lap_id], settings.anonymous, now) {
+        Ok(0) => {}
+        Ok(_) => {
+            state.uploads.notify_one();
+            let _ = app.emit("lap-uploads-changed", lap_id);
+        }
+        Err(e) => eprintln!("failed to queue lap upload: {e}"),
     }
 }
 

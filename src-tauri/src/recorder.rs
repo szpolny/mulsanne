@@ -297,6 +297,7 @@ impl Recorder {
                     vehicle_name: p.vehicle_name.clone(),
                     car_class: p.vehicle_class.clone(),
                     driver: snap.session.player_name.clone(),
+                    game_version: (snap.game_version > 0).then_some(snap.game_version),
                 },
                 last_et: snap.session.current_et,
                 best: 0.0,

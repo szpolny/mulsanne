@@ -11,6 +11,8 @@ use flate2::Compression;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
+use crate::online::LapUpload;
+
 pub type DbResult<T> = Result<T, String>;
 
 fn err<E: std::fmt::Display>(e: E) -> String {
@@ -78,6 +80,8 @@ pub struct SessionRecord {
     pub vehicle_name: String,
     pub car_class: String,
     pub driver: String,
+    /// LMU build number; `None` for demo data and sessions recorded before it was stored.
+    pub game_version: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -151,6 +155,8 @@ pub struct PersonalBest {
     pub s3: Option<f64>,
     pub recorded_at: i64,
     pub lap_count: i64,
+    /// Recorded in the game, not demo data; only these can go online.
+    pub from_game: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -175,7 +181,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     car           TEXT NOT NULL,
     vehicle_name  TEXT NOT NULL,
     car_class     TEXT NOT NULL,
-    driver        TEXT NOT NULL
+    driver        TEXT NOT NULL,
+    game_version  INTEGER
 );
 CREATE TABLE IF NOT EXISTS laps (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,7 +213,40 @@ CREATE TABLE IF NOT EXISTS track_maps (
     lap_id  INTEGER,
     data    TEXT NOT NULL
 );
+-- Laps queued for or sent to the online rankings.
+CREATE TABLE IF NOT EXISTS lap_uploads (
+    lap_id      INTEGER PRIMARY KEY REFERENCES laps(id) ON DELETE CASCADE,
+    status      TEXT NOT NULL,      -- queued | ranked | held | failed | rejected
+    remote_id   TEXT,
+    anonymous   INTEGER NOT NULL,
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    error       TEXT,
+    updated_at  INTEGER NOT NULL
+);
 "#;
+
+/// Laps that may go to the online rankings: clean flying laps from the game
+/// (never demo data) with all three sectors. Needs `laps l JOIN sessions s`.
+const UPLOADABLE: &str = "l.valid = 1 AND l.out_lap = 0 AND l.in_lap = 0 AND s.source = 'lmu'
+    AND l.s1 IS NOT NULL AND l.s2 IS NOT NULL AND l.s3 IS NOT NULL";
+
+/// Failed uploads are retried this many times, with exponential backoff.
+const MAX_UPLOAD_ATTEMPTS: i64 = 5;
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadState {
+    pub lap_id: i64,
+    pub status: String,
+    pub remote_id: Option<String>,
+    pub error: Option<String>,
+}
+
+/// A queued upload, ready to send.
+pub struct PendingUpload {
+    pub lap_id: i64,
+    pub lap: LapUpload,
+}
 
 /// A lap counts towards personal bests when it's clean and a full flying lap.
 const PB_LAP: &str = "valid = 1 AND out_lap = 0 AND in_lap = 0";
@@ -216,6 +256,14 @@ impl Db {
         let conn = Connection::open(path).map_err(err)?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;").map_err(err)?;
         conn.execute_batch(SCHEMA).map_err(err)?;
+        // Columns added after the first release; SCHEMA only creates missing tables.
+        let has_game_version = conn
+            .prepare("SELECT 1 FROM pragma_table_info('sessions') WHERE name = 'game_version'")
+            .and_then(|mut s| s.exists([]))
+            .map_err(err)?;
+        if !has_game_version {
+            conn.execute_batch("ALTER TABLE sessions ADD COLUMN game_version INTEGER").map_err(err)?;
+        }
         Ok(Self { conn: Mutex::new(conn) })
     }
 
@@ -229,9 +277,9 @@ impl Db {
         let s = &lap.session;
         let conn = self.conn();
         conn.execute(
-            "INSERT OR IGNORE INTO sessions (id, started_at, source, track, track_length, session_type, car, vehicle_name, car_class, driver)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            params![s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver],
+            "INSERT OR IGNORE INTO sessions (id, started_at, source, track, track_length, session_type, car, vehicle_name, car_class, driver, game_version)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version],
         )
         .map_err(err)?;
         conn.execute(
@@ -266,7 +314,7 @@ impl Db {
         let conn = self.conn();
         let mut stmt = conn
             .prepare(
-                "SELECT s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver,
+                "SELECT s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version,
                         COUNT(l.id), COALESCE(SUM(l.valid), 0),
                         MIN(CASE WHEN l.valid = 1 AND l.out_lap = 0 AND l.in_lap = 0 THEN l.lap_time END)
                  FROM sessions s LEFT JOIN laps l ON l.session_id = s.id
@@ -288,10 +336,11 @@ impl Db {
                         vehicle_name: r.get(7)?,
                         car_class: r.get(8)?,
                         driver: r.get(9)?,
+                        game_version: r.get(10)?,
                     },
-                    lap_count: r.get(10)?,
-                    valid_laps: r.get(11)?,
-                    best_lap: r.get(12)?,
+                    lap_count: r.get(11)?,
+                    valid_laps: r.get(12)?,
+                    best_lap: r.get(13)?,
                 })
             })
             .map_err(err)?;
@@ -375,7 +424,8 @@ impl Db {
         let conn = self.conn();
         let mut stmt = conn
             .prepare(&format!(
-                "SELECT l.track, l.car, l.car_class, l.id, l.lap_time, l.s1, l.s2, l.s3, l.recorded_at, c.n
+                "SELECT l.track, l.car, l.car_class, l.id, l.lap_time, l.s1, l.s2, l.s3, l.recorded_at, c.n,
+                        (SELECT source FROM sessions WHERE id = l.session_id) = 'lmu'
                  FROM laps l
                  JOIN (SELECT track, car, MIN(lap_time) AS best, COUNT(*) AS n FROM laps WHERE {PB_LAP} GROUP BY track, car) c
                    ON c.track = l.track AND c.car = l.car AND c.best = l.lap_time
@@ -397,6 +447,7 @@ impl Db {
                     s3: r.get(7)?,
                     recorded_at: r.get(8)?,
                     lap_count: r.get(9)?,
+                    from_game: r.get(10)?,
                 })
             })
             .map_err(err)?;
@@ -448,6 +499,118 @@ impl Db {
             .map_err(err)?;
         Ok(())
     }
+
+    /// Queues uploadable laps among `lap_ids`; failed or rejected ones are
+    /// queued again. Returns how many were queued.
+    pub fn enqueue_uploads(&self, lap_ids: &[i64], anonymous: bool, now: i64) -> DbResult<usize> {
+        let conn = self.conn();
+        let mut stmt = conn
+            .prepare(&format!(
+                "INSERT INTO lap_uploads (lap_id, status, anonymous, updated_at)
+                 SELECT l.id, 'queued', ?2, ?3 FROM laps l JOIN sessions s ON s.id = l.session_id
+                 WHERE l.id = ?1 AND {UPLOADABLE}
+                 ON CONFLICT(lap_id) DO UPDATE SET status = 'queued', attempts = 0, error = NULL,
+                     anonymous = excluded.anonymous, updated_at = excluded.updated_at
+                 WHERE lap_uploads.status IN ('failed', 'rejected')"
+            ))
+            .map_err(err)?;
+        let mut queued = 0;
+        for id in lap_ids {
+            queued += stmt.execute(params![id, anonymous, now]).map_err(err)?;
+        }
+        Ok(queued)
+    }
+
+    /// The next upload to send: queued ones first, then failed ones whose
+    /// backoff (1, 2, 4, … min) has passed.
+    pub fn next_upload(&self, now: i64, app_version: &str) -> DbResult<Option<PendingUpload>> {
+        self.conn()
+            .query_row(
+                &format!(
+                    "SELECT u.lap_id, u.anonymous, s.track, s.track_length, s.car, s.vehicle_name, s.car_class, s.session_type, s.game_version,
+                            l.lap_time, l.s1, l.s2, l.s3, l.fuel_used, l.ve_used, l.max_speed, l.recorded_at
+                     FROM lap_uploads u JOIN laps l ON l.id = u.lap_id JOIN sessions s ON s.id = l.session_id
+                     WHERE {UPLOADABLE} AND (u.status = 'queued'
+                        OR (u.status = 'failed' AND u.attempts < ?2 AND u.updated_at + 60 * (1 << (u.attempts - 1)) <= ?1))
+                     ORDER BY u.status = 'failed', u.updated_at LIMIT 1"
+                ),
+                params![now, MAX_UPLOAD_ATTEMPTS],
+                |r| {
+                    Ok(PendingUpload {
+                        lap_id: r.get(0)?,
+                        lap: LapUpload {
+                            anonymous: r.get(1)?,
+                            track: r.get(2)?,
+                            track_length: r.get(3)?,
+                            car: r.get(4)?,
+                            vehicle_name: r.get(5)?,
+                            car_class: r.get(6)?,
+                            session_type: r.get(7)?,
+                            game_version: r.get(8)?,
+                            lap_time: r.get(9)?,
+                            s1: r.get(10)?,
+                            s2: r.get(11)?,
+                            s3: r.get(12)?,
+                            fuel_used: r.get(13)?,
+                            ve_used: r.get(14)?,
+                            max_speed: r.get(15)?,
+                            recorded_at: r.get(16)?,
+                            app_version: app_version.to_owned(),
+                        },
+                    })
+                },
+            )
+            .optional()
+            .map_err(err)
+    }
+
+    /// Records an upload attempt. `failed` counts towards the retry limit.
+    pub fn set_upload_status(
+        &self,
+        lap_id: i64,
+        status: &str,
+        remote_id: Option<&str>,
+        error: Option<&str>,
+        now: i64,
+    ) -> DbResult<()> {
+        self.conn()
+            .execute(
+                "UPDATE lap_uploads SET status = ?2, remote_id = COALESCE(?3, remote_id), error = ?4, updated_at = ?5,
+                     attempts = attempts + (?2 = 'failed')
+                 WHERE lap_id = ?1",
+                params![lap_id, status, remote_id, error, now],
+            )
+            .map_err(err)?;
+        Ok(())
+    }
+
+    pub fn upload_states(&self) -> DbResult<Vec<UploadState>> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare("SELECT lap_id, status, remote_id, error FROM lap_uploads").map_err(err)?;
+        let rows = stmt
+            .query_map([], |r| Ok(UploadState { lap_id: r.get(0)?, status: r.get(1)?, remote_id: r.get(2)?, error: r.get(3)? }))
+            .map_err(err)?;
+        rows.collect::<Result<_, _>>().map_err(err)
+    }
+
+    pub fn upload_remote_id(&self, lap_id: i64) -> DbResult<Option<String>> {
+        self.conn()
+            .query_row("SELECT remote_id FROM lap_uploads WHERE lap_id = ?1", params![lap_id], |r| r.get(0))
+            .optional()
+            .map(Option::flatten)
+            .map_err(err)
+    }
+
+    pub fn remove_upload(&self, lap_id: i64) -> DbResult<()> {
+        self.conn().execute("DELETE FROM lap_uploads WHERE lap_id = ?1", params![lap_id]).map_err(err)?;
+        Ok(())
+    }
+
+    /// Forgets every upload, after the user deleted their online data.
+    pub fn clear_uploads(&self) -> DbResult<()> {
+        self.conn().execute("DELETE FROM lap_uploads", []).map_err(err)?;
+        Ok(())
+    }
 }
 
 /// Builds a ~`spacing` m resampled centre line from a lap's positions.
@@ -481,6 +644,7 @@ mod tests {
             vehicle_name: "#1 Car".into(),
             car_class: "GT3".into(),
             driver: "Me".into(),
+            game_version: None,
         }
     }
 
@@ -542,5 +706,78 @@ mod tests {
 
         db.delete_session(7).unwrap();
         assert!(db.list_sessions(None, None, 10, 0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn adds_game_version_to_old_databases() {
+        let dir = std::env::temp_dir().join(format!("lmo-migrate-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("t.db");
+        let _ = std::fs::remove_file(&path);
+        Connection::open(&path)
+            .unwrap()
+            .execute_batch(
+                "CREATE TABLE sessions (id INTEGER PRIMARY KEY, started_at INTEGER NOT NULL, source TEXT NOT NULL,
+                     track TEXT NOT NULL, track_length REAL NOT NULL, session_type TEXT NOT NULL, car TEXT NOT NULL,
+                     vehicle_name TEXT NOT NULL, car_class TEXT NOT NULL, driver TEXT NOT NULL);
+                 INSERT INTO sessions VALUES (1, 1, 'lmu', 'T', 1000, 'Practice', 'Car', '#1 Car', 'GT3', 'Me');",
+            )
+            .unwrap();
+
+        let db = Db::open(&path).unwrap();
+        let sessions = db.list_sessions(None, None, 10, 0).unwrap();
+        assert_eq!(sessions[0].session.game_version, None);
+        // Opening again doesn't try to add the column twice.
+        drop(db);
+        Db::open(&path).unwrap();
+    }
+
+    #[test]
+    fn upload_queue() {
+        let dir = std::env::temp_dir().join(format!("lmo-upload-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("t.db");
+        let _ = std::fs::remove_file(&path);
+        let db = Db::open(&path).unwrap();
+
+        let demo = db.insert_lap(&lap(1, 95.0, true)).unwrap();
+        let game_lap = |n: i32, time: f64, valid: bool| {
+            let mut l = lap(n, time, valid);
+            l.session = SessionRecord { id: 8, source: "lmu".into(), game_version: Some(1123), ..session(8) };
+            db.insert_lap(&l).unwrap()
+        };
+        let clean = game_lap(2, 94.0, true);
+        let invalid = game_lap(3, 93.0, false);
+
+        // Demo and invalid laps never qualify.
+        assert_eq!(db.enqueue_uploads(&[demo, clean, invalid], true, 1000).unwrap(), 1);
+        // Already queued: not counted again.
+        assert_eq!(db.enqueue_uploads(&[clean], true, 1000).unwrap(), 0);
+
+        let next = db.next_upload(1000, "0.5.0").unwrap().unwrap();
+        assert_eq!(next.lap_id, clean);
+        assert!(next.lap.anonymous);
+        assert_eq!(next.lap.s3, 34.0);
+        assert_eq!(next.lap.app_version, "0.5.0");
+        assert_eq!(next.lap.game_version, Some(1123));
+
+        // A failure waits for its backoff before it's retried.
+        db.set_upload_status(clean, "failed", None, Some("offline"), 1000).unwrap();
+        assert!(db.next_upload(1030, "0.5.0").unwrap().is_none());
+        assert!(db.next_upload(1060, "0.5.0").unwrap().is_some());
+
+        db.set_upload_status(clean, "ranked", Some("abc"), None, 1100).unwrap();
+        assert!(db.next_upload(10_000, "0.5.0").unwrap().is_none());
+        assert_eq!(db.upload_remote_id(clean).unwrap().as_deref(), Some("abc"));
+        // Uploaded laps aren't queued again.
+        assert_eq!(db.enqueue_uploads(&[clean], false, 1200).unwrap(), 0);
+
+        let states = db.upload_states().unwrap();
+        assert_eq!(states.len(), 1);
+        assert_eq!(states[0].status, "ranked");
+
+        // Deleting the lap locally drops its upload record.
+        db.delete_lap(clean).unwrap();
+        assert!(db.upload_states().unwrap().is_empty());
     }
 }

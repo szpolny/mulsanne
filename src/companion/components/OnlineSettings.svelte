@@ -98,6 +98,33 @@
       </form>
       <div class="flex items-center justify-between gap-6 p-4">
         <div>
+          <div class="font-medium">Lap uploads</div>
+          <div class="text-muted">
+            Clean flying laps from the game go to the rankings. Upload them yourself from Sessions and Records, or
+            automatically as you drive.
+          </div>
+        </div>
+        <select class="field" bind:value={online.lapUpload} onchange={saveConfig}>
+          <option value="manual">Manually</option>
+          <option value="auto">Every lap automatically</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between gap-6 p-4">
+        <div>
+          <div class="font-medium">Upload anonymously</div>
+          <div class="text-muted">
+            {#if me.displayName}
+              Show laps you upload from now on as Anonymous instead of {me.displayName}. Laps already uploaded keep
+              their setting.
+            {:else}
+              You have no display name, so your laps show as Anonymous either way.
+            {/if}
+          </div>
+        </div>
+        <Toggle checked={online.anonymous} label="Upload anonymously" onchange={(v) => { online.anonymous = v; saveConfig(); }} />
+      </div>
+      <div class="flex items-center justify-between gap-6 p-4">
+        <div>
           <div class="font-medium">Delete my online data</div>
           <div class="text-muted">
             Removes everything you've uploaded and this PC's online identity, then turns online features off.

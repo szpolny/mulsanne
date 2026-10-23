@@ -4,10 +4,10 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap};
+use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap, UploadState};
 use crate::engine::PreviewSim;
 use crate::model::Snapshot;
-use crate::online::Me;
+use crate::online::{BoardSummary, Leaderboard, LeaderboardQuery, Me};
 use crate::schedule::DailyRace;
 use crate::AppState;
 
@@ -186,6 +186,50 @@ pub async fn online_set_display_name(state: State<'_, AppState>, display_name: O
 }
 
 #[tauri::command]
-pub async fn online_delete_data(state: State<'_, AppState>) -> CmdResult<()> {
-    crate::online::delete_data(&state.data_dir).await
+pub async fn online_delete_data(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    crate::online::delete_data(&state.data_dir).await?;
+    state.db.clear_uploads()?;
+    let _ = app.emit("lap-uploads-changed", ());
+    Ok(())
+}
+
+/// Queues laps for the online rankings. Returns how many qualified.
+#[tauri::command]
+pub fn upload_laps(app: AppHandle, state: State<AppState>, lap_ids: Vec<i64>) -> CmdResult<usize> {
+    let settings = crate::online::require_enabled(&state.config_path)?;
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    let queued = state.db.enqueue_uploads(&lap_ids, settings.anonymous, now)?;
+    if queued > 0 {
+        state.uploads.notify_one();
+        let _ = app.emit("lap-uploads-changed", ());
+    }
+    Ok(queued)
+}
+
+#[tauri::command]
+pub fn lap_upload_states(state: State<AppState>) -> CmdResult<Vec<UploadState>> {
+    state.db.upload_states()
+}
+
+/// Removes a lap from the online rankings (and forgets a queued upload).
+#[tauri::command]
+pub async fn remove_lap_upload(app: AppHandle, state: State<'_, AppState>, lap_id: i64) -> CmdResult<()> {
+    if let Some(remote_id) = state.db.upload_remote_id(lap_id)? {
+        crate::online::delete_lap(&state.data_dir, &remote_id).await?;
+    }
+    state.db.remove_upload(lap_id)?;
+    let _ = app.emit("lap-uploads-changed", lap_id);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn leaderboard(state: State<'_, AppState>, query: LeaderboardQuery) -> CmdResult<Leaderboard> {
+    crate::online::require_enabled(&state.config_path)?;
+    crate::online::leaderboard(&query).await
+}
+
+#[tauri::command]
+pub async fn leaderboard_boards(state: State<'_, AppState>) -> CmdResult<Vec<BoardSummary>> {
+    crate::online::require_enabled(&state.config_path)?;
+    crate::online::boards().await
 }

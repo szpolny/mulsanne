@@ -2,6 +2,8 @@
   import { config } from "../../lib/config.svelte";
   import { fuel, fuelUnit, lapTime, sectorTime, speed, speedUnit, vePct } from "../../lib/format";
   import type { LapRecord } from "../../lib/types";
+  import { uploadable } from "../../lib/uploads.svelte";
+  import UploadStatus from "./UploadStatus.svelte";
 
   let {
     laps,
@@ -9,13 +11,18 @@
     onselect,
     onopen,
     ondelete,
+    fromGame = false,
   }: {
     laps: LapRecord[];
     selected?: number[];
     onselect?: (lap: LapRecord) => void;
     onopen?: (lap: LapRecord) => void;
     ondelete?: (lap: LapRecord) => void;
+    /** The laps were recorded in the game (not demo data), so they can be uploaded. */
+    fromGame?: boolean;
   } = $props();
+
+  const online = $derived(config.value.online.enabled);
 
   const units = $derived(config.value.general.units);
   const clean = (l: LapRecord) => l.valid && !l.outLap && !l.inLap;
@@ -88,6 +95,9 @@
           >
           {#if hasVe}<td class="px-3 py-1.5 text-muted">{l.veUsed != null ? `${vePct(l.veUsed).toFixed(1)}%` : "–"}</td>{/if}
           <td class="px-2 py-1.5 text-right whitespace-nowrap">
+            {#if online}
+              <UploadStatus lapId={l.id} eligible={fromGame && uploadable(l)} />
+            {/if}
             {#if onopen}
               <button
                 class="rounded px-2 py-0.5 text-xs text-accent hover:bg-surface-3"

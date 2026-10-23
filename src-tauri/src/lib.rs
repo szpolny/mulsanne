@@ -25,6 +25,8 @@ pub struct AppState {
     pub overlay_visible: AtomicBool,
     /// Created on first use by the companion's widget previews.
     pub preview: Mutex<Option<engine::PreviewSim>>,
+    /// Wakes the lap uploader after laps are queued.
+    pub uploads: Arc<tokio::sync::Notify>,
 }
 
 /// Transparent, click-through, always-on-top window covering the primary
@@ -86,6 +88,7 @@ pub fn run() {
             let db = Arc::new(db::Db::open(&data_dir.join("laps.db")).map_err(|e| format!("database: {e}"))?);
             let shared = Arc::new(engine::Shared::new());
             let config_path = config_dir.join("config.json");
+            let uploads = Arc::new(tokio::sync::Notify::new());
 
             if let Some(hz) = std::fs::read_to_string(&config_path)
                 .ok()
@@ -103,6 +106,7 @@ pub fn run() {
                 edit_mode: AtomicBool::new(false),
                 overlay_visible: AtomicBool::new(true),
                 preview: Mutex::new(None),
+                uploads: uploads.clone(),
             });
 
             create_overlay(app)?;
@@ -115,6 +119,7 @@ pub fn run() {
             }
 
             engine::spawn(app.handle().clone(), shared, db);
+            online::spawn_uploader(app.handle().clone(), uploads);
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -148,6 +153,11 @@ pub fn run() {
             commands::online_me,
             commands::online_set_display_name,
             commands::online_delete_data,
+            commands::upload_laps,
+            commands::lap_upload_states,
+            commands::remove_lap_upload,
+            commands::leaderboard,
+            commands::leaderboard_boards,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

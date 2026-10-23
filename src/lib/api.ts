@@ -1,15 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  BoardSummary,
   DailyRace,
   Filters,
   LapRecord,
   LapTrace,
+  Leaderboard,
   OnlineMe,
   PersonalBest,
   SessionSummary,
   Snapshot,
   Status,
   TrackMap,
+  UploadState,
 } from "./types";
 
 export const api = {
@@ -37,4 +40,17 @@ export const api = {
   onlineMe: () => invoke<OnlineMe>("online_me"),
   onlineSetDisplayName: (displayName: string | null) => invoke<OnlineMe>("online_set_display_name", { displayName }),
   onlineDeleteData: () => invoke<void>("online_delete_data"),
+  uploadLaps: (lapIds: number[]) => invoke<number>("upload_laps", { lapIds }),
+  lapUploadStates: () => invoke<UploadState[]>("lap_upload_states"),
+  removeLapUpload: (lapId: number) => invoke<void>("remove_lap_upload", { lapId }),
+  leaderboard: (query: {
+    track: string;
+    carClass: string;
+    car?: string | null;
+    sessionType?: string | null;
+    gameVersion?: number | null;
+    limit?: number;
+    offset?: number;
+  }) => invoke<Leaderboard>("leaderboard", { query }),
+  leaderboardBoards: () => invoke<BoardSummary[]>("leaderboard_boards"),
 };

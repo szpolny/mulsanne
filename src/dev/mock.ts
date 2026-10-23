@@ -19,6 +19,7 @@ export async function install() {
   const noLive = new URLSearchParams(location.search).has("nolive");
   let previewFrame = 0;
   let onlineMe: { id: string; displayName: string | null; createdAt: number } | null = null;
+  const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null }>();
 
   mockWindows("main");
   mockIPC(
@@ -46,7 +47,8 @@ export async function install() {
           emit("edit-mode", editMode);
           return;
         case "list_sessions":
-          return fx.sessions;
+          // Fixtures come from the demo sim; present them as game data so online uploads can be previewed.
+          return fx.sessions.map((s: any) => ({ ...s, source: "lmu", gameVersion: 1124 }));
         case "list_laps":
           return fx.laps;
         case "list_track_laps":
@@ -54,7 +56,7 @@ export async function install() {
         case "get_lap_trace":
           return fx.traces[String(args.lapId)];
         case "personal_bests":
-          return fx.personalBests;
+          return fx.personalBests.map((b: any) => ({ ...b, fromGame: true }));
         case "get_filters":
           return fx.filters;
         case "get_track_map":
@@ -89,7 +91,51 @@ export async function install() {
           return onlineMe;
         case "online_delete_data":
           onlineMe = null;
+          uploadStates.clear();
+          emit("lap-uploads-changed", null);
           return;
+        case "upload_laps": {
+          const ids: number[] = args.lapIds.filter((id: number) => !uploadStates.has(id));
+          for (const id of ids) uploadStates.set(id, { lapId: id, status: "queued", remoteId: null, error: null });
+          emit("lap-uploads-changed", null);
+          setTimeout(() => {
+            for (const id of ids) uploadStates.set(id, { lapId: id, status: "ranked", remoteId: `mock-${id}`, error: null });
+            emit("lap-uploads-changed", null);
+          }, 800);
+          return ids.length;
+        }
+        case "lap_upload_states":
+          return [...uploadStates.values()];
+        case "remove_lap_upload":
+          uploadStates.delete(args.lapId);
+          emit("lap-uploads-changed", null);
+          return;
+        case "leaderboard_boards": {
+          const pbs: any[] = fx.personalBests;
+          return pbs.map((b) => ({ track: b.track, carClass: b.carClass, drivers: 12, bestLap: b.lapTime - 1.234, gameVersions: [1124, 1123] }));
+        }
+        case "leaderboard": {
+          const q = args.query;
+          const pb = (fx.personalBests as any[]).find((b) => b.track === q.track && b.carClass === q.carClass);
+          const names = ["A. Laurent", null, "K. Tanaka", "J. Smith", null, "L. Novak", "P. Silva", "D. Müller"];
+          const entries = names.map((driver, i) => {
+            const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
+            return {
+              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car", vehicleName: "", sessionType: i % 2 ? "Race" : "Practice",
+              gameVersion: i < 5 ? 1124 : 1123,
+              lapTime: t, s1: t * 0.3, s2: t * 0.4, s3: t * 0.3, recordedAt: Math.floor(Date.now() / 1000) - i * 86400,
+            };
+          });
+          const mine = pb && uploadStates.get(pb.lapId)?.remoteId;
+          if (mine) {
+            entries.splice(3, 0, { ...entries[3], lapId: mine, driver: onlineMe?.displayName ?? null, lapTime: pb.lapTime, s1: pb.s1, s2: pb.s2, s3: pb.s3 });
+            entries.forEach((e, i) => (e.rank = i + 1));
+          }
+          const filtered = entries.filter(
+            (e) => (!q.sessionType || e.sessionType === q.sessionType) && (!q.gameVersion || e.gameVersion === q.gameVersion),
+          );
+          return { entries: filtered, total: filtered.length };
+        }
         default:
           return null;
       }
