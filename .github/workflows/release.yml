@@ -21,8 +21,32 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  build:
+  # The online API ships from the mulsanne-server repo, before the app that
+  # needs it. This only checks that production is new enough for this app
+  # (src-tauri/min-server-version.txt) before the installer is built; installed
+  # apps aren't offered the update until that build publishes it.
+  check-api:
     needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the production API version
+        shell: bash
+        run: |
+          required=$(tr -d '[:space:]' < src-tauri/min-server-version.txt)
+          # Empty if production is unreachable or too old to report a version.
+          live=$( (curl -fsS --retry 3 --max-time 20 https://api.mulsanne.xyz/v1/version || true) | tr -d '[:space:]')
+          echo "Needs mulsanne-server $required; production runs ${live:-nothing}"
+          if [[ ! "$live" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+            || [[ "$(printf '%s\n%s\n' "$required" "$live" | sort -V | head -n1)" != "$required" ]]; then
+            echo "::error::Release mulsanne-server $required (or newer) to production first, then re-run this job."
+            exit 1
+          fi
+
+  build:
+    needs: [release-please, check-api]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: windows-latest
     steps:

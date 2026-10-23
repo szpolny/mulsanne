@@ -19,6 +19,7 @@
   let colorBy = $state<ColorBy>("speed");
   let cursorIdx = $state<number | null>(null);
   let loading = $state(false);
+  let remoteError = $state("");
   const group = new ChartGroup();
 
   const units = $derived(config.value.general.units);
@@ -47,15 +48,33 @@
   $effect(() => {
     const a = nav.lapA;
     const b = nav.lapB;
+    const remote = nav.remoteB;
     loading = true;
-    Promise.all([a != null ? api.getLapTrace(a) : null, b != null ? api.getLapTrace(b) : null]).then(([ta, tb]) => {
-      if (nav.lapA !== a || nav.lapB !== b) return;
+    remoteError = "";
+    const loadB = b != null ? api.getLapTrace(b) : remote ? api.rankedLapTrace(remote.id) : null;
+    Promise.all([
+      a != null ? api.getLapTrace(a) : null,
+      // A ranked lap may be gone or the server unreachable; still show lap A.
+      Promise.resolve(loadB).catch((e) => {
+        remoteError = String(e);
+        return null;
+      }),
+    ]).then(([ta, tb]) => {
+      if (nav.lapA !== a || nav.lapB !== b || nav.remoteB !== remote) return;
       traceA = ta;
       traceB = tb;
       loading = false;
       cursorIdx = null;
     });
   });
+
+  /** Lap B's select value: a local lap id, "remote" or "" (none). */
+  const bValue = $derived(nav.remoteB ? "remote" : nav.lapB != null ? String(nav.lapB) : "");
+  function selectB(value: string) {
+    if (value === "remote") return;
+    nav.remoteB = null;
+    nav.lapB = value ? Number(value) : null;
+  }
 
   const data: Aligned | null = $derived(traceA && traceA.d.length > 10 ? align(traceA, traceB, 2) : null);
   const zonesA: BrakeZone[] = $derived(data ? brakeZones(data.a, data.d) : []);
@@ -203,9 +222,12 @@
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style:background={B}></span>Compare with (B)</span>
-      <select class="w-[360px] field text-sm text-fg" bind:value={nav.lapB}>
-        <option value={null}>None</option>
-        {#each laps as l (l.id)}{#if l.id !== nav.lapA}<option value={l.id}>{lapLabel(l)}</option>{/if}{/each}
+      <select class="w-[360px] field text-sm text-fg" value={bValue} onchange={(e) => selectB(e.currentTarget.value)}>
+        <option value="">None</option>
+        {#if nav.remoteB}
+          <option value="remote">Ranked: {lapTime(nav.remoteB.lapTime)} · {nav.remoteB.label}</option>
+        {/if}
+        {#each laps as l (l.id)}{#if l.id !== nav.lapA}<option value={String(l.id)}>{lapLabel(l)}</option>{/if}{/each}
       </select>
     </label>
     {#if nav.lapB != null}
@@ -214,7 +236,7 @@
         onclick={() => ([nav.lapA, nav.lapB] = [nav.lapB, nav.lapA])}>Swap</button
       >
     {/if}
-    {#if laps.length && !nav.lapB}
+    {#if laps.length && !nav.lapB && !nav.remoteB}
       <button
         class="btn"
         title="Compare with your fastest clean lap on this track"
@@ -224,7 +246,13 @@
     {/if}
   </div>
 
-  {#if !tracks.length}
+  {#if remoteError}
+    <p class="mb-3 text-sm text-bad">Couldn't load the ranked lap: {remoteError}</p>
+  {/if}
+
+  {#if nav.remoteB && nav.track && !tracks.includes(nav.track)}
+    <div class="card p-10 text-center text-muted">You have no laps on {nav.track} yet. Drive some to compare with this ranked lap.</div>
+  {:else if !tracks.length}
     <div class="card p-10 text-center text-muted">No laps recorded yet.</div>
   {:else if !data}
     <div class="card p-10 text-center text-muted">{loading ? "Loading…" : "Select a lap."}</div>
@@ -299,6 +327,15 @@
                 </div>
               {/if}
             {/each}
+            {#if nav.remoteB && traceB}
+              {@const r = nav.remoteB}
+              <div class="card p-3">
+                <div class="truncate text-xs font-semibold" style:color={B}>Lap B · {r.label}</div>
+                <div class="font-display text-xl font-semibold">{lapTime(r.lapTime)}</div>
+                <div class="text-xs text-muted">{sectorTime(r.s1)} · {sectorTime(r.s2)} · {sectorTime(r.s3)}</div>
+                <div class="text-xs text-muted">Top {Math.round(toSpeed(Math.max(...traceB.speed), units))} {speedUnit(units)}</div>
+              </div>
+            {/if}
           </div>
         </div>
       </div>

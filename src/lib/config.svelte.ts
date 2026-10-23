@@ -44,6 +44,17 @@ export interface AppConfig {
     /** Opacity applied to every widget. */
     opacity: number;
   };
+  /** Lap rankings and car setup sharing. Off until the user opts in. */
+  online: {
+    /** Master switch; while off the app makes no requests to the Mulsanne server. */
+    enabled: boolean;
+    /** Upload laps only when asked, or every eligible lap as it's recorded. */
+    lapUpload: "manual" | "auto";
+    /** Hide your display name on laps uploaded from now on. */
+    anonymous: boolean;
+    /** Send the telemetry of your best lap on each track and class. */
+    uploadTraces: boolean;
+  };
   widgets: Record<string, WidgetConfig>;
   /** Id of the profile mirrored by `general.scale/opacity` and `widgets`. */
   activeProfile: string;
@@ -260,6 +271,7 @@ function defaults(): AppConfig {
   return {
     version: 1,
     general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
+    online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",
     profiles: { default: { name: "Default", scale: 1, opacity: 0.92, widgets: structuredClone(widgets) } },
@@ -282,6 +294,7 @@ function merge(stored: any): AppConfig {
   const base = defaults();
   if (!stored || typeof stored !== "object") return base;
   const general = { ...base.general, ...(stored.general ?? {}) };
+  const online = { ...base.online, ...(stored.online ?? {}) };
   const widgets = mergeWidgets(stored.widgets);
   const profiles: Record<string, Profile> = {};
   for (const [id, p] of Object.entries<any>(stored.profiles ?? {})) {
@@ -304,7 +317,7 @@ function merge(stored: any): AppConfig {
       widgets: structuredClone(widgets),
     };
   }
-  return { ...base, general, widgets, activeProfile, profiles };
+  return { ...base, general, online, widgets, activeProfile, profiles };
 }
 
 class ConfigStore {
