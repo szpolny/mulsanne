@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0](https://github.com/szpolny/mulsanne/compare/v0.4.0...v0.5.0) (2026-10-23)
+
+
+### Features
+
+* add optional online lap rankings with manual or automatic uploads ([6f40b7c](https://github.com/szpolny/mulsanne/commit/6f40b7cd2d3649358845d0dc241e849c42cd7246))
+* compare your laps with ranked laps' telemetry ([6f40b7c](https://github.com/szpolny/mulsanne/commit/6f40b7cd2d3649358845d0dc241e849c42cd7246))
+* record the game version with each session ([6f40b7c](https://github.com/szpolny/mulsanne/commit/6f40b7cd2d3649358845d0dc241e849c42cd7246))
+* suggest racing display names and allow anonymous uploads ([6f40b7c](https://github.com/szpolny/mulsanne/commit/6f40b7cd2d3649358845d0dc241e849c42cd7246))
+
 ## [0.4.0](https://github.com/szpolny/mulsanne/compare/v0.3.0...v0.4.0) (2026-10-16)
 
 
