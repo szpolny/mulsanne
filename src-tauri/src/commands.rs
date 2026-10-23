@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap};
 use crate::engine::PreviewSim;
 use crate::model::Snapshot;
+use crate::online::Me;
 use crate::schedule::DailyRace;
 use crate::AppState;
 
@@ -167,4 +168,24 @@ pub fn delete_session(state: State<AppState>, session_id: i64) -> CmdResult<()> 
 #[tauri::command]
 pub async fn daily_races() -> CmdResult<Vec<DailyRace>> {
     crate::schedule::fetch_daily_races().await
+}
+
+#[tauri::command]
+pub async fn online_register(state: State<'_, AppState>, display_name: Option<String>) -> CmdResult<Me> {
+    crate::online::register(&state.data_dir, display_name).await
+}
+
+#[tauri::command]
+pub async fn online_me(state: State<'_, AppState>) -> CmdResult<Me> {
+    crate::online::me(&state.data_dir).await
+}
+
+#[tauri::command]
+pub async fn online_set_display_name(state: State<'_, AppState>, display_name: Option<String>) -> CmdResult<Me> {
+    crate::online::set_display_name(&state.data_dir, display_name).await
+}
+
+#[tauri::command]
+pub async fn online_delete_data(state: State<'_, AppState>) -> CmdResult<()> {
+    crate::online::delete_data(&state.data_dir).await
 }

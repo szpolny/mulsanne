@@ -338,3 +338,12 @@ export interface DailyRace {
   /** Start times as Unix milliseconds. */
   starts: number[];
 }
+
+/** This install's account on the Mulsanne server. */
+export interface OnlineMe {
+  id: string;
+  /** `null` shows as "Anonymous". */
+  displayName: string | null;
+  /** Unix seconds. */
+  createdAt: number;
+}

@@ -4,6 +4,7 @@ import type {
   Filters,
   LapRecord,
   LapTrace,
+  OnlineMe,
   PersonalBest,
   SessionSummary,
   Snapshot,
@@ -32,4 +33,8 @@ export const api = {
   deleteLap: (lapId: number) => invoke<void>("delete_lap", { lapId }),
   deleteSession: (sessionId: number) => invoke<void>("delete_session", { sessionId }),
   dailyRaces: () => invoke<DailyRace[]>("daily_races"),
+  onlineRegister: (displayName: string | null) => invoke<OnlineMe>("online_register", { displayName }),
+  onlineMe: () => invoke<OnlineMe>("online_me"),
+  onlineSetDisplayName: (displayName: string | null) => invoke<OnlineMe>("online_set_display_name", { displayName }),
+  onlineDeleteData: () => invoke<void>("online_delete_data"),
 };

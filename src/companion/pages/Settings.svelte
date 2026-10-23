@@ -2,6 +2,7 @@
   import { config, saveConfig } from "../../lib/config.svelte";
   import { live } from "../../lib/live.svelte";
   import { checkForUpdate, installUpdate, updater } from "../../lib/updater.svelte";
+  import OnlineSettings from "../components/OnlineSettings.svelte";
   import Toggle from "../components/Toggle.svelte";
 
   const g = $derived(config.value.general);
@@ -98,4 +99,7 @@
       </div>
     </div>
   </div>
+
+  <h2 class="mt-8 mb-3 section-title">Online</h2>
+  <OnlineSettings />
 </div>

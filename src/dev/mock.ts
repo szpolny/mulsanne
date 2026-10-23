@@ -4,7 +4,7 @@
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
-import { mockIPC } from "@tauri-apps/api/mocks";
+import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { version } from "../../package.json";
 
 export async function install() {
@@ -18,7 +18,9 @@ export async function install() {
   let editMode = location.hash.includes("edit");
   const noLive = new URLSearchParams(location.search).has("nolive");
   let previewFrame = 0;
+  let onlineMe: { id: string; displayName: string | null; createdAt: number } | null = null;
 
+  mockWindows("main");
   mockIPC(
     (cmd, args: any) => {
       switch (cmd) {
@@ -75,6 +77,19 @@ export async function install() {
             race("WEC-Xperience", "advanced", "Silverstone 2025", "1h 14 minutes", 70, 90),
           ];
         }
+        case "online_register":
+          onlineMe ??= { id: "mock-user", displayName: args.displayName ?? null, createdAt: Math.floor(Date.now() / 1000) };
+          return onlineMe;
+        case "online_me":
+          if (!onlineMe) throw "Online features are not set up on this PC";
+          return onlineMe;
+        case "online_set_display_name":
+          if (!onlineMe) throw "Online features are not set up on this PC";
+          onlineMe.displayName = args.displayName?.trim() || null;
+          return onlineMe;
+        case "online_delete_data":
+          onlineMe = null;
+          return;
         default:
           return null;
       }

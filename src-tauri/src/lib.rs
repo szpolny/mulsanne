@@ -5,6 +5,7 @@ pub mod demo;
 mod engine;
 pub mod lmu;
 pub mod model;
+pub mod online;
 pub mod recorder;
 pub mod schedule;
 
@@ -143,6 +144,10 @@ pub fn run() {
             commands::delete_lap,
             commands::delete_session,
             commands::daily_races,
+            commands::online_register,
+            commands::online_me,
+            commands::online_set_display_name,
+            commands::online_delete_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
