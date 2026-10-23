@@ -233,3 +233,10 @@ pub async fn leaderboard_boards(state: State<'_, AppState>) -> CmdResult<Vec<Boa
     crate::online::require_enabled(&state.config_path)?;
     crate::online::boards().await
 }
+
+/// Telemetry of a ranked lap from the online leaderboards.
+#[tauri::command]
+pub async fn ranked_lap_trace(state: State<'_, AppState>, remote_id: String) -> CmdResult<LapTrace> {
+    crate::online::require_enabled(&state.config_path)?;
+    crate::online::ranked_lap_trace(&remote_id).await
+}

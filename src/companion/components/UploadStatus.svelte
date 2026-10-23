@@ -42,6 +42,13 @@
       title={current.status === "held" ? "Hidden until reviewed: it's much faster than the current record, or its track length doesn't match other drivers'." : undefined}
       >{current.status === "ranked" ? "Ranked" : "Under review"}</span
     >
+    {#if current.trace === "uploaded"}
+      <span class="text-muted" title="Telemetry uploaded; others can compare against this lap.">+ telemetry</span>
+    {:else if current.trace === "queued"}
+      <span class="text-muted">Sending telemetry…</span>
+    {:else if current.trace === "rejected"}
+      <span class="text-bad" title={current.error ?? undefined}>Telemetry rejected</span>
+    {/if}
     <button class={[btn, "text-muted hover:text-bad"]} disabled={busy} title="Remove from rankings"
       onclick={(e) => { e.stopPropagation(); remove(); }}>Remove</button
     >

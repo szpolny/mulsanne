@@ -60,7 +60,7 @@ impl LapTrace {
         enc.finish().map_err(err)
     }
 
-    fn decode(blob: &[u8]) -> DbResult<Self> {
+    pub fn decode(blob: &[u8]) -> DbResult<Self> {
         let mut json = Vec::new();
         GzDecoder::new(blob).read_to_end(&mut json).map_err(err)?;
         serde_json::from_slice(&json).map_err(err)
@@ -221,7 +221,10 @@ CREATE TABLE IF NOT EXISTS lap_uploads (
     anonymous   INTEGER NOT NULL,
     attempts    INTEGER NOT NULL DEFAULT 0,
     error       TEXT,
-    updated_at  INTEGER NOT NULL
+    updated_at  INTEGER NOT NULL,
+    -- Telemetry: NULL (not sent) | queued | uploaded | replaced (by a faster
+    -- lap's) | skipped (not the best lap) | rejected
+    trace       TEXT
 );
 "#;
 
@@ -240,12 +243,32 @@ pub struct UploadState {
     pub status: String,
     pub remote_id: Option<String>,
     pub error: Option<String>,
+    /// Telemetry upload state; see the `lap_uploads` schema.
+    pub trace: Option<String>,
+}
+
+/// A queued telemetry upload: the lap's stored trace blob (gzipped JSON).
+pub struct PendingTrace {
+    pub lap_id: i64,
+    pub remote_id: String,
+    pub blob: Vec<u8>,
 }
 
 /// A queued upload, ready to send.
 pub struct PendingUpload {
     pub lap_id: i64,
     pub lap: LapUpload,
+}
+
+fn add_column(conn: &Connection, table: &str, column: &str, decl: &str) -> DbResult<()> {
+    let exists = conn
+        .prepare("SELECT 1 FROM pragma_table_info(?1) WHERE name = ?2")
+        .and_then(|mut s| s.exists(params![table, column]))
+        .map_err(err)?;
+    if !exists {
+        conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {decl}")).map_err(err)?;
+    }
+    Ok(())
 }
 
 /// A lap counts towards personal bests when it's clean and a full flying lap.
@@ -256,14 +279,9 @@ impl Db {
         let conn = Connection::open(path).map_err(err)?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;").map_err(err)?;
         conn.execute_batch(SCHEMA).map_err(err)?;
-        // Columns added after the first release; SCHEMA only creates missing tables.
-        let has_game_version = conn
-            .prepare("SELECT 1 FROM pragma_table_info('sessions') WHERE name = 'game_version'")
-            .and_then(|mut s| s.exists([]))
-            .map_err(err)?;
-        if !has_game_version {
-            conn.execute_batch("ALTER TABLE sessions ADD COLUMN game_version INTEGER").map_err(err)?;
-        }
+        // Columns added after their table; SCHEMA only creates missing tables.
+        add_column(&conn, "sessions", "game_version", "INTEGER")?;
+        add_column(&conn, "lap_uploads", "trace", "TEXT")?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
@@ -509,7 +527,7 @@ impl Db {
                 "INSERT INTO lap_uploads (lap_id, status, anonymous, updated_at)
                  SELECT l.id, 'queued', ?2, ?3 FROM laps l JOIN sessions s ON s.id = l.session_id
                  WHERE l.id = ?1 AND {UPLOADABLE}
-                 ON CONFLICT(lap_id) DO UPDATE SET status = 'queued', attempts = 0, error = NULL,
+                 ON CONFLICT(lap_id) DO UPDATE SET status = 'queued', attempts = 0, error = NULL, trace = NULL,
                      anonymous = excluded.anonymous, updated_at = excluded.updated_at
                  WHERE lap_uploads.status IN ('failed', 'rejected')"
             ))
@@ -586,11 +604,64 @@ impl Db {
 
     pub fn upload_states(&self) -> DbResult<Vec<UploadState>> {
         let conn = self.conn();
-        let mut stmt = conn.prepare("SELECT lap_id, status, remote_id, error FROM lap_uploads").map_err(err)?;
+        let mut stmt = conn.prepare("SELECT lap_id, status, remote_id, error, trace FROM lap_uploads").map_err(err)?;
         let rows = stmt
-            .query_map([], |r| Ok(UploadState { lap_id: r.get(0)?, status: r.get(1)?, remote_id: r.get(2)?, error: r.get(3)? }))
+            .query_map([], |r| {
+                Ok(UploadState { lap_id: r.get(0)?, status: r.get(1)?, remote_id: r.get(2)?, error: r.get(3)?, trace: r.get(4)? })
+            })
             .map_err(err)?;
         rows.collect::<Result<_, _>>().map_err(err)
+    }
+
+    /// Queues the telemetry of an uploaded lap if it's the fastest uploaded
+    /// lap on its track and class (the server keeps only that one). Returns
+    /// whether it was queued.
+    pub fn queue_trace_if_best(&self, lap_id: i64) -> DbResult<bool> {
+        let queued = self
+            .conn()
+            .execute(
+                "UPDATE lap_uploads SET trace = 'queued' WHERE lap_id = ?1 AND remote_id IS NOT NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM lap_uploads o JOIN laps ol ON ol.id = o.lap_id, laps l
+                     WHERE l.id = ?1 AND o.lap_id <> ?1 AND o.status IN ('ranked', 'held')
+                       AND ol.track = l.track AND ol.car_class = l.car_class
+                       AND (ol.lap_time < l.lap_time OR (ol.lap_time = l.lap_time AND ol.recorded_at < l.recorded_at)))",
+                params![lap_id],
+            )
+            .map_err(err)?;
+        Ok(queued > 0)
+    }
+
+    pub fn next_trace(&self) -> DbResult<Option<PendingTrace>> {
+        self.conn()
+            .query_row(
+                "SELECT u.lap_id, u.remote_id, l.trace FROM lap_uploads u JOIN laps l ON l.id = u.lap_id
+                 WHERE u.trace = 'queued' AND u.remote_id IS NOT NULL ORDER BY u.updated_at LIMIT 1",
+                [],
+                |r| Ok(PendingTrace { lap_id: r.get(0)?, remote_id: r.get(1)?, blob: r.get(2)? }),
+            )
+            .optional()
+            .map_err(err)
+    }
+
+    /// Records a telemetry upload attempt. A successful one supersedes the
+    /// traces of slower laps on the same track and class, which the server
+    /// drops.
+    pub fn set_trace_status(&self, lap_id: i64, status: &str, error: Option<&str>) -> DbResult<()> {
+        let conn = self.conn();
+        conn.execute("UPDATE lap_uploads SET trace = ?2, error = ?3 WHERE lap_id = ?1", params![lap_id, status, error])
+            .map_err(err)?;
+        if status == "uploaded" {
+            conn.execute(
+                "UPDATE lap_uploads SET trace = 'replaced'
+                 WHERE trace = 'uploaded' AND lap_id <> ?1 AND lap_id IN (
+                     SELECT o.id FROM laps o, laps l
+                     WHERE l.id = ?1 AND o.track = l.track AND o.car_class = l.car_class)",
+                params![lap_id],
+            )
+            .map_err(err)?;
+        }
+        Ok(())
     }
 
     pub fn upload_remote_id(&self, lap_id: i64) -> DbResult<Option<String>> {
@@ -730,6 +801,43 @@ mod tests {
         // Opening again doesn't try to add the column twice.
         drop(db);
         Db::open(&path).unwrap();
+    }
+
+    #[test]
+    fn trace_queue_keeps_the_best_lap() {
+        let dir = std::env::temp_dir().join(format!("lmo-trace-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("t.db");
+        let _ = std::fs::remove_file(&path);
+        let db = Db::open(&path).unwrap();
+        let uploaded = |n: i32, time: f64| {
+            let mut l = lap(n, time, true);
+            l.session = SessionRecord { id: 9, source: "lmu".into(), ..session(9) };
+            let id = db.insert_lap(&l).unwrap();
+            db.enqueue_uploads(&[id], false, 1000).unwrap();
+            db.set_upload_status(id, "ranked", Some(&format!("r{n}")), None, 1000).unwrap();
+            id
+        };
+
+        let first = uploaded(1, 95.0);
+        assert!(db.queue_trace_if_best(first).unwrap());
+        let pending = db.next_trace().unwrap().unwrap();
+        assert_eq!((pending.lap_id, pending.remote_id.as_str()), (first, "r1"));
+        assert_eq!(LapTrace::decode(&pending.blob).unwrap().len(), 10);
+        db.set_trace_status(first, "uploaded", None).unwrap();
+
+        // Slower: not queued.
+        let slower = uploaded(2, 96.0);
+        assert!(!db.queue_trace_if_best(slower).unwrap());
+        // Faster: queued, and its upload replaces the first lap's.
+        let faster = uploaded(3, 94.0);
+        assert!(db.queue_trace_if_best(faster).unwrap());
+        db.set_trace_status(faster, "uploaded", None).unwrap();
+        assert!(db.next_trace().unwrap().is_none());
+        let trace = |id| db.upload_states().unwrap().into_iter().find(|s| s.lap_id == id).unwrap().trace;
+        assert_eq!(trace(first).as_deref(), Some("replaced"));
+        assert_eq!(trace(slower), None);
+        assert_eq!(trace(faster).as_deref(), Some("uploaded"));
     }
 
     #[test]

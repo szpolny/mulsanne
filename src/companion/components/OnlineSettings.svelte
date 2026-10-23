@@ -125,6 +125,16 @@
       </div>
       <div class="flex items-center justify-between gap-6 p-4">
         <div>
+          <div class="font-medium">Upload telemetry</div>
+          <div class="text-muted">
+            Send the speed, inputs and line of your best lap on each track and class, so others can compare against it.
+            Only that lap's telemetry is kept.
+          </div>
+        </div>
+        <Toggle checked={online.uploadTraces} label="Upload telemetry" onchange={(v) => { online.uploadTraces = v; saveConfig(); }} />
+      </div>
+      <div class="flex items-center justify-between gap-6 p-4">
+        <div>
           <div class="font-medium">Delete my online data</div>
           <div class="text-muted">
             Removes everything you've uploaded and this PC's online identity, then turns online features off.

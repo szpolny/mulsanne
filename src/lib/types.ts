@@ -360,6 +360,8 @@ export interface UploadState {
   status: UploadStatus;
   remoteId: string | null;
   error: string | null;
+  /** Telemetry: null (not sent), queued, uploaded, replaced (by a faster lap's), skipped or rejected. */
+  trace: "queued" | "uploaded" | "replaced" | "skipped" | "rejected" | null;
 }
 
 export interface LeaderboardEntry {
@@ -372,6 +374,8 @@ export interface LeaderboardEntry {
   sessionType: string;
   /** LMU build number, when known. */
   gameVersion: number | null;
+  /** Its telemetry can be downloaded for comparison. */
+  hasTrace: boolean;
   lapTime: number;
   s1: number;
   s2: number;

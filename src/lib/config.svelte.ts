@@ -52,6 +52,8 @@ export interface AppConfig {
     lapUpload: "manual" | "auto";
     /** Hide your display name on laps uploaded from now on. */
     anonymous: boolean;
+    /** Send the telemetry of your best lap on each track and class. */
+    uploadTraces: boolean;
   };
   widgets: Record<string, WidgetConfig>;
   /** Id of the profile mirrored by `general.scale/opacity` and `widgets`. */
@@ -269,7 +271,7 @@ function defaults(): AppConfig {
   return {
     version: 1,
     general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
-    online: { enabled: false, lapUpload: "manual", anonymous: false },
+    online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",
     profiles: { default: { name: "Default", scale: 1, opacity: 0.92, widgets: structuredClone(widgets) } },

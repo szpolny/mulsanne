@@ -19,7 +19,7 @@ export async function install() {
   const noLive = new URLSearchParams(location.search).has("nolive");
   let previewFrame = 0;
   let onlineMe: { id: string; displayName: string | null; createdAt: number } | null = null;
-  const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null }>();
+  const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null; trace: string | null }>();
 
   mockWindows("main");
   mockIPC(
@@ -96,13 +96,18 @@ export async function install() {
           return;
         case "upload_laps": {
           const ids: number[] = args.lapIds.filter((id: number) => !uploadStates.has(id));
-          for (const id of ids) uploadStates.set(id, { lapId: id, status: "queued", remoteId: null, error: null });
+          for (const id of ids) uploadStates.set(id, { lapId: id, status: "queued", remoteId: null, error: null, trace: null });
           emit("lap-uploads-changed", null);
           setTimeout(() => {
-            for (const id of ids) uploadStates.set(id, { lapId: id, status: "ranked", remoteId: `mock-${id}`, error: null });
+            for (const id of ids) uploadStates.set(id, { lapId: id, status: "ranked", remoteId: `mock-${id}`, error: null, trace: null });
             emit("lap-uploads-changed", null);
           }, 800);
           return ids.length;
+        }
+        case "ranked_lap_trace": {
+          // Another driver's lap: a fixture lap made ~2% faster.
+          const t = Object.values(fx.traces)[1] as any;
+          return { ...t, t: t.t.map((x: number) => x * 0.98), speed: t.speed.map((x: number) => x * 1.02) };
         }
         case "lap_upload_states":
           return [...uploadStates.values()];
@@ -123,6 +128,7 @@ export async function install() {
             return {
               rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car", vehicleName: "", sessionType: i % 2 ? "Race" : "Practice",
               gameVersion: i < 5 ? 1124 : 1123,
+              hasTrace: i !== 2,
               lapTime: t, s1: t * 0.3, s2: t * 0.4, s3: t * 0.3, recordedAt: Math.floor(Date.now() / 1000) - i * 86400,
             };
           });

@@ -53,4 +53,5 @@ export const api = {
     offset?: number;
   }) => invoke<Leaderboard>("leaderboard", { query }),
   leaderboardBoards: () => invoke<BoardSummary[]>("leaderboard_boards"),
+  rankedLapTrace: (remoteId: string) => invoke<LapTrace>("ranked_lap_trace", { remoteId }),
 };

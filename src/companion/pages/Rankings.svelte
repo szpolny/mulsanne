@@ -147,6 +147,7 @@
                 <th class="hidden px-3 py-2 font-medium xl:table-cell">Sectors</th>
                 <th class="px-3 py-2 font-medium">Session</th>
                 <th class="px-3 py-2 font-medium">Date</th>
+                <th class="px-3 py-2 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -163,9 +164,26 @@
                   <td class="hidden px-3 py-1.5 text-muted xl:table-cell">{sectorTime(e.s1)} · {sectorTime(e.s2)} · {sectorTime(e.s3)}</td>
                   <td class="px-3 py-1.5 text-muted">{e.sessionType}</td>
                   <td class="px-3 py-1.5 text-xs text-muted">{dateTime(e.recordedAt)}</td>
+                  <td class="px-2 py-1.5 text-right">
+                    {#if e.hasTrace && !mine.has(e.lapId)}
+                      <button
+                        class="rounded px-2 py-0.5 text-xs text-accent hover:bg-surface-3"
+                        title="Compare your best lap on this track with this one"
+                        onclick={() =>
+                          nav.compareWithRanked(board!.track, {
+                            id: e.lapId,
+                            label: `${e.driver ?? "Anonymous"} · ${e.car}`,
+                            lapTime: e.lapTime,
+                            s1: e.s1,
+                            s2: e.s2,
+                            s3: e.s3,
+                          })}>Compare</button
+                      >
+                    {/if}
+                  </td>
                 </tr>
               {:else}
-                <tr><td colspan="8" class="px-3 py-6 text-center text-muted">{loading ? "Loading…" : "No ranked laps for this filter."}</td></tr>
+                <tr><td colspan="9" class="px-3 py-6 text-center text-muted">{loading ? "Loading…" : "No ranked laps for this filter."}</td></tr>
               {/each}
             </tbody>
           </table>

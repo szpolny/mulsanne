@@ -162,6 +162,7 @@ pub fn run() {
             commands::remove_lap_upload,
             commands::leaderboard,
             commands::leaderboard_boards,
+            commands::ranked_lap_trace,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -24,6 +24,7 @@ use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Notify;
 
+use crate::db::LapTrace;
 use crate::AppState;
 
 const API_URL: &str = "https://api.mulsanne.xyz";
@@ -83,6 +84,9 @@ pub struct LeaderboardEntry {
     pub vehicle_name: String,
     pub session_type: String,
     pub game_version: Option<i32>,
+    /// Its telemetry can be downloaded for comparison.
+    #[serde(default)]
+    pub has_trace: bool,
     pub lap_time: f64,
     pub s1: f64,
     pub s2: f64,
@@ -149,6 +153,8 @@ pub struct Settings {
     /// Upload every eligible lap as it's recorded.
     pub auto_upload: bool,
     pub anonymous: bool,
+    /// Send the telemetry of the best lap on each track and class.
+    pub upload_traces: bool,
 }
 
 pub fn settings(config_path: &Path) -> Settings {
@@ -161,6 +167,8 @@ pub fn settings(config_path: &Path) -> Settings {
         enabled: flag("/online/enabled"),
         auto_upload: config.pointer("/online/lapUpload").and_then(Value::as_str) == Some("auto"),
         anonymous: flag("/online/anonymous"),
+        // On unless turned off; configs from before the setting have no key.
+        upload_traces: config.pointer("/online/uploadTraces").and_then(Value::as_bool).unwrap_or(true),
     }
 }
 
@@ -253,20 +261,19 @@ fn client() -> Result<reqwest::Client, RequestError> {
         .map_err(|e| RequestError::Other(e.to_string()))
 }
 
-/// Sends a request, signed when `key` is given. Returns `None` for an empty
-/// (204) response.
-async fn request<T: DeserializeOwned>(
+/// Sends a request, signed when `key` is given, and returns the response body.
+async fn send(
     key: Option<&SigningKey>,
     method: Method,
     path_and_query: &str,
-    body: Option<&Value>,
-) -> Result<Option<T>, RequestError> {
-    let body = body.map(Value::to_string).unwrap_or_default();
+    content_type: &str,
+    body: Vec<u8>,
+) -> Result<Vec<u8>, RequestError> {
     let mut req = client()?
         .request(method.clone(), format!("{}{path_and_query}", api_url()))
-        .header("content-type", "application/json");
+        .header("content-type", content_type);
     if let Some(key) = key {
-        let (k, t, s) = sign(key, method.as_str(), path_and_query, now(), body.as_bytes());
+        let (k, t, s) = sign(key, method.as_str(), path_and_query, now(), &body);
         req = req.header("x-mulsanne-key", k).header("x-mulsanne-timestamp", t).header("x-mulsanne-signature", s);
     }
     let res = req
@@ -283,6 +290,18 @@ async fn request<T: DeserializeOwned>(
             .unwrap_or_else(|_| format!("The Mulsanne server returned {status}"));
         return Err(RequestError::Status(status, message));
     }
+    Ok(bytes.to_vec())
+}
+
+/// Sends a JSON request. Returns `None` for an empty (204) response.
+async fn request<T: DeserializeOwned>(
+    key: Option<&SigningKey>,
+    method: Method,
+    path_and_query: &str,
+    body: Option<&Value>,
+) -> Result<Option<T>, RequestError> {
+    let body = body.map(|b| b.to_string().into_bytes()).unwrap_or_default();
+    let bytes = send(key, method, path_and_query, "application/json", body).await?;
     if bytes.is_empty() {
         return Ok(None);
     }
@@ -369,6 +388,15 @@ pub async fn leaderboard(q: &LeaderboardQuery) -> Result<Leaderboard, String> {
     Ok(request_some(None, Method::GET, &path, None).await?)
 }
 
+/// Downloads a ranked lap's telemetry for comparison.
+pub async fn ranked_lap_trace(remote_id: &str) -> Result<LapTrace, String> {
+    if remote_id.is_empty() || !remote_id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+        return Err("Invalid lap id".into());
+    }
+    let gz = send(None, Method::GET, &format!("/v1/laps/{remote_id}/trace"), "application/json", Vec::new()).await?;
+    LapTrace::decode(&gz)
+}
+
 pub async fn boards() -> Result<Vec<BoardSummary>, String> {
     Ok(request_some(None, Method::GET, "/v1/leaderboards/boards", None).await?)
 }
@@ -380,6 +408,7 @@ pub fn spawn_uploader(app: AppHandle, wake: Arc<Notify>) {
     tauri::async_runtime::spawn(async move {
         loop {
             drain_uploads(&app).await;
+            drain_traces(&app).await;
             tokio::select! {
                 _ = wake.notified() => {}
                 _ = tokio::time::sleep(UPLOAD_POLL) => {}
@@ -390,7 +419,8 @@ pub fn spawn_uploader(app: AppHandle, wake: Arc<Notify>) {
 
 async fn drain_uploads(app: &AppHandle) {
     let state = app.state::<AppState>();
-    if !settings(&state.config_path).enabled {
+    let settings = settings(&state.config_path);
+    if !settings.enabled {
         return;
     }
     let Ok(Some(key)) = load_key(&state.data_dir) else { return };
@@ -412,7 +442,12 @@ async fn drain_uploads(app: &AppHandle) {
             return;
         }
         let saved = match &result {
-            Ok(r) => state.db.set_upload_status(next.lap_id, &r.status, Some(&r.id), None, now()),
+            Ok(r) => state.db.set_upload_status(next.lap_id, &r.status, Some(&r.id), None, now()).and_then(|_| {
+                if settings.upload_traces {
+                    state.db.queue_trace_if_best(next.lap_id)?;
+                }
+                Ok(())
+            }),
             Err(e) if e.is_rejection() => state.db.set_upload_status(next.lap_id, "rejected", None, Some(&e.to_string()), now()),
             Err(e) => state.db.set_upload_status(next.lap_id, "failed", None, Some(&e.to_string()), now()),
         };
@@ -425,6 +460,40 @@ async fn drain_uploads(app: &AppHandle) {
         if result.as_ref().is_err_and(|e| !e.is_rejection()) {
             return;
         }
+    }
+}
+
+/// Sends queued telemetry, after the laps it belongs to are uploaded.
+async fn drain_traces(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    if !settings(&state.config_path).enabled {
+        return;
+    }
+    let Ok(Some(key)) = load_key(&state.data_dir) else { return };
+    loop {
+        let next = match state.db.next_trace() {
+            Ok(Some(next)) => next,
+            Ok(None) => return,
+            Err(e) => {
+                eprintln!("trace queue: {e}");
+                return;
+            }
+        };
+        let path = format!("/v1/laps/{}/trace", next.remote_id);
+        let result = send(Some(&key), Method::PUT, &path, "application/gzip", next.blob).await;
+        let saved = match &result {
+            Ok(_) => state.db.set_trace_status(next.lap_id, "uploaded", None),
+            // A faster lap of ours got there first.
+            Err(RequestError::Status(StatusCode::CONFLICT, _)) => state.db.set_trace_status(next.lap_id, "skipped", None),
+            Err(e) if e.is_rejection() => state.db.set_trace_status(next.lap_id, "rejected", Some(&e.to_string())),
+            // Offline, rate limited or storage down: keep it queued for the next poll.
+            Err(_) => return,
+        };
+        if let Err(e) = saved {
+            eprintln!("trace queue: {e}");
+            return;
+        }
+        let _ = app.emit("lap-uploads-changed", next.lap_id);
     }
 }
 
