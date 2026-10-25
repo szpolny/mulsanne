@@ -82,6 +82,15 @@ pub fn run() {
         .setup(move |app| {
             // Dev builds keep their own laps, identity key and config so they never touch the installed app's.
             let (mut data_dir, mut config_dir) = (app.path().app_data_dir()?, app.path().app_config_dir()?);
+            // Carry data over from before the identifier changed from com.lm-overlay.app.
+            for dir in [&data_dir, &config_dir] {
+                let legacy = dir.with_file_name("com.lm-overlay.app");
+                if !dir.exists() && legacy.is_dir() {
+                    if let Err(e) = std::fs::rename(&legacy, dir) {
+                        eprintln!("migrating {}: {e}", legacy.display());
+                    }
+                }
+            }
             if cfg!(debug_assertions) {
                 data_dir.push("dev");
                 config_dir.push("dev");
