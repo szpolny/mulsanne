@@ -265,33 +265,6 @@
   {:else}
     <div class="grid grid-cols-[minmax(0,1fr)_440px] gap-4">
       <div class="flex min-w-0 flex-col gap-2">
-        <div
-          class={[
-            "sticky top-0 z-10 flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-1.5 text-xs whitespace-nowrap",
-            group.range ? "border-accent-lo bg-surface-2" : "border-line bg-surface",
-          ]}
-        >
-          {#if group.range}
-            {@const [lo, hi] = group.extent}
-            {@const [min, max] = group.range}
-            <span class="font-semibold text-fg">Zoomed</span>
-            <span class="tnum text-muted">{Math.round(min)}–{Math.round(max)} m</span>
-            <!-- Where the zoomed window sits within the lap. -->
-            <div class="relative h-1.5 min-w-16 flex-1 rounded-full bg-surface-3">
-              <div
-                class="absolute inset-y-0 rounded-full bg-accent-hi"
-                style:left="{((min - lo) / (hi - lo)) * 100}%"
-                style:width="{Math.max(1, ((max - min) / (hi - lo)) * 100)}%"
-              ></div>
-            </div>
-            <span class="text-faint"><span class="kbd">Shift</span> + scroll to pan</span>
-            <button class="btn h-6 px-2 text-xs" onclick={() => group.reset()}>Reset zoom <span class="kbd">Esc</span></button>
-          {:else}
-            <span class="text-muted">Zoom: drag across a chart</span>
-            <span class="text-faint">or <span class="kbd">Ctrl</span> + scroll</span>
-            <span class="text-faint">Reset: double-click or <span class="kbd">Esc</span></span>
-          {/if}
-        </div>
         {#each charts as c (c.title)}
           <TraceChart
             title={c.title}

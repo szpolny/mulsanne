@@ -41,6 +41,13 @@
       u.setScale("x", { min, max: min + span });
     }
 
+    /** Scale the visible span by `f` (< 1 zooms in) around `at`, the middle by default. */
+    zoomBy(f: number, at?: number) {
+      const [min, max] = this.range ?? this.extent;
+      const c = at ?? (min + max) / 2;
+      this.zoomTo(c - (c - min) * f, c + (max - c) * f);
+    }
+
     reset() {
       this.zoomTo(-Infinity, Infinity);
     }
@@ -127,31 +134,83 @@
             if (key === "x") group.zoom(u, u.scales.x.min!, u.scales.x.max!);
           },
         ],
+        setSize: [measure],
+        ready: [measure],
       },
     };
     const data = [x, ...series.map((s) => s.data)] as uPlot.AlignedData;
     chart = new uPlot(opts, data, el);
     group.charts.add(chart);
     const u = chart;
-    // Plain scroll keeps scrolling the page; Ctrl zooms around the cursor, Shift pans.
+    // Plain scroll keeps scrolling the page (with a hint on how to zoom); Ctrl zooms around the cursor, Shift pans.
     u.over.addEventListener(
       "wheel",
       (e) => {
-        if (!e.ctrlKey && !e.shiftKey) return;
-        e.preventDefault();
-        const min = u.scales.x.min!;
-        const max = u.scales.x.max!;
-        if (e.ctrlKey) {
-          const at = u.posToVal(e.clientX - u.over.getBoundingClientRect().left, "x");
-          const f = e.deltaY < 0 ? 0.8 : 1.25;
-          group.zoomTo(at - (at - min) * f, at + (max - at) * f);
-        } else {
-          const shift = Math.sign(e.deltaX || e.deltaY) * (max - min) * 0.15;
-          group.zoomTo(min + shift, max + shift);
+        if (!e.ctrlKey && !e.shiftKey) {
+          if (hovered) flashHint();
+          return;
         }
+        e.preventDefault();
+        if (e.ctrlKey) group.zoomBy(e.deltaY < 0 ? 0.8 : 1.25, u.posToVal(e.clientX - u.over.getBoundingClientRect().left, "x"));
+        else panBy(Math.sign(e.deltaX || e.deltaY) * 0.15);
       },
       { passive: false },
     );
+    // Only hint after the pointer moved here, not when the page scrolls a chart under a still mouse.
+    u.over.addEventListener("pointermove", () => (hovered = true));
+    u.over.addEventListener("pointerleave", () => (hovered = false));
+  }
+
+  /** Plot area in CSS pixels, relative to the chart element. */
+  let plot = $state({ left: 0, top: 0, width: 0, height: 0 });
+  function measure(u: uPlot) {
+    const r = uPlot.pxRatio;
+    plot = { left: u.bbox.left / r, top: u.bbox.top / r, width: u.bbox.width / r, height: u.bbox.height / r };
+  }
+
+  let hovered = false;
+  let hint = $state(false);
+  let hintTimer: ReturnType<typeof setTimeout>;
+  function flashHint() {
+    hint = true;
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => (hint = false), 1200);
+  }
+
+  /** Move the zoomed window by a fraction of its width. */
+  function panBy(frac: number) {
+    if (!group.range) return;
+    const [min, max] = group.range;
+    const d = (max - min) * frac;
+    group.zoomTo(min + d, max + d);
+  }
+
+  // Scrollbar along the bottom of the plot while zoomed: drag the thumb to pan, click the track to jump.
+  const thumb = $derived.by(() => {
+    if (!group.range) return null;
+    const [lo, hi] = group.extent;
+    const [min, max] = group.range;
+    return { left: ((min - lo) / (hi - lo)) * 100, width: Math.max(2, ((max - min) / (hi - lo)) * 100) };
+  });
+  let pan: { x: number; min: number; max: number } | null = null;
+  function onThumbDown(e: PointerEvent) {
+    if (!group.range) return;
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    pan = { x: e.clientX, min: group.range[0], max: group.range[1] };
+  }
+  function onThumbMove(e: PointerEvent) {
+    if (!pan) return;
+    const [lo, hi] = group.extent;
+    const d = ((e.clientX - pan.x) / plot.width) * (hi - lo);
+    group.zoomTo(pan.min + d, pan.max + d);
+  }
+  function onTrackDown(e: PointerEvent) {
+    if (!group.range) return;
+    const [lo, hi] = group.extent;
+    const [min, max] = group.range;
+    const at = lo + ((e.clientX - (e.currentTarget as HTMLElement).getBoundingClientRect().left) / plot.width) * (hi - lo);
+    group.zoomTo(at - (max - min) / 2, at + (max - min) / 2);
   }
 
   // Rebuild only when data or series change; width changes just resize.
@@ -175,6 +234,7 @@
   });
 
   onDestroy(() => {
+    clearTimeout(hintTimer);
     if (chart) group.charts.delete(chart);
     chart?.destroy();
   });
@@ -195,7 +255,82 @@
       </span>
     {/each}
   </div>
-  <div bind:clientWidth={width}>
+  <div class="group relative" bind:clientWidth={width}>
     <div bind:this={el}></div>
+
+    <div
+      class={[
+        "absolute top-1 flex items-center gap-0.5 rounded-md border border-line bg-surface-2 p-0.5 shadow-md text-xs transition-opacity",
+        "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
+      ]}
+      style:right="{width - plot.left - plot.width + 4}px"
+    >
+      {#if group.range}
+        <span class="px-1.5 tnum text-muted">{Math.round(group.range[0])}–{Math.round(group.range[1])} m</span>
+      {:else}
+        <span class="px-1.5 text-faint">Drag or <span class="kbd">Ctrl</span> + scroll to zoom</span>
+      {/if}
+      <button class="zoom-btn" title="Zoom out" aria-label="Zoom out" disabled={!group.range} onclick={() => group.zoomBy(2)}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 7h8" stroke="currentColor" stroke-width="1.4" /></svg>
+      </button>
+      <button class="zoom-btn" title="Zoom in" aria-label="Zoom in" onclick={() => group.zoomBy(0.5)}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 7h8M7 3v8" stroke="currentColor" stroke-width="1.4" /></svg>
+      </button>
+      {#if group.range}
+        <button class="zoom-btn px-1.5" title="Show the whole lap (Esc or double-click)" onclick={() => group.reset()}>Reset</button>
+      {/if}
+    </div>
+
+    {#if thumb}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="absolute h-1.5 cursor-pointer rounded-full bg-surface-3/80"
+        style:left="{plot.left}px"
+        style:width="{plot.width}px"
+        style:top="{plot.top + plot.height - 8}px"
+        onpointerdown={onTrackDown}
+      >
+        <div
+          class="absolute inset-y-0 cursor-grab rounded-full bg-accent-hi active:cursor-grabbing"
+          style:left="{thumb.left}%"
+          style:width="{thumb.width}%"
+          title="Drag to pan"
+          onpointerdown={onThumbDown}
+          onpointermove={onThumbMove}
+          onpointerup={() => (pan = null)}
+        ></div>
+      </div>
+    {/if}
+
+    {#if hint}
+      <div
+        class="pointer-events-none absolute flex items-center justify-center bg-bg/60 text-sm text-fg"
+        style:left="{plot.left}px"
+        style:top="{plot.top}px"
+        style:width="{plot.width}px"
+        style:height="{plot.height}px"
+      >
+        Hold <span class="kbd mx-1">Ctrl</span> while scrolling to zoom
+      </div>
+    {/if}
   </div>
 </div>
+
+<style>
+  .zoom-btn {
+    display: flex;
+    height: 1.5rem;
+    min-width: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    color: var(--color-muted);
+  }
+  .zoom-btn:hover:not(:disabled) {
+    background: var(--color-surface-3);
+    color: var(--color-fg);
+  }
+  .zoom-btn:disabled {
+    opacity: 0.35;
+  }
+</style>
