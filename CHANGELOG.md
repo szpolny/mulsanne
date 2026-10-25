@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/szpolny/mulsanne/compare/v0.5.0...v0.6.0) (2026-10-25)
+
+
+### Features
+
+* add synchronized trace chart zoom controls ([96841f1](https://github.com/szpolny/mulsanne/commit/96841f1b5eab8a23b1725830e787ba638742d5fb))
+* display unserved penalty details ([e7f04e7](https://github.com/szpolny/mulsanne/commit/e7f04e7aee32af817f5af4dba170400951e61fa6))
+
+
+### Bug Fixes
+
+* migrate app data to the new identifier ([b39b942](https://github.com/szpolny/mulsanne/commit/b39b942de2047908e5d7179d1f4d5bcdc362c26f))
+
 ## [0.5.0](https://github.com/szpolny/mulsanne/compare/v0.4.0...v0.5.0) (2026-10-23)
 
 
