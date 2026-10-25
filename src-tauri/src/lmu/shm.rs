@@ -4,14 +4,15 @@
 use std::ffi::CString;
 use std::sync::atomic::{AtomicI32, Ordering};
 
-use windows::core::PCSTR;
+use windows::core::{PCSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, HANDLE, HWND, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
 use windows::Win32::System::Memory::{
     CreateFileMappingA, MapViewOfFile, OpenFileMappingA, UnmapViewOfFile, FILE_MAP_ALL_ACCESS,
     FILE_MAP_READ, MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
 };
 use windows::Win32::System::Threading::{
-    CreateEventA, OpenEventA, SetEvent, WaitForSingleObject, SYNCHRONIZATION_SYNCHRONIZE,
+    CreateEventA, OpenEventA, OpenProcess, QueryFullProcessImageNameW, SetEvent, WaitForSingleObject,
+    PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, SYNCHRONIZATION_SYNCHRONIZE,
 };
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId, IsWindow};
 
@@ -233,6 +234,30 @@ impl LmuSharedMemory {
 pub fn game_window(buf: &[u8]) -> u64 {
     let app: ApplicationState = layout::read_at(buf, layout::OFF_GENERIC_APP_INFO);
     app.app_window
+}
+
+/// Install folder of the process that owns `hwnd` (the folder holding the game exe).
+pub fn process_dir(hwnd: u64) -> Option<std::path::PathBuf> {
+    if hwnd == 0 {
+        return None;
+    }
+    unsafe {
+        let mut pid = 0u32;
+        GetWindowThreadProcessId(HWND(hwnd as *mut _), Some(&mut pid));
+        if pid == 0 {
+            return None;
+        }
+        let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+        let mut buf = [0u16; 1024];
+        let mut len = buf.len() as u32;
+        let ok = QueryFullProcessImageNameW(process, PROCESS_NAME_WIN32, PWSTR(buf.as_mut_ptr()), &mut len).is_ok();
+        let _ = CloseHandle(process);
+        if !ok {
+            return None;
+        }
+        let exe = std::path::PathBuf::from(String::from_utf16_lossy(&buf[..len as usize]));
+        exe.parent().map(|p| p.to_path_buf())
+    }
 }
 
 /// Whether the foreground window belongs to the same process as `hwnd`.

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
+  import { penaltyText } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
 
   const live = useLive();
@@ -59,7 +60,16 @@
         fg: "#111",
       });
     }
-    if (me && me.numPenalties > 0) banners.push({ text: "Penalty", sub: `×${me.numPenalties}`, bg: "#111", fg: "#fff" });
+    if (me && me.numPenalties > 0) {
+      const next = me.penalties[0];
+      const more = me.numPenalties > 1 ? ` (+${me.numPenalties - 1})` : "";
+      banners.push({
+        text: "Penalty",
+        sub: next ? penaltyText(next) + more : `×${me.numPenalties}`,
+        bg: "#111",
+        fg: "#fff",
+      });
+    }
     return { banners, lights };
   });
 </script>

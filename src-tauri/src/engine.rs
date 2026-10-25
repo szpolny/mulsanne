@@ -12,7 +12,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::db::{self, Db, NewLap};
 use crate::demo::DemoSim;
-use crate::lmu::{self, layout, shm::{self, LmuSharedMemory}};
+use crate::lmu::{self, layout, penalties::PenaltyTracker, shm::{self, LmuSharedMemory}};
 use crate::model::Snapshot;
 use crate::recorder::Recorder;
 use crate::AppState;
@@ -154,6 +154,7 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
     let mut shm: Option<LmuSharedMemory> = None;
     let mut next_open = Instant::now();
     let mut demo: Option<DemoSim> = None;
+    let mut penalties = PenaltyTracker::default();
     let mut last_tick = Instant::now();
     let mut last_emit = Instant::now() - Duration::from_secs(1);
     let mut last_change = Instant::now();
@@ -197,8 +198,10 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
                         shm = None;
                         Snapshot::default()
                     } else {
-                        shared.game_window.store(shm::game_window(&buf), Ordering::Release);
-                        let s = lmu::parse(&buf);
+                        let hwnd = shm::game_window(&buf);
+                        shared.game_window.store(hwnd, Ordering::Release);
+                        let mut s = lmu::parse(&buf);
+                        penalties.update(&mut s, hwnd);
                         let key = (s.session.current_et, s.player.as_ref().map_or(0.0, |p| p.elapsed_time));
                         if key != last_key {
                             last_key = key;

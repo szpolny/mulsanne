@@ -3,6 +3,13 @@
 export type Source = "none" | "lmu" | "demo";
 export type SessionKind = "unknown" | "testDay" | "practice" | "qualifying" | "warmup" | "race";
 
+export interface Penalty {
+  kind: "stopGo" | "driveThrough" | "other";
+  /** Stationary time for a stop/go, 0 otherwise. */
+  seconds: number;
+  reason: string;
+}
+
 export interface Weather {
   ambientTemp: number;
   trackTemp: number;
@@ -167,6 +174,8 @@ export interface Vehicle {
   inGarage: boolean;
   numPitstops: number;
   numPenalties: number;
+  /** Unserved penalties the game logged, oldest first; may be shorter than numPenalties. */
+  penalties: Penalty[];
   finishStatus: number;
   flag: number;
   fuelFraction: number;

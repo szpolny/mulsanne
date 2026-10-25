@@ -4,7 +4,7 @@
 use std::f64::consts::TAU;
 
 use crate::lmu::assign_class_places;
-use crate::model::{Player, Session, SessionKind, Snapshot, Source, Vehicle, Weather, Wheel};
+use crate::model::{Penalty, PenaltyKind, Player, Session, SessionKind, Snapshot, Source, Vehicle, Weather, Wheel};
 
 const TRACK_POINTS: usize = 2400;
 const MAX_LAT_ACCEL: f64 = 22.0;
@@ -370,6 +370,13 @@ impl DemoSim {
                 time_into_lap: self.time - o.lap_start,
                 estimated_lap_time: 110.0 / o.pace,
                 num_pitstops: o.pitstops,
+                // A few cars carry an unserved penalty so the badges show up in the demo.
+                num_penalties: if o.id % 6 == 3 { 1 } else { 0 },
+                penalties: match o.id % 12 {
+                    3 => vec![Penalty { kind: PenaltyKind::StopGo, seconds: 10, reason: "Speeding In Pitlane".into() }],
+                    9 => vec![Penalty { kind: PenaltyKind::DriveThrough, seconds: 0, reason: "Track Limits".into() }],
+                    _ => Vec::new(),
+                },
                 speed: target * o.pace,
                 pos: [ox, 0.0, oz],
                 fuel_fraction: 0.6,

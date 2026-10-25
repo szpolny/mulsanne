@@ -1,4 +1,5 @@
 import type { Units } from "./config.svelte";
+import type { Penalty, Vehicle } from "./types";
 
 /** 83.456 -> "1:23.456". Non-positive values render as placeholder. */
 export function lapTime(s: number | null | undefined, digits = 3): string {
@@ -109,4 +110,25 @@ export function classColor(cls: string): string {
   if (c.includes("gte")) return "#30a46c";
   if (c.includes("gt3")) return "#f2a33a";
   return "#8b8d98";
+}
+
+/** Short badge text for a car's next penalty: "S/G 10s", "DT", "PEN"; "+1" when more are waiting. */
+export function penaltyBadge(v: Vehicle): string {
+  const p = v.penalties[0];
+  const head = !p ? "PEN" : p.kind === "stopGo" ? `S/G${p.seconds > 0 ? ` ${p.seconds}s` : ""}` : p.kind === "driveThrough" ? "DT" : "PEN";
+  return v.numPenalties > 1 ? `${head} +${v.numPenalties - 1}` : head;
+}
+
+/** Full description of one penalty, e.g. "Stop/Go 10s: Speeding In Pitlane". */
+export function penaltyText(p: Penalty): string {
+  const kind = p.kind === "stopGo" ? `Stop/Go${p.seconds > 0 ? ` ${p.seconds}s` : ""}` : p.kind === "driveThrough" ? "Drive-through" : "Penalty";
+  return p.reason ? `${kind}: ${p.reason}` : kind;
+}
+
+/** Tooltip listing every unserved penalty, oldest first. */
+export function penaltyTitle(v: Vehicle): string {
+  const lines = v.penalties.map(penaltyText);
+  const unknown = v.numPenalties - lines.length;
+  if (unknown > 0) lines.push(`${unknown} unserved ${unknown === 1 ? "penalty" : "penalties"}${lines.length ? " (details unknown)" : ""}`);
+  return lines.join("\n");
 }

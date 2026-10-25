@@ -1,6 +1,7 @@
 //! Native Le Mans Ultimate shared memory source.
 
 pub mod layout;
+pub mod penalties;
 pub mod shm;
 
 use std::collections::HashMap;

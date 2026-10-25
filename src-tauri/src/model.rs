@@ -255,6 +255,10 @@ pub struct Vehicle {
     pub in_garage: bool,
     pub num_pitstops: i16,
     pub num_penalties: i16,
+    /// Details of the unserved penalties, oldest first, read from the game's
+    /// trace log. May hold fewer entries than `num_penalties` when the log
+    /// has no matching line.
+    pub penalties: Vec<Penalty>,
     pub finish_status: i8,
     pub flag: u8,
     pub fuel_fraction: f64,
@@ -273,6 +277,25 @@ pub struct Vehicle {
     pub tyre_laps: i32,
     /// Remaining virtual energy 0..1, if the car uses it and the game shares it.
     pub virtual_energy: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PenaltyKind {
+    StopGo,
+    DriveThrough,
+    #[default]
+    Other,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Penalty {
+    pub kind: PenaltyKind,
+    /// Stationary time for a stop/go, 0 otherwise.
+    pub seconds: i32,
+    /// e.g. "Speeding In Pitlane".
+    pub reason: String,
 }
 
 /// Lap timing derived by the recorder (not directly available from the game).

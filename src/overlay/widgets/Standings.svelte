@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
-  import { classColor, clock, gap, lapTime, sessionLabel, shortName, timeOfDay } from "../../lib/format";
+  import { classColor, clock, gap, lapTime, penaltyBadge, penaltyTitle, sessionLabel, shortName, timeOfDay } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
   import type { Vehicle } from "../../lib/types";
   import CarLogo from "../CarLogo.svelte";
@@ -178,6 +178,12 @@
             <span class="rounded-[4px] bg-white/15 px-1 text-[10px] leading-4 font-bold text-fg">GAR</span>
           {:else if r.v.inPits}
             <span class="rounded-[4px] bg-white px-1 text-[10px] leading-4 font-bold text-black">PIT</span>
+          {/if}
+          {#if r.v.numPenalties > 0 && r.v.finishStatus < 2}
+            <span
+              class="shrink-0 rounded-[4px] bg-warn px-1 text-[10px] leading-4 font-bold text-black"
+              title={penaltyTitle(r.v)}>{penaltyBadge(r.v)}</span
+            >
           {/if}
         </span>
         {#if opts.showTyres}

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
-  import { classColor, lapTime, shortName } from "../../lib/format";
+  import { classColor, lapTime, penaltyBadge, penaltyTitle, shortName } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
   import type { Vehicle } from "../../lib/types";
   import CarLogo from "../CarLogo.svelte";
@@ -80,7 +80,7 @@
       "36px", // number
       "18px", // logo
       "minmax(0,1fr)", // driver
-      "auto", // pit status
+      "auto", // pit and penalty status
       showEnergy ? "40px" : "",
       opts.showLast ? "70px" : "",
       opts.showBest ? "70px" : "",
@@ -110,8 +110,14 @@
       <span class="rounded-[4px] text-center text-[12px] leading-[18px] font-bold text-white" style:background={classColor(r.v.class)}>{r.v.number || "–"}</span>
       <CarLogo model={r.v.model} entry={r.v.vehicle} />
       <span class="truncate font-medium" style:color={nameColor(r)}>{shortName(r.v.driver)}</span>
-      <span>
+      <span class="flex gap-1">
         {#if r.v.inPits}<span class="rounded-[4px] bg-white px-1 text-[10px] leading-4 font-bold text-black">PIT</span>{/if}
+        {#if r.v.numPenalties > 0}
+          <span
+            class="rounded-[4px] bg-warn px-1 text-[10px] leading-4 font-bold text-black"
+            title={penaltyTitle(r.v)}>{penaltyBadge(r.v)}</span
+          >
+        {/if}
       </span>
       {#if showEnergy}
         <EnergyBadge value={r.v.virtualEnergy} />
