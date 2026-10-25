@@ -219,5 +219,11 @@
     onwheel={onWheel}
     ondblclick={() => (view = { k: 1, tx: 0, ty: 0 })}
   ></canvas>
+  {#if view.k > 1 || view.tx || view.ty}
+    <div class="absolute top-2 right-2 flex items-center gap-2 rounded-md border border-accent-lo bg-surface-2/90 py-0.5 pr-0.5 pl-2 text-xs">
+      <span class="tnum text-muted">{view.k.toFixed(1)}×</span>
+      <button class="btn h-6 px-2 text-xs" onclick={() => (view = { k: 1, tx: 0, ty: 0 })}>Reset view</button>
+    </div>
+  {/if}
   <div class="pointer-events-none absolute bottom-2 left-3 text-[11px] text-faint">Scroll to zoom · drag to pan · double-click to reset</div>
 </div>

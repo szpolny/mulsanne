@@ -14,13 +14,35 @@
   /** All charts on the page share cursor and x-zoom through this group. */
   export class ChartGroup {
     charts = new Set<uPlot>();
+    /** Full x extent of the data and the zoomed window, or null when showing everything. */
+    extent = $state<[number, number]>([0, 0]);
+    range = $state<[number, number] | null>(null);
     private syncing = false;
 
     zoom(from: uPlot, min: number, max: number) {
       if (this.syncing) return;
+      const xs = from.data[0];
+      const lo = xs[0];
+      const hi = xs[xs.length - 1];
+      this.extent = [lo, hi];
+      this.range = min <= lo && max >= hi ? null : [min, max];
       this.syncing = true;
       for (const u of this.charts) if (u !== from) u.setScale("x", { min, max });
       this.syncing = false;
+    }
+
+    /** Zoom to [min, max], clamped to the data and at least `minSpan` wide. */
+    zoomTo(min: number, max: number, minSpan = 30) {
+      const u = this.charts.values().next().value;
+      if (!u) return;
+      const [lo, hi] = [u.data[0][0], u.data[0][u.data[0].length - 1]];
+      const span = Math.min(hi - lo, Math.max(minSpan, max - min));
+      min = Math.max(lo, Math.min(hi - span, min));
+      u.setScale("x", { min, max: min + span });
+    }
+
+    reset() {
+      this.zoomTo(-Infinity, Infinity);
     }
   }
 </script>
@@ -110,6 +132,26 @@
     const data = [x, ...series.map((s) => s.data)] as uPlot.AlignedData;
     chart = new uPlot(opts, data, el);
     group.charts.add(chart);
+    const u = chart;
+    // Plain scroll keeps scrolling the page; Ctrl zooms around the cursor, Shift pans.
+    u.over.addEventListener(
+      "wheel",
+      (e) => {
+        if (!e.ctrlKey && !e.shiftKey) return;
+        e.preventDefault();
+        const min = u.scales.x.min!;
+        const max = u.scales.x.max!;
+        if (e.ctrlKey) {
+          const at = u.posToVal(e.clientX - u.over.getBoundingClientRect().left, "x");
+          const f = e.deltaY < 0 ? 0.8 : 1.25;
+          group.zoomTo(at - (at - min) * f, at + (max - at) * f);
+        } else {
+          const shift = Math.sign(e.deltaX || e.deltaY) * (max - min) * 0.15;
+          group.zoomTo(min + shift, max + shift);
+        }
+      },
+      { passive: false },
+    );
   }
 
   // Rebuild only when data or series change; width changes just resize.
