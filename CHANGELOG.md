@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/szpolny/mulsanne/compare/v0.6.0...v0.6.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* improve trace chart zoom and pan controls ([64ddf25](https://github.com/szpolny/mulsanne/commit/64ddf25b27e1267aff11d30efbd15e51863ae6eb))
+
 ## [0.6.0](https://github.com/szpolny/mulsanne/compare/v0.5.0...v0.6.0) (2026-10-25)
 
 
