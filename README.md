@@ -22,6 +22,10 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 
 Use **Demo data** on the **Live** page to arrange the overlay without running the game. Laps are saved locally in `%APPDATA%\xyz.mulsanne\laps.db`; valid laps count toward your personal bests.
 
+## Linux
+
+Mulsanne builds natively on Linux (AppImage and `.deb`). LMU runs under Wine/Proton, whose shared memory a native process can't open, so Mulsanne reads a mirror of the `LMU_Data` block from `/dev/shm/LMU_Data` (override with `MULSANNE_LMU_SHM`). A bridge running inside the game's prefix has to write that file every frame and delete it on exit; the bridge isn't part of this repository yet. Set `MULSANNE_LMU_DIR` to the game folder to enable penalty tracking. Laps are saved in `~/.local/share/xyz.mulsanne/laps.db`. Global shortcuts and the click-through overlay depend on your compositor; X11 and XWayland work best.
+
 ## Feedback
 
 Use **Report issue** at the bottom of the companion sidebar or [open an issue on GitHub](https://github.com/szpolny/mulsanne/issues/new/choose) to report a bug or request a feature. For bugs, include your Mulsanne version (shown in Settings), Windows version, and steps to reproduce the problem.

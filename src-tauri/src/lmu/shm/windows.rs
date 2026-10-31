@@ -16,7 +16,7 @@ use windows::Win32::System::Threading::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId, IsWindow};
 
-use super::layout::{self, ApplicationState};
+use crate::lmu::layout::{self, ApplicationState};
 
 fn c_name(name: &str) -> CString {
     CString::new(name).expect("static name without NUL")
