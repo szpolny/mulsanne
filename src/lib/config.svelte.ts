@@ -21,6 +21,10 @@ export interface WidgetConfig {
   enabled: boolean;
   x: number;
   y: number;
+  /** Size multiplier for this widget, on top of the global scale. */
+  size: number;
+  /** Opacity for this widget, on top of the global opacity. */
+  alpha: number;
   options: Record<string, any>;
 }
 
@@ -261,7 +265,7 @@ function defaultWidgets(): Record<string, WidgetConfig> {
   return Object.fromEntries(
     WIDGETS.map((w) => [
       w.id,
-      { ...w.defaults, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
+      { ...w.defaults, size: 1, alpha: 1, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
     ]),
   );
 }
@@ -282,7 +286,7 @@ function defaults(): AppConfig {
 function mergeWidgets(stored: any): Record<string, WidgetConfig> {
   const base = defaultWidgets();
   for (const id of Object.keys(base)) {
-    // Drop legacy per-widget scale/opacity; those are global now.
+    // Drop legacy per-widget scale/opacity; size and alpha replace them, on top of the global values.
     const { scale: _scale, opacity: _opacity, ...s } = stored?.[id] ?? {};
     base[id] = { ...base[id], ...s, options: { ...base[id].options, ...(s.options ?? {}) } };
   }
@@ -370,6 +374,7 @@ export function resetLayout() {
   for (const [id, w] of Object.entries(config.value.widgets)) {
     w.x = d[id].x;
     w.y = d[id].y;
+    w.size = 1;
   }
   config.value.general.scale = 1;
   saveConfig();

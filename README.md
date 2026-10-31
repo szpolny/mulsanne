@@ -17,7 +17,7 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 
 1. Run Le Mans Ultimate in **borderless** or windowed mode.
 2. Start Mulsanne. The companion app opens, and the overlay appears on your primary monitor.
-3. Press **Ctrl+Shift+F9** to edit the layout. Drag widgets to move them and scroll to resize them; press it again to finish.
+3. Press **Ctrl+Shift+F9** to edit the layout. Drag widgets to move them and scroll to resize one (Shift + scroll resizes all of them); press it again to finish.
 4. Press **Ctrl+Shift+F10** to show or hide the overlay. Configure widgets on the **Overlays** page.
 
 Use **Demo data** on the **Live** page to arrange the overlay without running the game. Laps are saved locally in `%APPDATA%\xyz.mulsanne\laps.db`; valid laps count toward your personal bests.

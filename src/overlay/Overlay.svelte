@@ -31,7 +31,7 @@
     <div class="h-8 w-px bg-white/10"></div>
     <div>
       <div class="hud-title">Edit layout</div>
-      <div class="text-xs text-muted">Drag to move · scroll to resize · <kbd class="kbd">Ctrl+Shift+F9</kbd> to finish</div>
+      <div class="text-xs text-muted">Drag to move · scroll to resize · <kbd class="kbd">Shift</kbd> + scroll to resize all · <kbd class="kbd">Ctrl+Shift+F9</kbd> to finish</div>
     </div>
     {#if !live.snap?.player}
       <button class="btn px-3! py-1.5! text-xs!" onclick={() => api.setDemoMode(true)}>Demo data</button>
