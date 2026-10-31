@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { config, saveConfig } from "../../lib/config.svelte";
   import { updater } from "../../lib/updater.svelte";
 
@@ -33,7 +34,17 @@
           <h3 class="section-title mb-2">{section.title}</h3>
           <ul class="list-disc space-y-2 pl-5 text-muted marker:text-accent">
             {#each section.entries as entry}
-              <li>{entry}</li>
+              <li>
+                {entry.text}
+                {#each entry.refs as ref}
+                  <button
+                    type="button"
+                    class="ml-1 text-xs text-muted/70 underline-offset-2 hover:text-fg hover:underline"
+                    title="View pull request {ref.label} on GitHub"
+                    onclick={() => openUrl(ref.url)}>{ref.label}</button
+                  >
+                {/each}
+              </li>
             {/each}
           </ul>
         </section>
