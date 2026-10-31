@@ -28,3 +28,4 @@ src/dev/fixtures/
 
 # Claude
 .claude
+lmu-bridge/target

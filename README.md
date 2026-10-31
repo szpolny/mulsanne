@@ -24,7 +24,7 @@ Use **Demo data** on the **Live** page to arrange the overlay without running th
 
 ## Linux
 
-Mulsanne builds natively on Linux (AppImage and `.deb`). LMU runs under Wine/Proton, whose shared memory a native process can't open, so Mulsanne reads a mirror of the `LMU_Data` block from `/dev/shm/LMU_Data` (override with `MULSANNE_LMU_SHM`). A bridge running inside the game's prefix has to write that file every frame and delete it on exit; the bridge isn't part of this repository yet. Set `MULSANNE_LMU_DIR` to the game folder to enable penalty tracking. Laps are saved in `~/.local/share/xyz.mulsanne/laps.db`. Global shortcuts and the click-through overlay depend on your compositor; X11 and XWayland work best.
+Mulsanne builds natively on Linux (AppImage and `.deb`). LMU runs under Wine/Proton, whose shared memory a native process can't open, so Mulsanne reads a mirror of the `LMU_Data` block from `/dev/shm/LMU_Data` (override with `MULSANNE_LMU_SHM`). The `lmu-bridge.exe` attached to each release (source in `lmu-bridge/`) writes that file every frame and deletes it on exit. Run it with the same Wine prefix as the game (e.g. `STEAM_COMPAT_DATA_PATH=<prefix> proton run lmu-bridge.exe`); it waits until LMU starts. Set `MULSANNE_LMU_DIR` to the game folder to enable penalty tracking. Laps are saved in `~/.local/share/xyz.mulsanne/laps.db`. Global shortcuts and the click-through overlay depend on your compositor; X11 and XWayland work best.
 
 ## Feedback
 

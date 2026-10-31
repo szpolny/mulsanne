@@ -87,3 +87,12 @@ jobs:
           tagName: ${{ needs.release-please.outputs.tag_name }}
           releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
           includeUpdaterJson: true
+
+      - name: Build the Wine bridge
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cargo build --release --manifest-path lmu-bridge/Cargo.toml
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" lmu-bridge/target/release/lmu-bridge.exe --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
