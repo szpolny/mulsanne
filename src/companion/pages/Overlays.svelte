@@ -43,6 +43,11 @@
       <input type="range" min="0.2" max="1" step="0.01" bind:value={g.opacity} oninput={saveConfig} class="w-40 accent-accent" />
       <span class="w-10 text-right tnum">{Math.round(g.opacity * 100)}%</span>
     </label>
+    <label class="flex items-center gap-3">
+      <span class="text-muted">Background</span>
+      <input type="range" min="0" max="1" step="0.01" bind:value={g.background} oninput={saveConfig} class="w-40 accent-accent" />
+      <span class="w-10 text-right tnum">{Math.round(g.background * 100)}%</span>
+    </label>
   </div>
 
   <div class="grid grid-cols-[320px_1fr] gap-4">
@@ -94,6 +99,10 @@
       <div class="mt-6 grid max-w-lg grid-cols-[160px_1fr_60px] items-center gap-x-4 gap-y-4 text-sm">
         <span class="text-muted">Position</span>
         <span class="col-span-2 text-muted tnum">x {Math.round(cfg.x)} · y {Math.round(cfg.y)}</span>
+
+        <span class="text-muted">Size</span>
+        <input type="range" min="0.4" max="3" step="0.05" bind:value={cfg.size} oninput={saveConfig} class="accent-accent" />
+        <span class="text-right tnum">{Math.round(cfg.size * 100)}%</span>
 
         {#each meta.options as o (o.key)}
           <span class="text-muted">{o.label}</span>

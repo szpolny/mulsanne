@@ -44,10 +44,11 @@
 
   const PAD = 24;
   const MAX_H = 360;
+  const size = $derived(g.scale * cfg.size);
   const fit = $derived(
-    naturalW && naturalH ? Math.min(1, (stageW - PAD * 2) / (naturalW * g.scale), MAX_H / (naturalH * g.scale)) : 1,
+    naturalW && naturalH ? Math.min(1, (stageW - PAD * 2) / (naturalW * size), MAX_H / (naturalH * size)) : 1,
   );
-  const scale = $derived(g.scale * fit);
+  const scale = $derived(size * fit);
 </script>
 
 <div
@@ -63,6 +64,7 @@
       class="pointer-events-none w-max origin-top-left"
       style:transform="scale({scale})"
       style:opacity={g.opacity}
+      style:--color-hud="rgb(14 14 17 / {g.background})"
       bind:clientWidth={naturalW}
       bind:clientHeight={naturalH}
     >

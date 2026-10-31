@@ -35,11 +35,14 @@
     saveConfig();
   }
 
+  // Scroll resizes this widget; Shift + scroll resizes every widget.
   function onWheel(e: WheelEvent) {
     if (!edit) return;
     e.preventDefault();
-    const step = e.deltaY < 0 ? 0.05 : -0.05;
-    g.scale = Math.min(3, Math.max(0.4, Math.round((g.scale + step) * 100) / 100));
+    const step = (e.deltaY || e.deltaX) < 0 ? 0.05 : -0.05;
+    const bump = (v: number) => Math.min(3, Math.max(0.4, Math.round((v + step) * 100) / 100));
+    if (e.shiftKey) g.scale = bump(g.scale);
+    else cfg.size = bump(cfg.size);
     saveConfig();
   }
 </script>
@@ -48,8 +51,9 @@
   class="absolute top-0 left-0 origin-top-left"
   class:cursor-move={edit}
   class:z-10={dragging}
-  style:transform="translate({cfg.x}px, {cfg.y}px) scale({g.scale})"
+  style:transform="translate({cfg.x}px, {cfg.y}px) scale({g.scale * cfg.size})"
   style:opacity={g.opacity}
+  style:--color-hud="rgb(14 14 17 / {g.background})"
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}
@@ -66,7 +70,7 @@
       class="pointer-events-none absolute -top-6 left-0 flex items-center gap-2 rounded-md bg-accent px-2 py-0.5 text-[12px] font-semibold whitespace-nowrap text-white"
     >
       {name}
-      <span class="font-normal opacity-80">{Math.round(g.scale * 100)}%</span>
+      <span class="font-normal opacity-80">{Math.round(g.scale * cfg.size * 100)}%</span>
     </div>
   {/if}
   <div class:pointer-events-none={edit}>

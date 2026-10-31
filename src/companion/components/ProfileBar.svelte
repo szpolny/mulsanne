@@ -73,6 +73,6 @@
       <button class="btn" onclick={() => start({ kind: "rename" })}>Rename</button>
       <button class="btn" disabled={profiles.length < 2} onclick={() => start({ kind: "delete" })}>Delete</button>
     </div>
-    <span class="text-xs text-muted">Layout, widget options, scale and opacity are saved per profile.</span>
+    <span class="text-xs text-muted">Layout, widget options and sizes, scale, opacity and background are saved per profile.</span>
   {/if}
 </div>

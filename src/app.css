@@ -30,6 +30,7 @@
   --color-accent-lo: #7d0911;
 
   /* Overlay panels */
+  /* Widget frames override this with the configured background opacity. */
   --color-hud: rgb(14 14 17 / 0.9);
   --color-hud-2: rgb(255 255 255 / 0.06);
   --color-hud-line: rgb(255 255 255 / 0.08);

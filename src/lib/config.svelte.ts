@@ -21,6 +21,8 @@ export interface WidgetConfig {
   enabled: boolean;
   x: number;
   y: number;
+  /** Size multiplier for this widget, on top of the global scale. */
+  size: number;
   options: Record<string, any>;
 }
 
@@ -43,6 +45,8 @@ export interface AppConfig {
     scale: number;
     /** Opacity applied to every widget. */
     opacity: number;
+    /** Opacity of the widgets' panel background; 1 is fully solid. */
+    background: number;
   };
   /** Lap rankings and car setup sharing. Off until the user opts in. */
   online: {
@@ -56,9 +60,9 @@ export interface AppConfig {
     uploadTraces: boolean;
   };
   widgets: Record<string, WidgetConfig>;
-  /** Id of the profile mirrored by `general.scale/opacity` and `widgets`. */
+  /** Id of the profile mirrored by `general.scale/opacity/background` and `widgets`. */
   activeProfile: string;
-  /** Saved overlay setups: layout, widget options, scale and opacity. */
+  /** Saved overlay setups: layout, widget options, scale, opacity and background. */
   profiles: Record<string, Profile>;
 }
 
@@ -67,6 +71,7 @@ export interface Profile {
   name: string;
   scale: number;
   opacity: number;
+  background: number;
   widgets: Record<string, WidgetConfig>;
 }
 
@@ -261,7 +266,7 @@ function defaultWidgets(): Record<string, WidgetConfig> {
   return Object.fromEntries(
     WIDGETS.map((w) => [
       w.id,
-      { ...w.defaults, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
+      { ...w.defaults, size: 1, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
     ]),
   );
 }
@@ -270,11 +275,11 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92, background: 0.9 },
     online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",
-    profiles: { default: { name: "Default", scale: 1, opacity: 0.92, widgets: structuredClone(widgets) } },
+    profiles: { default: { name: "Default", scale: 1, opacity: 0.92, background: 0.9, widgets: structuredClone(widgets) } },
   };
 }
 
@@ -282,7 +287,7 @@ function defaults(): AppConfig {
 function mergeWidgets(stored: any): Record<string, WidgetConfig> {
   const base = defaultWidgets();
   for (const id of Object.keys(base)) {
-    // Drop legacy per-widget scale/opacity; those are global now.
+    // Drop legacy per-widget scale/opacity; size replaced scale, opacity is global.
     const { scale: _scale, opacity: _opacity, ...s } = stored?.[id] ?? {};
     base[id] = { ...base[id], ...s, options: { ...base[id].options, ...(s.options ?? {}) } };
   }
@@ -303,6 +308,7 @@ function merge(stored: any): AppConfig {
       name: typeof p.name === "string" && p.name ? p.name : "Profile",
       scale: typeof p.scale === "number" ? p.scale : base.general.scale,
       opacity: typeof p.opacity === "number" ? p.opacity : base.general.opacity,
+      background: typeof p.background === "number" ? p.background : base.general.background,
       widgets: mergeWidgets(p.widgets),
     };
   }
@@ -314,6 +320,7 @@ function merge(stored: any): AppConfig {
       name: "Default",
       scale: general.scale,
       opacity: general.opacity,
+      background: general.background,
       widgets: structuredClone(widgets),
     };
   }
@@ -350,6 +357,7 @@ function syncActiveProfile() {
     name: c.profiles[c.activeProfile]?.name ?? "Profile",
     scale: c.general.scale,
     opacity: c.general.opacity,
+    background: c.general.background,
     widgets: $state.snapshot(c.widgets),
   };
 }
@@ -370,6 +378,7 @@ export function resetLayout() {
   for (const [id, w] of Object.entries(config.value.widgets)) {
     w.x = d[id].x;
     w.y = d[id].y;
+    w.size = 1;
   }
   config.value.general.scale = 1;
   saveConfig();
@@ -384,6 +393,7 @@ export function switchProfile(id: string) {
   c.activeProfile = id;
   c.general.scale = p.scale;
   c.general.opacity = p.opacity;
+  c.general.background = p.background;
   c.widgets = mergeWidgets($state.snapshot(p.widgets));
   saveConfig();
 }
@@ -395,8 +405,14 @@ export function createProfile(name: string, fromDefaults = false) {
   const id = `p${Date.now().toString(36)}`;
   const d = defaults();
   c.profiles[id] = fromDefaults
-    ? { name, scale: d.general.scale, opacity: d.general.opacity, widgets: d.widgets }
-    : { name, scale: c.general.scale, opacity: c.general.opacity, widgets: $state.snapshot(c.widgets) };
+    ? { name, scale: d.general.scale, opacity: d.general.opacity, background: d.general.background, widgets: d.widgets }
+    : {
+        name,
+        scale: c.general.scale,
+        opacity: c.general.opacity,
+        background: c.general.background,
+        widgets: $state.snapshot(c.widgets),
+      };
   switchProfile(id);
 }
 
