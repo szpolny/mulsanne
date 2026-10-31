@@ -244,6 +244,17 @@ export interface Status {
   dataDir: string;
 }
 
+/** A connected display the overlay can cover. */
+export interface MonitorInfo {
+  /** Id stored in `general.monitor`. */
+  name: string;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  primary: boolean;
+}
+
 export interface SessionSummary {
   id: number;
   startedAt: number;
