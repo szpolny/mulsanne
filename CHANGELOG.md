@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/szpolny/mulsanne/compare/v0.7.0...v0.7.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* clean up changelog references and show notes for skipped versions ([#14](https://github.com/szpolny/mulsanne/issues/14)) ([0cca665](https://github.com/szpolny/mulsanne/commit/0cca665a300e0e9e78285900df16dd20330b5431))
+
 ## [0.7.0](https://github.com/szpolny/mulsanne/compare/v0.6.1...v0.7.0) (2026-10-31)
 
 
