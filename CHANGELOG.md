@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/szpolny/mulsanne/compare/v0.6.1...v0.7.0) (2026-10-31)
+
+
+### Features
+
+* add per-widget size and opacity ([#11](https://github.com/szpolny/mulsanne/issues/11)) ([1f1ab4e](https://github.com/szpolny/mulsanne/commit/1f1ab4e92f33a16a6123fb8951d5f93646819e92)), closes [#9](https://github.com/szpolny/mulsanne/issues/9)
+* choose which monitor the overlay appears on ([#13](https://github.com/szpolny/mulsanne/issues/13)) ([3530790](https://github.com/szpolny/mulsanne/commit/3530790f95897fc4176bc783510c740851e0ab3f)), closes [#8](https://github.com/szpolny/mulsanne/issues/8)
+
 ## [0.6.1](https://github.com/szpolny/mulsanne/compare/v0.6.0...v0.6.1) (2026-10-25)
 
 
