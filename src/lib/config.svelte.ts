@@ -47,6 +47,8 @@ export interface AppConfig {
     scale: number;
     /** Opacity applied to every widget. */
     opacity: number;
+    /** Name of the monitor the overlay covers; "" for the primary monitor. */
+    monitor: string;
   };
   /** Lap rankings and car setup sharing. Off until the user opts in. */
   online: {
@@ -274,7 +276,7 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92, monitor: "" },
     online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",

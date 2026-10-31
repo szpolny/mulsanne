@@ -27,12 +27,14 @@ pub struct AppState {
     pub preview: Mutex<Option<engine::PreviewSim>>,
     /// Wakes the lap uploader after laps are queued.
     pub uploads: Arc<tokio::sync::Notify>,
+    /// Monitor the overlay currently covers, as stored in `general.monitor` ("" = primary).
+    pub overlay_monitor: Mutex<String>,
 }
 
-/// Transparent, click-through, always-on-top window covering the primary
+/// Transparent, click-through, always-on-top window covering the chosen
 /// monitor. All widgets render inside it at their configured positions.
 /// Works over LMU in borderless/windowed mode (not exclusive fullscreen).
-fn create_overlay(app: &tauri::App) -> tauri::Result<()> {
+fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     let window = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("index.html#overlay".into()))
         .title("Mulsanne HUD")
         .transparent(true)
@@ -44,12 +46,26 @@ fn create_overlay(app: &tauri::App) -> tauri::Result<()> {
         .focused(false)
         .visible(false)
         .build()?;
-    if let Some(monitor) = app.primary_monitor()? {
-        window.set_position(PhysicalPosition::new(monitor.position().x, monitor.position().y))?;
-        window.set_size(PhysicalSize::new(monitor.size().width, monitor.size().height))?;
-    }
+    place_overlay(app.handle(), monitor)?;
     window.set_ignore_cursor_events(true)?;
     window.show()?;
+    Ok(())
+}
+
+/// Moves the overlay to cover the monitor named `monitor` (`general.monitor`),
+/// falling back to the primary monitor when it's empty or not connected.
+pub(crate) fn place_overlay(app: &tauri::AppHandle, monitor: &str) -> tauri::Result<()> {
+    let Some(window) = app.get_webview_window("overlay") else { return Ok(()) };
+    let chosen = match monitor {
+        "" => None,
+        name => window.available_monitors()?.into_iter().find(|m| m.name().is_some_and(|n| n == name)),
+    };
+    let Some(target) = chosen.or(window.primary_monitor()?) else { return Ok(()) };
+    let (pos, size) = (target.position(), target.size());
+    window.set_position(PhysicalPosition::new(pos.x, pos.y))?;
+    // Sized after the move: crossing to a monitor with a different DPI rescales the window.
+    window.set_size(PhysicalSize::new(size.width, size.height))?;
+    *app.state::<AppState>().overlay_monitor.lock().unwrap_or_else(|e| e.into_inner()) = monitor.to_string();
     Ok(())
 }
 
@@ -103,13 +119,14 @@ pub fn run() {
             let config_path = config_dir.join("config.json");
             let uploads = Arc::new(tokio::sync::Notify::new());
 
-            if let Some(hz) = std::fs::read_to_string(&config_path)
+            let stored = std::fs::read_to_string(&config_path)
                 .ok()
-                .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
-                .and_then(|c| c.pointer("/general/updateHz").and_then(|v| v.as_u64()))
-            {
+                .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok());
+            let general = |key: &str| stored.as_ref().and_then(|c| c.pointer(&format!("/general/{key}")).cloned());
+            if let Some(hz) = general("updateHz").and_then(|v| v.as_u64()) {
                 shared.emit_hz.store(hz as u32, Ordering::Relaxed);
             }
+            let monitor = general("monitor").and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
 
             app.manage(AppState {
                 shared: shared.clone(),
@@ -120,9 +137,10 @@ pub fn run() {
                 overlay_visible: AtomicBool::new(true),
                 preview: Mutex::new(None),
                 uploads: uploads.clone(),
+                overlay_monitor: Mutex::new(String::new()),
             });
 
-            create_overlay(app)?;
+            create_overlay(app, &monitor)?;
 
             let shortcuts = app.global_shortcut();
             for sc in [edit_shortcut, visibility_shortcut] {
@@ -151,6 +169,7 @@ pub fn run() {
             commands::set_edit_mode,
             commands::set_overlay_visible,
             commands::set_demo_mode,
+            commands::list_monitors,
             commands::get_preview_snapshot,
             commands::list_sessions,
             commands::list_laps,

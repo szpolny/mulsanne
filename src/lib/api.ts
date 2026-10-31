@@ -6,6 +6,7 @@ import type {
   LapRecord,
   LapTrace,
   Leaderboard,
+  MonitorInfo,
   OnlineMe,
   PersonalBest,
   SessionSummary,
@@ -23,6 +24,7 @@ export const api = {
   setEditMode: (enabled: boolean) => invoke<void>("set_edit_mode", { enabled }),
   setOverlayVisible: (visible: boolean) => invoke<void>("set_overlay_visible", { visible }),
   setDemoMode: (enabled: boolean) => invoke<void>("set_demo_mode", { enabled }),
+  listMonitors: () => invoke<MonitorInfo[]>("list_monitors"),
   getPreviewSnapshot: () => invoke<Snapshot>("get_preview_snapshot"),
   listSessions: (opts: { track?: string | null; car?: string | null; limit?: number; offset?: number } = {}) =>
     invoke<SessionSummary[]>("list_sessions", opts),
