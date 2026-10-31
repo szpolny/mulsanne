@@ -192,6 +192,11 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
                 Some(mem) => {
                     let got_frame = mem.wait_for_frame(250);
                     if !mem.copy_into(&mut buf) {
+                        // A truncated or removed mirror may never produce another
+                        // complete frame. Still check liveness so we can reconnect.
+                        if !mem.game_alive(&buf) {
+                            shm = None;
+                        }
                         continue;
                     }
                     if !mem.game_alive(&buf) {

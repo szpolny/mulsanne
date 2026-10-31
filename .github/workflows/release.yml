@@ -51,7 +51,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04]
+        include:
+          - os: windows-latest
+            bundles: nsis
+          - os: ubuntu-22.04
+            bundles: appimage,deb
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +88,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          args: --bundles ${{ matrix.bundles }}
           tagName: ${{ needs.release-please.outputs.tag_name }}
           releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
           includeUpdaterJson: true
@@ -92,7 +97,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          cargo build --release --manifest-path lmu-bridge/Cargo.toml
+          cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
           gh release upload "${{ needs.release-please.outputs.tag_name }}" lmu-bridge/target/release/lmu-bridge.exe --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

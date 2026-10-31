@@ -10,22 +10,12 @@ fn main() {
 }
 
 #[cfg(windows)]
-mod lmu {
-    // Share the exact layout and Win32 access code the Windows app uses.
-    #[path = "../../../src-tauri/src/lmu/layout.rs"]
-    pub mod layout;
-    pub mod shm {
-        #![allow(dead_code)]
-        #[path = "../../../../src-tauri/src/lmu/shm/windows.rs"]
-        mod windows;
-        pub use windows::*;
-    }
-}
+mod lmu;
 
 #[cfg(windows)]
 fn main() {
     use std::fs::OpenOptions;
-    use std::os::windows::fs::FileExt;
+    use std::io::{Seek, SeekFrom, Write};
     use std::time::Duration;
 
     use lmu::{layout, shm};
@@ -43,7 +33,13 @@ fn main() {
         };
         eprintln!("LMU found, mirroring to {path}");
         // Written in place so a reader that keeps the file open sees every update.
-        let file = match OpenOptions::new().read(true).write(true).create(true).truncate(false).open(&path) {
+        let mut file = match OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&path)
+        {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("cannot open {path}: {e}");
@@ -51,14 +47,16 @@ fn main() {
                 continue;
             }
         };
-        let _ = file.set_len(layout::TOTAL_SIZE as u64);
         loop {
             mem.wait_for_frame(250);
             if mem.copy_into(&mut buf) {
                 if !mem.game_alive(&buf) {
                     break;
                 }
-                if let Err(e) = file.seek_write(&buf, 0) {
+                if let Err(e) = file
+                    .seek(SeekFrom::Start(0))
+                    .and_then(|_| file.write_all(&buf))
+                {
                     eprintln!("write failed: {e}");
                     break;
                 }
