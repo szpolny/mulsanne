@@ -44,17 +44,42 @@ fn create_overlay(app: &tauri::App) -> tauri::Result<()> {
         .focused(false)
         .visible(false)
         .build()?;
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::prelude::GtkWindowExt;
+        // Tiling compositors need a dock hint before mapping the window; an
+        // always-on-top hint alone does not keep a normal client out of tiling.
+        window.gtk_window()?.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+    }
     if let Some(monitor) = app.primary_monitor()? {
         window.set_position(PhysicalPosition::new(monitor.position().x, monitor.position().y))?;
         window.set_size(PhysicalSize::new(monitor.size().width, monitor.size().height))?;
     }
-    window.set_ignore_cursor_events(true)?;
+    // GTK creates the underlying GdkWindow on show. Tao's input-shape call
+    // requires that window to exist, so enabling click-through before show
+    // panics on Linux.
     window.show()?;
+    window.set_ignore_cursor_events(true)?;
     Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Overlay placement, stacking, click-through, and global shortcuts use X11.
+    // Wayland sessions can run the app through XWayland; select it before GTK
+    // initializes rather than silently creating an unsupported native surface.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("GDK_BACKEND").is_none() {
+        std::env::set_var("GDK_BACKEND", "x11");
+    }
+
+    // WebKit's DMA-BUF path can fail to allocate buffers on NVIDIA/XWayland.
+    // The fallback still supports transparent webviews and avoids a blank HUD.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     let edit_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F9);
     let visibility_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F10);
 

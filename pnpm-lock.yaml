@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  uplot@1.6.32: a982ca9c5d326073965d18c807ea90a42e59fef5a1f29e56f9b70e0d70afe1be
+
 importers:
 
   .:
@@ -31,7 +34,7 @@ importers:
         version: 16.34.0
       uplot:
         specifier: ^1.6.32
-        version: 1.6.32
+        version: 1.6.32(patch_hash=a982ca9c5d326073965d18c807ea90a42e59fef5a1f29e56f9b70e0d70afe1be)
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.3.1
@@ -1252,7 +1255,7 @@ snapshots:
 
   undici-types@8.9.0: {}
 
-  uplot@1.6.32: {}
+  uplot@1.6.32(patch_hash=a982ca9c5d326073965d18c807ea90a42e59fef5a1f29e56f9b70e0d70afe1be): {}
 
   vite@8.3.4(@types/node@26.6.5)(jiti@2.7.0):
     dependencies:

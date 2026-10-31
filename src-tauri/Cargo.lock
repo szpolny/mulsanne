@@ -2191,6 +2191,7 @@ dependencies = [
  "ed25519-dalek",
  "flate2",
  "getrandom 0.3.3",
+ "gtk",
  "reqwest",
  "rusqlite",
  "rustls",

@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libdbus-1-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libdbus-1-dev patchelf xvfb openbox xcompmgr xdotool imagemagick x11-utils
       - uses: pnpm/action-setup@v4
         with:
           version: 12.8.1
@@ -28,8 +28,31 @@ jobs:
           workspaces: src-tauri -> target
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: pnpm build
+      - run: pnpm test
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Build unsigned Linux packages
+        run: pnpm tauri build --ci --no-sign --bundles appimage,deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+      - name: Install and smoke-test the Debian package
+        shell: bash
+        run: |
+          packages=(src-tauri/target/release/bundle/deb/*.deb)
+          sudo dpkg -i "${packages[0]}"
+          python3 scripts/smoke-linux.py /usr/bin/lm-overlay src-tauri/target/smoke-deb
+      - name: Smoke-test the AppImage
+        shell: bash
+        run: |
+          images=(src-tauri/target/release/bundle/appimage/*.AppImage)
+          python3 scripts/smoke-linux.py "${images[0]}" src-tauri/target/smoke-appimage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-packages-and-smoke-results
+          path: |
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/smoke-*/
 
   bridge:
     runs-on: windows-latest
@@ -39,4 +62,9 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: lmu-bridge -> target
+      - run: cargo test --locked --manifest-path lmu-bridge/Cargo.toml
       - run: cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lmu-bridge
+          path: lmu-bridge/target/release/lmu-bridge.exe

@@ -5,7 +5,7 @@
 //! `MULSANNE_LMU_SHM`), rewriting it every frame and deleting it on exit.
 
 use std::fs::File;
-use std::os::unix::fs::{FileExt, MetadataExt};
+use std::os::unix::fs::FileExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
@@ -22,7 +22,6 @@ fn mirror_path() -> PathBuf {
 
 /// An open connection to a running LMU instance.
 pub struct LmuSharedMemory {
-    file: File,
     path: PathBuf,
 }
 
@@ -33,13 +32,10 @@ impl LmuSharedMemory {
     }
 
     fn open_path(path: &Path) -> Option<Self> {
-        let file = File::open(path).ok()?;
-        let mem = Self {
-            file,
+        current_frame(path)?;
+        Some(Self {
             path: path.to_path_buf(),
-        };
-        (mem.file.metadata().ok()?.len() >= layout::TOTAL_SIZE as u64 && mem.game_alive(&[]))
-            .then_some(mem)
+        })
     }
 
     /// The mirror has no events, so this just sleeps ~60 Hz.
@@ -48,30 +44,16 @@ impl LmuSharedMemory {
         true
     }
 
-    /// Copies the whole block into `dst`. The game's lock isn't reachable from
-    /// here, so a read can rarely straddle a write; the next frame corrects it.
+    /// The bridge publishes by atomic rename. Open each frame separately so
+    /// every read sees one complete immutable snapshot, including after restart.
     pub fn copy_into(&self, dst: &mut [u8]) -> bool {
         assert_eq!(dst.len(), layout::TOTAL_SIZE);
-        self.file.read_exact_at(dst, 0).is_ok()
+        current_frame(&self.path).is_some_and(|file| file.read_exact_at(dst, 0).is_ok())
     }
 
-    /// The bridge deletes the mirror when the game exits; a stale mtime covers a crashed bridge.
+    /// Deletion covers normal game exit; stale mtime covers a crashed bridge.
     pub fn game_alive(&self, _buf: &[u8]) -> bool {
-        let Ok(path_meta) = std::fs::metadata(&self.path) else {
-            return false;
-        };
-        let Ok(file_meta) = self.file.metadata() else {
-            return false;
-        };
-        // A restarted bridge can replace the pathname while we still hold the
-        // old inode. Reopen instead of reading that disconnected file forever.
-        path_meta.dev() == file_meta.dev()
-            && path_meta.ino() == file_meta.ino()
-            && file_meta
-                .modified()
-                .ok()
-                .and_then(|t| SystemTime::now().duration_since(t).ok())
-                .is_some_and(|age| age < STALE_AFTER)
+        current_frame(&self.path).is_some()
     }
 }
 
@@ -90,9 +72,31 @@ pub fn process_dir(hwnd: u64) -> Option<PathBuf> {
     std::env::var_os("MULSANNE_LMU_DIR").map(PathBuf::from)
 }
 
-/// Window focus under Wine isn't observable from a native process, so treat the game as always focused.
-pub fn is_foreground(_hwnd: u64) -> bool {
-    true
+/// Focus is sampled inside Wine and stored after the raw SDK block.
+pub fn is_foreground(hwnd: u64) -> bool {
+    hwnd != 0 && foreground_at(&mirror_path())
+}
+
+fn foreground_at(path: &Path) -> bool {
+    let mut focused = [0];
+    current_frame(path).is_some_and(|file| {
+        file.read_exact_at(&mut focused, layout::TOTAL_SIZE as u64)
+            .is_ok()
+            && focused[0] == 1
+    })
+}
+
+fn current_frame(path: &Path) -> Option<File> {
+    let file = File::open(path).ok()?;
+    let meta = file.metadata().ok()?;
+    // One trailing byte carries focus; reject older/incomplete bridge output.
+    if meta.len() != layout::TOTAL_SIZE as u64 + 1 {
+        return None;
+    }
+    let age = SystemTime::now()
+        .duration_since(meta.modified().ok()?)
+        .ok()?;
+    (age < STALE_AFTER).then_some(file)
 }
 
 #[cfg(test)]
@@ -135,7 +139,7 @@ mod tests {
         assert!(LmuSharedMemory::open_path(&mirror.0).is_none());
         let file = mirror.write(10);
         assert!(LmuSharedMemory::open_path(&mirror.0).is_none());
-        file.set_len(layout::TOTAL_SIZE as u64).unwrap();
+        file.set_len(layout::TOTAL_SIZE as u64 + 1).unwrap();
         assert!(LmuSharedMemory::open_path(&mirror.0).is_some());
         file.set_times(FileTimes::new().set_modified(SystemTime::now() - STALE_AFTER * 2))
             .unwrap();
@@ -143,23 +147,23 @@ mod tests {
     }
 
     #[test]
-    fn detects_removed_or_replaced_mirror() {
+    fn detects_removal_and_reconnects_to_replacement() {
         let mirror = Mirror::new();
-        mirror.write(layout::TOTAL_SIZE as u64);
+        mirror.write(layout::TOTAL_SIZE as u64 + 1);
         let mem = LmuSharedMemory::open_path(&mirror.0).unwrap();
         std::fs::remove_file(&mirror.0).unwrap();
         assert!(!mem.game_alive(&[]));
-        mirror.write(layout::TOTAL_SIZE as u64);
-        assert!(!mem.game_alive(&[]));
+        mirror.write(layout::TOTAL_SIZE as u64 + 1);
+        assert!(mem.game_alive(&[]));
         assert!(LmuSharedMemory::open_path(&mirror.0)
             .unwrap()
             .game_alive(&[]));
     }
 
     #[test]
-    fn observes_updates_and_expiry_on_open_file() {
+    fn observes_updates_focus_and_expiry() {
         let mirror = Mirror::new();
-        let mut file = mirror.write(layout::TOTAL_SIZE as u64);
+        let mut file = mirror.write(layout::TOTAL_SIZE as u64 + 1);
         let mem = LmuSharedMemory::open_path(&mirror.0).unwrap();
         let mut buf = vec![0; layout::TOTAL_SIZE];
         for value in [1, 2] {
@@ -167,9 +171,38 @@ mod tests {
             file.write_all(&[value]).unwrap();
             assert!(mem.copy_into(&mut buf));
             assert_eq!(buf[0], value);
+            file.seek(SeekFrom::Start(layout::TOTAL_SIZE as u64))
+                .unwrap();
+            file.write_all(&[value % 2]).unwrap();
+            assert_eq!(foreground_at(&mirror.0), value % 2 == 1);
         }
         file.set_times(FileTimes::new().set_modified(SystemTime::now() - STALE_AFTER * 2))
             .unwrap();
         assert!(!mem.game_alive(&buf));
+    }
+
+    #[test]
+    fn concurrent_publication_never_mixes_frames() {
+        let mirror = Mirror::new();
+        std::fs::write(&mirror.0, vec![0; layout::TOTAL_SIZE + 1]).unwrap();
+        let mem = LmuSharedMemory::open_path(&mirror.0).unwrap();
+        let path = mirror.0.clone();
+        let writer = std::thread::spawn(move || {
+            let staging = path.with_extension("tmp");
+            for value in 1..=100u8 {
+                let mut frame = vec![value; layout::TOTAL_SIZE + 1];
+                frame[layout::TOTAL_SIZE] = value % 2;
+                std::fs::write(&staging, frame).unwrap();
+                std::fs::rename(&staging, &path).unwrap();
+            }
+        });
+        let mut buf = vec![0; layout::TOTAL_SIZE];
+        for _ in 0..100 {
+            assert!(mem.copy_into(&mut buf));
+            assert!(buf.iter().all(|&byte| byte == buf[0]));
+        }
+        writer.join().unwrap();
+        assert!(mem.copy_into(&mut buf));
+        assert_eq!(buf[0], 100);
     }
 }

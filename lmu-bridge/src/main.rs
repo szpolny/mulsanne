@@ -9,13 +9,14 @@ fn main() {
     std::process::exit(1);
 }
 
+#[cfg(any(windows, test))]
+mod mirror;
+
 #[cfg(windows)]
 mod lmu;
 
 #[cfg(windows)]
-fn main() {
-    use std::fs::OpenOptions;
-    use std::io::{Seek, SeekFrom, Write};
+fn main() -> std::io::Result<()> {
     use std::time::Duration;
 
     use lmu::{layout, shm};
@@ -24,46 +25,36 @@ fn main() {
         .nth(1)
         .or_else(|| std::env::var("MULSANNE_LMU_SHM").ok())
         .unwrap_or_else(|| r"Z:\dev\shm\LMU_Data".to_string());
+    let mirror = mirror::Mirror::new(path.into());
     let mut buf = vec![0u8; layout::TOTAL_SIZE];
 
+    let mem = loop {
+        if let Some(mem) = shm::LmuSharedMemory::open() {
+            break mem;
+        }
+        std::thread::sleep(Duration::from_secs(2));
+    };
+    eprintln!("LMU found, mirroring to {}", mirror.path().display());
     loop {
-        let Some(mem) = shm::LmuSharedMemory::open() else {
-            std::thread::sleep(Duration::from_secs(2));
-            continue;
-        };
-        eprintln!("LMU found, mirroring to {path}");
-        // Written in place so a reader that keeps the file open sees every update.
-        let mut file = match OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(&path)
-        {
-            Ok(f) => f,
-            Err(e) => {
-                eprintln!("cannot open {path}: {e}");
-                std::thread::sleep(Duration::from_secs(2));
-                continue;
+        mem.wait_for_frame(250);
+        // Check the last known HWND even when the cooperative game lock fails.
+        if !mem.game_alive(&buf) {
+            break;
+        }
+        if mem.copy_into(&mut buf) {
+            if !mem.game_alive(&buf) {
+                break;
             }
-        };
-        loop {
-            mem.wait_for_frame(250);
-            if mem.copy_into(&mut buf) {
-                if !mem.game_alive(&buf) {
-                    break;
-                }
-                if let Err(e) = file
-                    .seek(SeekFrom::Start(0))
-                    .and_then(|_| file.write_all(&buf))
-                {
-                    eprintln!("write failed: {e}");
-                    break;
-                }
+            let focused = shm::is_foreground(shm::game_window(&buf));
+            if let Err(e) = mirror.publish(&buf, focused) {
+                mirror.remove();
+                return Err(e);
             }
         }
-        drop(file);
-        let _ = std::fs::remove_file(&path);
-        eprintln!("LMU closed");
     }
+    mirror.remove();
+    // Leaving a Wine process alive can prevent Steam's waitforexitandrun from
+    // starting the next game session. One bridge invocation serves one session.
+    eprintln!("LMU closed");
+    Ok(())
 }

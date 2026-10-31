@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from "../../lib/format";
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
   import TrackOutline from "../../lib/TrackOutline.svelte";
@@ -49,8 +50,8 @@
       .sort((a, b) => a.starts[0] - b.starts[0]),
   );
 
-  const timeFmt = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
-  const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+  const timeFmt = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" });
+  const dayFmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
 
   function startLabel(t: number): string {
     const sameDay = new Date(t).toDateString() === new Date(now).toDateString();

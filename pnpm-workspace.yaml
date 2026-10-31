@@ -1,2 +1,4 @@
 onlyBuiltDependencies:
   - esbuild
+patchedDependencies:
+  uplot@1.6.32: patches/uplot@1.6.32.patch
