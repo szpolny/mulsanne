@@ -43,27 +43,54 @@ function parseEntry(raw: string): ChangelogEntry {
   return { text: clean.charAt(0).toUpperCase() + clean.slice(1), refs };
 }
 
-/** Read one installed release from release-please's generated changelog. */
-export function parseChangelog(markdown: string, version: string): ChangelogSection[] {
-  const sections: ChangelogSection[] = [];
-  let inRelease = false;
+export interface ChangelogRelease {
+  version: string;
+  date: string;
+  sections: ChangelogSection[];
+}
+
+function compareVersions(a: string, b: string): number {
+  const pa = a.split(/[.-]/).map(Number);
+  const pb = b.split(/[.-]/).map(Number);
+  for (let i = 0; i < 3; i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/**
+ * Read releases from release-please's generated changelog, newest first: the installed
+ * `version` plus every older release newer than `since` (the version the user last saw).
+ * Without `since`, or when it isn't older than `version`, only the installed release is returned.
+ */
+export function parseChangelog(markdown: string, version: string, since = ""): ChangelogRelease[] {
+  const current = version.replace(/^v/, "");
+  const previous = since.replace(/^v/, "");
+  const includeOlder = previous !== "" && compareVersions(previous, current) < 0;
+  const releases: ChangelogRelease[] = [];
+  let release: ChangelogRelease | undefined;
   let section: ChangelogSection | undefined;
   let lines: string[] | undefined;
   const raw: { section: ChangelogSection; lines: string[] }[] = [];
 
   for (const line of markdown.split(/\r?\n/)) {
-    const release = line.match(/^##\s+\[?v?(\d+\.\d+\.\d+(?:-[\w.-]+)?)(?=[\]\s(]|$)/);
-    if (release) {
-      if (inRelease) break;
-      inRelease = release[1] === version.replace(/^v/, "");
+    const header = line.match(/^##\s+\[?v?(\d+\.\d+\.\d+(?:-[\w.-]+)?)(?=[\]\s(]|$)(?:.*\((\d{4}-\d{2}-\d{2})\))?/);
+    if (header) {
+      const v = header[1];
+      section = undefined;
+      lines = undefined;
+      if (release && (!includeOlder || compareVersions(v, previous) <= 0)) break;
+      release = release || v === current ? { version: v, date: header[2] ?? "", sections: [] } : undefined;
+      if (release) releases.push(release);
       continue;
     }
-    if (!inRelease) continue;
+    if (!release) continue;
 
     const heading = line.match(/^###\s+(.+)/);
     if (heading) {
       section = { title: plainText(heading[1]), entries: [] };
-      sections.push(section);
+      release.sections.push(section);
       lines = undefined;
       continue;
     }
@@ -72,7 +99,7 @@ export function parseChangelog(markdown: string, version: string): ChangelogSect
     if (bullet) {
       if (!section) {
         section = { title: "Changes", entries: [] };
-        sections.push(section);
+        release.sections.push(section);
       }
       lines = [bullet[1]];
       raw.push({ section, lines });
@@ -87,5 +114,7 @@ export function parseChangelog(markdown: string, version: string): ChangelogSect
     if (entry.text) section.entries.push(entry);
   }
 
-  return sections.filter((section) => section.entries.length > 0);
+  return releases
+    .map((r) => ({ ...r, sections: r.sections.filter((s) => s.entries.length > 0) }))
+    .filter((r) => r.sections.length > 0);
 }
