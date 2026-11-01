@@ -14,7 +14,19 @@ an explicit `WEBKIT_DISABLE_DMABUF_RENDERER` setting takes precedence.
 1. Download the Linux AppImage or `.deb` and `lmu-bridge.exe` from the same
    release. Make the AppImage executable with `chmod +x Mulsanne_*.AppImage`.
 2. Start LMU through Steam using Proton, in borderless or windowed mode.
-3. Run the bridge in that game's prefix using Protontricks:
+3. Download `run-lmu-bridge.py` alongside the bridge and run:
+
+   ```sh
+   python3 "$HOME/Downloads/run-lmu-bridge.py" "$HOME/Downloads/lmu-bridge.exe"
+   ```
+
+   From a source checkout, use `python3 scripts/run-lmu-bridge.py` instead. The
+   launcher finds the running LMU process and uses its Wine loader, prefix, and
+   runtime namespace. This is necessary when Steam runs in an isolated runtime,
+   including NixOS's Steam FHS environment. It requires Python 3 and util-linux's
+   `nsenter`, runs as your normal user, and never needs `sudo`.
+
+   On systems where Protontricks shares the game's runtime, this also works:
 
    ```sh
    protontricks-launch --appid 2399420 "$HOME/Downloads/lmu-bridge.exe"
@@ -35,8 +47,8 @@ native path `/dev/shm/LMU_Data`. A custom path must be accessible to both the
 Proton prefix and the native app. For example:
 
 ```sh
-protontricks-launch --appid 2399420 "$HOME/Downloads/lmu-bridge.exe" 'Z:\tmp\mulsanne-lmu'
-MULSANNE_LMU_SHM=/tmp/mulsanne-lmu ./Mulsanne_*.AppImage
+python3 "$HOME/Downloads/run-lmu-bridge.py" "$HOME/Downloads/lmu-bridge.exe" 'Z:\dev\shm\mulsanne-lmu'
+MULSANNE_LMU_SHM=/dev/shm/mulsanne-lmu ./Mulsanne_*.AppImage
 ```
 
 To include penalty descriptions from the game's trace log, set the **native**
@@ -67,6 +79,7 @@ sudo apt-get install build-essential pkg-config libssl-dev libwebkit2gtk-4.1-dev
 pnpm install --frozen-lockfile
 pnpm check
 pnpm test
+python3 -m unittest discover -s tests -p 'test_*.py'
 cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
 pnpm tauri build --ci --no-sign --bundles appimage,deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
 ```
@@ -125,6 +138,21 @@ observed the fixture's complete frames through Wine's Z: drive. The native app
 also ran on Hyprland 0.56.2 through XWayland, with a floating, monitor-sized HUD.
 Updater signing was checked with a disposable test key, not the release key.
 
-The actual LMU executable was not installed on the verification machine. The
-bridge fixture exercises the same named mapping and game-window lifecycle, but
-a real driving session remains a separate compatibility check.
+A live game check was completed on 2026-11-01 with LMU v1.4200 (Steam build
+25661166), GE-Proton10-34-LMU-hid_fixes, and Hyprland/XWayland on NixOS. An
+Oreca 07 offline practice session at Paul Ricard - ELMS supplied player telemetry
+through the bridge to the native parser, companion, and HUD. Session time,
+engine RPM, fuel, and tyre temperatures updated, and the foreground flag changed
+when switching between LMU and the companion. Ctrl+Shift+F9 switched the real
+HUD input region between click-through and editable modes. No real completed lap was recorded
+in this check; lap recording remains covered by the recorder tests.
+
+The plain Protontricks launch used a different runtime from the running Steam
+process on this NixOS installation. `run-lmu-bridge.py` attached successfully by
+using the running game's namespaces and its own Wine loader. All game tests
+used a temporary Mulsanne data directory, separate from installed app data.
+
+When attaching to a running game, the launcher forwards Wine output through a
+pipe. Some Proton builds crash during initialization if regular-file output
+handles point outside the game's runtime. Logging the Python launcher itself
+is safe: it keeps the Wine-side handles as pipes.

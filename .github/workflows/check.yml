@@ -29,6 +29,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm test
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
       - name: Build unsigned Linux packages
         run: pnpm tauri build --ci --no-sign --bundles appimage,deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked

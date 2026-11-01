@@ -98,6 +98,6 @@ jobs:
         shell: bash
         run: |
           cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
-          gh release upload "${{ needs.release-please.outputs.tag_name }}" lmu-bridge/target/release/lmu-bridge.exe --clobber
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" lmu-bridge/target/release/lmu-bridge.exe scripts/run-lmu-bridge.py --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
