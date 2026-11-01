@@ -3,6 +3,8 @@ mod damage;
 pub mod db;
 pub mod demo;
 mod engine;
+#[cfg(target_os = "linux")]
+mod viewport;
 pub mod lmu;
 pub mod model;
 pub mod online;
@@ -29,27 +31,53 @@ pub struct AppState {
     pub uploads: Arc<tokio::sync::Notify>,
 }
 
+/// Detect the non-composited GTK path before constructing the overlay. Keep
+/// full-view invalidation off machines that can render composited buffers.
+#[cfg(target_os = "linux")]
+fn needs_full_repaint() -> bool {
+    use gtk::prelude::*;
+    if ["WEBKIT_DISABLE_DMABUF_RENDERER", "WEBKIT_DISABLE_COMPOSITING_MODE"].iter()
+        .any(|key| std::env::var(key).is_ok_and(|value| value != "0")) {
+        return true;
+    }
+    let probe = gtk::Window::new(gtk::WindowType::Popup);
+    probe.realize();
+    let can_composite = probe.window()
+        .and_then(|window| window.create_gl_context().ok())
+        .is_some_and(|context| context.realize().is_ok());
+    probe.close();
+    !can_composite
+}
+
 /// Transparent, click-through, always-on-top window covering the primary
-/// monitor. All widgets render inside it at their configured positions.
+/// monitor, following the game client on Linux. All widgets render inside it at their configured positions.
 /// Works over LMU in borderless/windowed mode (not exclusive fullscreen).
 fn create_overlay(app: &tauri::App) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    let full_repaint = needs_full_repaint();
+    #[cfg(not(target_os = "linux"))]
+    let full_repaint = false;
     let window = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("index.html#overlay".into()))
         .title("Mulsanne HUD")
         .transparent(true)
         .decorations(false)
         .shadow(false)
         .always_on_top(true)
+        .visible_on_all_workspaces(cfg!(target_os = "linux"))
+        .initialization_script(format!("window.__MULSANNE_FULL_REPAINT__ = {full_repaint};"))
         .skip_taskbar(true)
-        .resizable(false)
+        // GTK ignores programmatic resize requests for non-resizable windows.
+        .resizable(cfg!(target_os = "linux"))
         .focused(false)
         .visible(false)
         .build()?;
     #[cfg(target_os = "linux")]
     {
-        use gtk::prelude::GtkWindowExt;
+        use gtk::prelude::*;
+        let gtk_window = window.gtk_window()?;
         // Tiling compositors need a dock hint before mapping the window; an
         // always-on-top hint alone does not keep a normal client out of tiling.
-        window.gtk_window()?.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+        gtk_window.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
     }
     if let Some(monitor) = app.primary_monitor()? {
         window.set_position(PhysicalPosition::new(monitor.position().x, monitor.position().y))?;
@@ -73,11 +101,12 @@ pub fn run() {
         std::env::set_var("GDK_BACKEND", "x11");
     }
 
-    // WebKit's DMA-BUF path can fail to allocate buffers on NVIDIA/XWayland.
-    // The fallback still supports transparent webviews and avoids a blank HUD.
+    // Keep the compositing renderer, but transport buffers through shared
+    // memory to avoid NVIDIA/XWayland DMA-BUF allocation failures. Disabling
+    // the renderer itself breaks transparent damage painting on WebKit 2.54.
     #[cfg(target_os = "linux")]
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    if std::env::var_os("WEBKIT_DMABUF_RENDERER_FORCE_SHM").is_none() {
+        std::env::set_var("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1");
     }
 
     let edit_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F9);

@@ -6,8 +6,18 @@ surfaces do not provide the window placement and global shortcuts this overlay
 needs. Mulsanne selects the X11 GTK backend by default. Remove an inherited
 `GDK_BACKEND=wayland` override if the overlay does not position correctly.
 The HUD advertises itself as a dock so tiling compositors leave it floating.
-WebKit's fallback buffer renderer is enabled by default for NVIDIA compatibility;
-an explicit `WEBKIT_DISABLE_DMABUF_RENDERER` setting takes precedence.
+The HUD follows the game's X11 client bounds, including moves and resizes, rather
+than relying on GTK's primary-monitor size. Widget positions remain editable.
+WebKit uses shared-memory buffer transport by default for NVIDIA compatibility;
+an explicit `WEBKIT_DMABUF_RENDERER_FORCE_SHM` setting takes precedence. Avoid
+`WEBKIT_DISABLE_DMABUF_RENDERER=1` on WebKitGTK 2.54: its transparent fallback
+can discard unchanged widget pixels. A transparent canvas also repaints the
+Linux HUD while visible when GTK cannot create a GL context or compositing is
+explicitly disabled. GL-capable systems do not run this repaint loop.
+It pauses when the HUD contents are hidden and does not tint the game. This
+full-frame fallback uses more CPU than composited rendering.
+See the [WebKitGTK 2.54 repaint report](https://github.com/CapSoftware/Cap/issues/2624)
+and [WebKit's buffer transport implementation](https://github.com/WebKit/WebKit/blob/main/Source/WebKit/UIProcess/gtk/AcceleratedBackingStore.cpp).
 
 ## Run with Le Mans Ultimate
 
@@ -135,7 +145,7 @@ both the ESM and CommonJS entry points.
 The Linux port was verified with Ubuntu 22.04 AppImage and installed Debian
 packages, plus Wine 11.19 Staging for the Windows bridge fixture. Native readers
 observed the fixture's complete frames through Wine's Z: drive. The native app
-also ran on Hyprland 0.56.2 through XWayland, with a floating, monitor-sized HUD.
+also ran on Hyprland 0.56.2 through XWayland, with a floating HUD.
 Updater signing was checked with a disposable test key, not the release key.
 
 A live game check was completed on 2026-11-01 with LMU v1.4200 (Steam build
@@ -144,8 +154,12 @@ Oreca 07 offline practice session at Paul Ricard - ELMS supplied player telemetr
 through the bridge to the native parser, companion, and HUD. Session time,
 engine RPM, fuel, and tyre temperatures updated, and the foreground flag changed
 when switching between LMU and the companion. Ctrl+Shift+F9 switched the real
-HUD input region between click-through and editable modes. No real completed lap was recorded
-in this check; lap recording remains covered by the recorder tests.
+HUD input region between click-through and editable modes. A follow-up rendering
+check reproduced WebKitGTK 2.54.1 losing static panels, then verified complete
+widgets remained visible with the repaint fallback and the HUD matched LMU's
+2554×1408 client bounds. The smoke test now samples static labels during changing
+telemetry and moves/resizes a synthetic game client. No real completed lap was
+recorded in this check; lap recording remains covered by the recorder tests.
 
 The plain Protontricks launch used a different runtime from the running Steam
 process on this NixOS installation. `run-lmu-bridge.py` attached successfully by
