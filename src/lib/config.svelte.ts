@@ -181,7 +181,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "relative",
     name: "Relative",
     description: "Cars physically around you on track with time gaps, virtual energy left and optional lap times.",
-    defaults: { enabled: true, x: 1530, y: 560 },
+    defaults: { enabled: true, x: 1220, y: 600 },
     options: [
       { key: "ahead", label: "Cars ahead", type: "number", min: 1, max: 8, step: 1 },
       { key: "behind", label: "Cars behind", type: "number", min: 1, max: 8, step: 1 },
@@ -195,18 +195,45 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "fuel",
     name: "Fuel & energy",
-    description: "Fuel and virtual energy per lap, laps left and amount needed to finish.",
+    description: "Fuel and virtual energy per lap, laps left, amount needed to finish and per-lap targets for stretching a stint.",
     defaults: { enabled: true, x: 1590, y: 300 },
-    options: [],
-    optionDefaults: {},
+    options: [
+      { key: "showLast", label: "Last lap usage", type: "boolean" },
+      { key: "showSaver", label: "Saver: per-lap target to make the stint one or two laps longer", type: "boolean" },
+      {
+        key: "saverResource",
+        label: "Saver based on",
+        type: "select",
+        choices: [
+          { value: "auto", label: "Whichever runs out first" },
+          { value: "fuel", label: "Fuel" },
+          { value: "energy", label: "Virtual energy" },
+        ],
+      },
+    ],
+    optionDefaults: { showLast: true, showSaver: true, saverResource: "auto" },
   },
   {
     id: "tyres",
     name: "Tyres",
-    description: "Tyre temperatures (I/M/O), pressures, wear and brake temps.",
+    description: "Car view of tyre temperatures (surface or core), pressures, tread wear per lap and brake temperatures.",
     defaults: { enabled: true, x: 20, y: 820 },
-    options: [{ key: "showBrakes", label: "Brake temperatures", type: "boolean" }],
-    optionDefaults: { showBrakes: true },
+    options: [
+      {
+        key: "tempLayer",
+        label: "Temperatures",
+        type: "select",
+        choices: [
+          { value: "surface", label: "Surface" },
+          { value: "core", label: "Core" },
+          { value: "both", label: "Surface and core" },
+        ],
+      },
+      { key: "showWearRate", label: "Wear per lap and estimated laps left", type: "boolean" },
+      { key: "wearLimit", label: "Tyre worn out at (% tread left)", type: "number", min: 0, max: 60, step: 5 },
+      { key: "showBrakes", label: "Brakes (temperature next to each tyre)", type: "boolean" },
+    ],
+    optionDefaults: { tempLayer: "surface", showWearRate: true, wearLimit: 0, showBrakes: true },
   },
   {
     id: "session",
