@@ -216,7 +216,7 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "tyres",
     name: "Tyres",
-    description: "Tyre surface or core temperatures (I/M/O), pressures, wear per lap and brake temps.",
+    description: "Car view of tyre temperatures (surface or core), pressures, tread wear per lap and brake temperatures.",
     defaults: { enabled: true, x: 20, y: 820 },
     options: [
       {
@@ -231,7 +231,7 @@ export const WIDGETS: WidgetMeta[] = [
       },
       { key: "showWearRate", label: "Wear per lap and estimated laps left", type: "boolean" },
       { key: "wearLimit", label: "Tyre worn out at (% tread left)", type: "number", min: 0, max: 60, step: 5 },
-      { key: "showBrakes", label: "Brake temperatures", type: "boolean" },
+      { key: "showBrakes", label: "Brakes (temperature next to each tyre)", type: "boolean" },
     ],
     optionDefaults: { tempLayer: "surface", showWearRate: true, wearLimit: 0, showBrakes: true },
   },
