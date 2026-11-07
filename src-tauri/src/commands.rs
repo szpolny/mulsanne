@@ -8,7 +8,7 @@ use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, Trac
 use crate::engine::PreviewSim;
 use crate::model::Snapshot;
 use crate::online::{BoardSummary, Leaderboard, LeaderboardQuery, Me};
-use crate::schedule::DailyRace;
+use crate::schedule::Schedule;
 use crate::AppState;
 
 type CmdResult<T> = Result<T, String>;
@@ -204,8 +204,8 @@ pub fn delete_session(state: State<AppState>, session_id: i64) -> CmdResult<()> 
 }
 
 #[tauri::command]
-pub async fn daily_races() -> CmdResult<Vec<DailyRace>> {
-    crate::schedule::fetch_daily_races().await
+pub async fn daily_races(state: State<'_, AppState>, force: bool) -> CmdResult<Schedule> {
+    crate::schedule::daily_races(&state.data_dir, force).await
 }
 
 #[tauri::command]
