@@ -48,7 +48,13 @@ jobs:
   build:
     needs: [release-please, check-api]
     if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -75,6 +81,51 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          args: --bundles ${{ matrix.bundles }}
           tagName: ${{ needs.release-please.outputs.tag_name }}
           releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
           includeUpdaterJson: true
+
+      - name: Build the Wine bridge
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lmu-bridge
+          path: lmu-bridge/target/release/lmu-bridge.exe
+
+  linux:
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: lmu-bridge
+          path: src-tauri/resources
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --no-sign --bundles deb,rpm --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          tagName: ${{ needs.release-please.outputs.tag_name }}
+          releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
+          includeUpdaterJson: false

@@ -1,0 +1,68 @@
+name: Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: lmu-bridge -> target
+      - run: cargo test --locked --manifest-path lmu-bridge/Cargo.toml
+      - run: cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lmu-bridge
+          path: lmu-bridge/target/release/lmu-bridge.exe
+
+  linux:
+    needs: bridge
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: lmu-bridge
+          path: src-tauri/resources
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libdbus-1-dev patchelf xvfb openbox xcompmgr xdotool imagemagick x11-utils libx11-dev libxext-dev lua5.4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Build Debian package
+        run: pnpm tauri build --ci --no-sign --bundles deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
+      - name: Install and smoke-test the Debian package
+        shell: bash
+        run: |
+          packages=(src-tauri/target/release/bundle/deb/*.deb)
+          [ -f "${packages[0]}" ]
+          sudo apt-get install -y "$(realpath "${packages[0]}")"
+          dbus-run-session -- node scripts/smoke-linux.mjs /usr/bin/mulsanne src-tauri/target/smoke-deb
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-deb-and-smoke-results
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/smoke-*/

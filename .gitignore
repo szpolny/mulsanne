@@ -28,3 +28,10 @@ src/dev/fixtures/
 
 # Claude
 .claude
+lmu-bridge/target
+
+# Diagnostic caches
+__pycache__/
+
+# Windows bridge staged for native Linux packages
+src-tauri/resources/*.exe

@@ -140,7 +140,13 @@ fn queue_auto_upload(app: &AppHandle, lap_id: i64, now: i64) {
 /// Polls the foreground window and emits `game-focused` when the game gains or
 /// loses focus, so the overlay can hide while alt-tabbed.
 fn run_focus_watch(app: AppHandle, shared: Arc<Shared>) {
+    #[cfg(target_os = "linux")]
+    let mut viewport = crate::viewport::Tracker::new();
     loop {
+        #[cfg(target_os = "linux")]
+        if let Some(tracker) = viewport.as_mut() {
+            tracker.update(&app);
+        }
         let focused = shm::is_foreground(shared.game_window.load(Ordering::Acquire));
         if shared.game_focused.swap(focused, Ordering::AcqRel) != focused {
             let _ = app.emit("game-focused", focused);
@@ -192,6 +198,11 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
                 Some(mem) => {
                     let got_frame = mem.wait_for_frame(250);
                     if !mem.copy_into(&mut buf) {
+                        // A truncated or removed mirror may never produce another
+                        // complete frame. Still check liveness so we can reconnect.
+                        if !mem.game_alive(&buf) {
+                            shm = None;
+                        }
                         continue;
                     }
                     if !mem.game_alive(&buf) {

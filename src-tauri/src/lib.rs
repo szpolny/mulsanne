@@ -3,6 +3,8 @@ mod damage;
 pub mod db;
 pub mod demo;
 mod engine;
+#[cfg(target_os = "linux")]
+mod viewport;
 pub mod lmu;
 pub mod model;
 pub mod online;
@@ -31,24 +33,60 @@ pub struct AppState {
     pub overlay_monitor: Mutex<String>,
 }
 
-/// Transparent, click-through, always-on-top window covering the chosen
-/// monitor. All widgets render inside it at their configured positions.
-/// Works over LMU in borderless/windowed mode (not exclusive fullscreen).
+/// Detect the non-composited GTK path before constructing the overlay. Keep
+/// full-view invalidation off machines that can render composited buffers.
+#[cfg(target_os = "linux")]
+fn needs_full_repaint() -> bool {
+    use gtk::prelude::*;
+    if ["WEBKIT_DISABLE_DMABUF_RENDERER", "WEBKIT_DISABLE_COMPOSITING_MODE"].iter()
+        .any(|key| std::env::var(key).is_ok_and(|value| value != "0")) {
+        return true;
+    }
+    let probe = gtk::Window::new(gtk::WindowType::Popup);
+    probe.realize();
+    let can_composite = probe.window()
+        .and_then(|window| window.create_gl_context().ok())
+        .is_some_and(|context| context.realize().is_ok());
+    probe.close();
+    !can_composite
+}
+
+/// Transparent, click-through, always-on-top window covering the primary
+/// monitor, following the game client on Linux. All widgets render inside it at their configured positions.
+/// Linux fullscreen stacking is supplied by the experimental compositor integration.
 fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    let full_repaint = needs_full_repaint();
+    #[cfg(not(target_os = "linux"))]
+    let full_repaint = false;
     let window = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("index.html#overlay".into()))
         .title("Mulsanne HUD")
         .transparent(true)
         .decorations(false)
         .shadow(false)
         .always_on_top(true)
+        .visible_on_all_workspaces(false)
+        .initialization_script(format!("window.__MULSANNE_FULL_REPAINT__ = {full_repaint};"))
         .skip_taskbar(true)
-        .resizable(false)
+        // GTK ignores programmatic resize requests for non-resizable windows.
+        .resizable(cfg!(target_os = "linux"))
         .focused(false)
         .visible(false)
         .build()?;
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::prelude::*;
+        let gtk_window = window.gtk_window()?;
+        // Tiling compositors need a dock hint before mapping the window; an
+        // always-on-top hint alone does not keep a normal client out of tiling.
+        gtk_window.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+    }
     place_overlay(app.handle(), monitor)?;
-    window.set_ignore_cursor_events(true)?;
+    // GTK creates the underlying GdkWindow on show. Tao's input-shape call
+    // requires that window to exist, so enabling click-through before show
+    // panics on Linux.
     window.show()?;
+    window.set_ignore_cursor_events(true)?;
     Ok(())
 }
 
@@ -71,6 +109,22 @@ pub(crate) fn place_overlay(app: &tauri::AppHandle, monitor: &str) -> tauri::Res
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Overlay placement, stacking, click-through, and global shortcuts use X11.
+    // Wayland sessions can run the app through XWayland; select it before GTK
+    // initializes rather than silently creating an unsupported native surface.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("GDK_BACKEND").is_none() {
+        std::env::set_var("GDK_BACKEND", "x11");
+    }
+
+    // Keep the compositing renderer, but transport buffers through shared
+    // memory to avoid NVIDIA/XWayland DMA-BUF allocation failures. Disabling
+    // the renderer itself breaks transparent damage painting on WebKit 2.54.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DMABUF_RENDERER_FORCE_SHM").is_none() {
+        std::env::set_var("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1");
+    }
+
     let edit_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F9);
     let visibility_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F10);
 
@@ -164,6 +218,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_snapshot,
             commands::get_status,
+            commands::latest_release,
             commands::get_config,
             commands::save_config,
             commands::set_edit_mode,

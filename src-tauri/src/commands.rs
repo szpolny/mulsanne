@@ -21,6 +21,7 @@ pub struct Status {
     overlay_visible: bool,
     game_focused: bool,
     data_dir: String,
+    experimental_linux: bool,
 }
 
 #[tauri::command]
@@ -36,7 +37,45 @@ pub fn get_status(state: State<AppState>) -> Status {
         overlay_visible: state.overlay_visible.load(Ordering::Acquire),
         game_focused: state.shared.game_focused.load(Ordering::Acquire),
         data_dir: state.data_dir.display().to_string(),
+        experimental_linux: cfg!(target_os = "linux"),
     }
+}
+
+#[derive(serde::Serialize)]
+pub struct LatestRelease {
+    version: String,
+    notes: String,
+}
+
+/// Latest published GitHub release. Used where the app cannot update itself
+/// (Linux package managers) to tell the user a newer version exists.
+#[tauri::command]
+pub async fn latest_release() -> Result<LatestRelease, String> {
+    if rustls::crypto::CryptoProvider::get_default().is_none() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("Mulsanne/", env!("CARGO_PKG_VERSION")))
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let text = client
+        .get("https://api.github.com/repos/szpolny/mulsanne/releases/latest")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(|e| format!("Could not reach GitHub: {e}"))?
+        .text()
+        .await
+        .map_err(|e| e.to_string())?;
+    let json: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let version = json["tag_name"]
+        .as_str()
+        .map(|t| t.trim_start_matches('v').to_owned())
+        .filter(|v| !v.is_empty())
+        .ok_or("The latest release has no version")?;
+    Ok(LatestRelease { version, notes: json["body"].as_str().unwrap_or_default().to_owned() })
 }
 
 /// Layout and widget settings. The frontend owns the schema; the backend

@@ -1,6 +1,21 @@
 import type { Units } from "./config.svelte";
 import type { Penalty, Vehicle } from "./types";
 
+/** WebKitGTK can expose POSIX locales such as C.UTF-8, which Intl rejects. */
+export function dateLocale(languages: readonly string[]): string {
+  for (const language of languages) {
+    try {
+      const locale = Intl.getCanonicalLocales(language.split(".")[0].replaceAll("_", "-"))[0];
+      if (locale && Intl.DateTimeFormat.supportedLocalesOf(locale).length) return locale;
+    } catch {
+      // Try the next browser preference before falling back to English.
+    }
+  }
+  return "en-US";
+}
+
+export const locale = dateLocale(globalThis.navigator?.languages ?? []);
+
 /** 83.456 -> "1:23.456". Non-positive values render as placeholder. */
 export function lapTime(s: number | null | undefined, digits = 3): string {
   if (s == null || !isFinite(s) || s <= 0) return "-:--.---";
@@ -85,7 +100,7 @@ export function sessionLabel(kind: string): string {
 }
 
 export function dateTime(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleString(undefined, {
+  return new Date(unixSeconds * 1000).toLocaleString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",

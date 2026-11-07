@@ -1,0 +1,2 @@
+# Generated diffs require a space on otherwise empty context lines.
+patches/*.patch -whitespace

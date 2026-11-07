@@ -6,7 +6,7 @@ import type { Snapshot, Status } from "./types";
 class Live {
   /** Latest telemetry snapshot. `$state.raw` avoids deep-proxying ~40 KB of data at 30 Hz. */
   snap = $state.raw<Snapshot | null>(null);
-  status = $state.raw<Status>({ demo: false, editMode: false, overlayVisible: true, gameFocused: false, dataDir: "" });
+  status = $state.raw<Status>({ demo: false, editMode: false, overlayVisible: true, gameFocused: false, dataDir: "", experimentalLinux: false });
 }
 
 export const live = new Live();

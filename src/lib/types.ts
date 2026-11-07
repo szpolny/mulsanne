@@ -251,6 +251,7 @@ export interface Status {
   /** LMU window has focus (always false when the game is not running). */
   gameFocused: boolean;
   dataDir: string;
+  experimentalLinux: boolean;
 }
 
 /** A connected display the overlay can cover. */

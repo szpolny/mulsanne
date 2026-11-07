@@ -2,10 +2,11 @@ import { getVersion } from "@tauri-apps/api/app";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import changelog from "../../CHANGELOG.md?raw";
-import { parseChangelog, type ChangelogRelease } from "./changelog";
+import { compareVersions, parseChangelog, type ChangelogRelease } from "./changelog";
 import { config, saveConfig } from "./config.svelte";
+import { api } from "./api";
 
-export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error";
+export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error" | "outdated";
 
 export const updater = $state({
   version: "",
@@ -25,12 +26,28 @@ let pending: Update | null = null;
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
 
+/** Native Linux packages can't self-update; only report whether a newer release exists. */
+async function checkLatestRelease() {
+  const latest = await api.latestRelease();
+  if (compareVersions(latest.version, updater.version) > 0) {
+    updater.available = latest.version;
+    updater.notes = latest.notes;
+    updater.phase = "outdated";
+  } else {
+    updater.phase = "upToDate";
+  }
+}
+
 export async function checkForUpdate() {
   if (!inTauri() || updater.phase === "checking" || updater.phase === "downloading") return;
   updater.version ||= await getVersion();
   updater.phase = "checking";
   updater.error = "";
   try {
+    if ((await api.getStatus()).experimentalLinux) {
+      await checkLatestRelease();
+      return;
+    }
     pending = await check();
     if (pending) {
       updater.available = pending.version;

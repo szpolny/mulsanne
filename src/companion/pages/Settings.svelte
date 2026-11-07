@@ -22,6 +22,13 @@
 <div class="mx-auto max-w-3xl p-6">
   <h1 class="mb-5 page-title">Settings</h1>
 
+  {#if live.status.experimentalLinux}
+    <div class="card mb-5 p-4 text-sm">
+      <div class="font-medium">Experimental Linux support</div>
+      <p class="mt-1 text-muted">Linux support is experimental. Fullscreen HUD integration has been tested on Hyprland with XWayland; other desktops may need additional setup.</p>
+    </div>
+  {/if}
+
   <div class="divide-y divide-line card text-sm">
     <div class="flex items-center justify-between p-4">
       <div>
@@ -98,7 +105,9 @@
       <div>
         <div class="font-medium">Version {updater.version}</div>
         <div class="text-muted">
-          {#if updater.phase === "checking"}
+          {#if updater.phase === "outdated"}
+            Version {updater.available} is available. Update with your package manager.
+          {:else if updater.phase === "checking"}
             Checking for updates…
           {:else if updater.phase === "available"}
             Version {updater.available} is available.

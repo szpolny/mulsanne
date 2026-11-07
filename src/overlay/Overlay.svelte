@@ -3,6 +3,7 @@
   import { api } from "../lib/api";
   import { config, loadConfig, resetLayout, switchProfile, WIDGETS } from "../lib/config.svelte";
   import { live, startLive } from "../lib/live.svelte";
+  import SoftwareRepaint from "./SoftwareRepaint.svelte";
   import Logo from "../lib/Logo.svelte";
   import WidgetFrame from "./WidgetFrame.svelte";
   import { COMPONENTS } from "./widgets";
@@ -18,6 +19,8 @@
   const focusOk = $derived(!config.value.general.hideUnfocused || live.status.gameFocused || live.status.demo);
   const show = $derived(config.loaded && (edit || (trackOk && focusOk)));
 </script>
+
+<SoftwareRepaint active={show} />
 
 {#if edit}
   <div

@@ -179,6 +179,12 @@
             </button>
           </div>
         {/if}
+        {#if updater.phase === "outdated"}
+          <div class="mx-2 mb-2 rounded-lg border border-line bg-surface-2 p-3 text-xs">
+            <div class="font-medium text-fg">Update available</div>
+            <div class="mt-0.5 text-muted">Version {updater.available} is out. Update Mulsanne with your package manager.</div>
+          </div>
+        {/if}
         <div class="border-t border-line px-4 py-3 text-xs">
           <div class="flex items-center gap-2">
             <span class={["h-2 w-2 rounded-full", statusColor]}></span>
