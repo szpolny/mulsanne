@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/szpolny/mulsanne/compare/v0.7.1...v0.8.0) (2026-11-07)
+
+
+### Features
+
+* show tyre wear per lap, core temperatures and a fuel saver ([#17](https://github.com/szpolny/mulsanne/issues/17)) ([2883126](https://github.com/szpolny/mulsanne/commit/28831263e4c7604f02d1426cd3cf95cbd3b95a6c))
+
 ## [0.7.1](https://github.com/szpolny/mulsanne/compare/v0.7.0...v0.7.1) (2026-10-31)
 
 
