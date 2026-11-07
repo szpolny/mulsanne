@@ -181,7 +181,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "relative",
     name: "Relative",
     description: "Cars physically around you on track with time gaps, virtual energy left and optional lap times.",
-    defaults: { enabled: true, x: 1530, y: 560 },
+    defaults: { enabled: true, x: 1220, y: 600 },
     options: [
       { key: "ahead", label: "Cars ahead", type: "number", min: 1, max: 8, step: 1 },
       { key: "behind", label: "Cars behind", type: "number", min: 1, max: 8, step: 1 },
