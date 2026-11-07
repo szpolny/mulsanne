@@ -107,7 +107,8 @@ pub struct DemoSim {
     lap_variation: f64,
     fuel: f64,
     ve: f64,
-    wear: f64,
+    /// Remaining tread per wheel, FL, FR, RL, RR.
+    wear: [f64; 4],
     best: f64,
     last: f64,
     prev_speed: f64,
@@ -159,7 +160,7 @@ impl DemoSim {
             lap_variation: 1.0,
             fuel: 70.0,
             ve: 1.0,
-            wear: 1.0,
+            wear: [1.0; 4],
             best: 0.0,
             last: 0.0,
             prev_speed: 0.0,
@@ -191,7 +192,10 @@ impl DemoSim {
         let brake = if accel < -2.0 { (-accel / MAX_DECEL).clamp(0.05, 1.0) } else { 0.0 };
         self.fuel = (self.fuel - throttle * dt * 0.034).max(0.0);
         self.ve = (self.ve - throttle * dt * 0.0005).max(0.0);
-        self.wear = (self.wear - dt * 0.00002).max(0.0);
+        // Fronts wear faster than rears, and more under power.
+        for (w, rate) in self.wear.iter_mut().zip([1.15, 1.0, 0.8, 0.7]) {
+            *w = (*w - dt * 0.0002 * rate * (0.6 + throttle * 0.6)).max(0.0);
+        }
 
         if self.progress >= len {
             self.progress -= len;
@@ -206,6 +210,7 @@ impl DemoSim {
             if self.fuel < 8.0 {
                 self.fuel = 70.0;
                 self.ve = 1.0;
+                self.wear = [1.0; 4];
             }
         }
 
@@ -214,7 +219,7 @@ impl DemoSim {
         let rpm = 4500.0 + (speed - gear_low) / (88.0 / 7.0) * 4000.0;
         let steering = (curvature * 18.0).clamp(-1.0, 1.0);
 
-        let tyre = |base: f64, offset: f64| -> Wheel {
+        let tyre = |base: f64, offset: f64, wear: f64| -> Wheel {
             let t = base + offset + (self.time * 0.3 + offset).sin() * 3.0;
             Wheel {
                 surface_temp: [t + 4.0, t, t - 3.0],
@@ -222,7 +227,7 @@ impl DemoSim {
                 carcass_temp: t - 5.0,
                 optimal_temp: 90.0,
                 pressure: 168.0 + offset * 0.2,
-                wear: self.wear - offset * 0.002,
+                wear,
                 brake_temp: 350.0 + brake * 400.0 + offset,
                 ride_height: 0.05,
                 ..Default::default()
@@ -305,7 +310,12 @@ impl DemoSim {
             gap_behind: 2.4,
             front_compound: "Medium".into(),
             rear_compound: "Medium".into(),
-            wheels: [tyre(82.0, 0.0), tyre(82.0, 4.0), tyre(85.0, 2.0), tyre(85.0, 6.0)],
+            wheels: [
+                tyre(82.0, 0.0, self.wear[0]),
+                tyre(82.0, 4.0, self.wear[1]),
+                tyre(85.0, 2.0, self.wear[2]),
+                tyre(85.0, 6.0, self.wear[3]),
+            ],
         };
 
         // Opponents
@@ -349,7 +359,7 @@ impl DemoSim {
             number: "99".into(),
             model: "Porsche 963".into(),
             tyre_compound: "Medium".into(),
-            tyre_wear: Some(self.wear),
+            tyre_wear: Some(self.wear.iter().sum::<f64>() / 4.0),
             virtual_energy: Some(self.ve),
             ..Default::default()
         });

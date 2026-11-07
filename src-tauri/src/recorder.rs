@@ -25,6 +25,11 @@ fn avg(v: &VecDeque<f64>) -> f64 {
     }
 }
 
+/// Remaining tread per wheel, FL, FR, RL, RR.
+fn wear(p: &Player) -> [f64; 4] {
+    std::array::from_fn(|i| p.wheels[i].wear)
+}
+
 pub fn car_key(p: &Player) -> String {
     if p.vehicle_model.is_empty() {
         p.vehicle_name.clone()
@@ -79,6 +84,7 @@ struct LapState {
     yellow: bool,
     start_fuel: f64,
     start_ve: f64,
+    start_wear: [f64; 4],
     splits: [Option<f64>; 2],
     prev_sector: i8,
     dist: f64,
@@ -101,6 +107,7 @@ impl LapState {
             yellow: false,
             start_fuel: p.fuel,
             start_ve: p.virtual_energy,
+            start_wear: wear(p),
             splits: [None, None],
             prev_sector: p.sector,
             dist: if t < 1.0 { 0.0 } else { p.lap_dist },
@@ -197,6 +204,13 @@ struct SessionState {
     fuel_hist: VecDeque<f64>,
     ve_hist: VecDeque<f64>,
     time_hist: VecDeque<f64>,
+    fuel_last: f64,
+    ve_last: f64,
+    /// Tread used per lap on the current set, newest last.
+    wear_hist: VecDeque<[f64; 4]>,
+    wear_last: [f64; 4],
+    /// Tread seen on the previous frame, to notice a fresh set.
+    tyre_wear: [f64; 4],
 }
 
 pub struct Recorder {
@@ -310,6 +324,11 @@ impl Recorder {
                 fuel_hist: VecDeque::new(),
                 ve_hist: VecDeque::new(),
                 time_hist: VecDeque::new(),
+                fuel_last: 0.0,
+                ve_last: 0.0,
+                wear_hist: VecDeque::new(),
+                wear_last: [0.0; 4],
+                tyre_wear: wear(&p),
             });
             self.lap = None;
             self.last_elapsed = f64::NEG_INFINITY;
@@ -327,6 +346,14 @@ impl Recorder {
             session.record.vehicle_name = p.vehicle_name.clone();
             session.record.car_class = p.vehicle_class.clone();
         }
+
+        // Tread only goes up when a new set is fitted.
+        let now_wear = wear(&p);
+        if now_wear.iter().zip(session.tyre_wear).any(|(now, prev)| *now > prev + 0.005) {
+            session.wear_hist.clear();
+            session.wear_last = [0.0; 4];
+        }
+        session.tyre_wear = now_wear;
 
         if p.in_pits {
             session.stint_start_et = None;
@@ -368,6 +395,8 @@ impl Recorder {
         let clean = valid && !lap.out_lap && !in_lap;
         let fuel_used = (lap.start_fuel - p.fuel > 0.0).then_some(lap.start_fuel - p.fuel);
         let ve_used = (lap.start_ve - p.virtual_energy > 0.0).then_some(lap.start_ve - p.virtual_energy);
+        let end_wear = wear(p);
+        let wear_used: [f64; 4] = std::array::from_fn(|i| lap.start_wear[i] - end_wear[i]);
 
         session.last_lap_time = lap_time;
         session.last_lap_valid = valid;
@@ -385,18 +414,29 @@ impl Recorder {
                 }
             }
         }
+        let tyres_ok = wear_used.iter().all(|w| *w >= 0.0) && wear_used.iter().any(|w| *w > 0.0);
+        if !lap.out_lap && !in_lap {
+            session.fuel_last = fuel_used.unwrap_or(0.0);
+            session.ve_last = ve_used.unwrap_or(0.0);
+            if tyres_ok {
+                session.wear_last = wear_used;
+            }
+        }
         if !lap.out_lap && !in_lap && !lap.yellow {
-            let push = |hist: &mut VecDeque<f64>, v: f64| {
+            fn push<T>(hist: &mut VecDeque<T>, v: T) {
                 hist.push_back(v);
                 if hist.len() > STRATEGY_WINDOW {
                     hist.pop_front();
                 }
-            };
+            }
             if let Some(f) = fuel_used {
                 push(&mut session.fuel_hist, f);
             }
             if let Some(v) = ve_used {
                 push(&mut session.ve_hist, v);
+            }
+            if tyres_ok {
+                push(&mut session.wear_hist, wear_used);
             }
             push(&mut session.time_hist, lap_time);
         }
@@ -465,6 +505,14 @@ impl Recorder {
         let st = &mut snap.strategy;
         st.fuel_per_lap = avg(&session.fuel_hist);
         st.ve_per_lap = avg(&session.ve_hist);
+        st.fuel_last_lap = session.fuel_last;
+        st.ve_last_lap = session.ve_last;
+        st.tyre_samples = session.wear_hist.len() as u32;
+        if !session.wear_hist.is_empty() {
+            let n = session.wear_hist.len() as f64;
+            st.tyre_wear_per_lap = std::array::from_fn(|i| session.wear_hist.iter().map(|w| w[i]).sum::<f64>() / n);
+        }
+        st.tyre_wear_last_lap = session.wear_last;
         st.samples = session.time_hist.len() as u32;
         st.avg_lap_time = if !session.time_hist.is_empty() {
             avg(&session.time_hist)
@@ -550,6 +598,42 @@ mod tests {
         let mut snap = sim.step(1.0 / 60.0);
         rec.update(&mut snap);
         assert!(snap.timing.personal_best > 0.0 || laps.iter().all(|l| !l.valid));
+    }
+
+    #[test]
+    fn tracks_tyre_wear_per_lap_and_resets_on_new_set() {
+        let dir = std::env::temp_dir().join(format!("lmo-wear-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("w.db");
+        let _ = std::fs::remove_file(&path);
+        let db = Arc::new(Db::open(&path).unwrap());
+        let (tx, _rx) = std::sync::mpsc::channel();
+        let mut rec = Recorder::new(db, tx);
+        let mut sim = crate::demo::DemoSim::new();
+        let mut step = |rec: &mut Recorder, fresh: f64| {
+            let mut snap = sim.step(1.0 / 60.0);
+            for w in &mut snap.player.as_mut().unwrap().wheels {
+                w.wear = (w.wear + fresh).min(1.0);
+            }
+            rec.update(&mut snap);
+            snap
+        };
+
+        let mut snap = step(&mut rec, 0.0);
+        for _ in 0..(60 * 60 * 5) {
+            snap = step(&mut rec, 0.0);
+        }
+        let st = &snap.strategy;
+        assert!(st.tyre_samples >= 1);
+        // The demo wears the front left fastest and the rear right slowest.
+        assert!(st.tyre_wear_per_lap[0] > st.tyre_wear_per_lap[3] && st.tyre_wear_per_lap[3] > 0.0);
+        assert!(st.tyre_wear_last_lap[0] > 0.0);
+        assert!(st.fuel_last_lap > 0.0);
+
+        // Tread jumping back up means a new set: the history starts over.
+        let snap = step(&mut rec, 0.1);
+        assert_eq!(snap.strategy.tyre_samples, 0);
+        assert_eq!(snap.strategy.tyre_wear_last_lap, [0.0; 4]);
     }
 
     #[test]
