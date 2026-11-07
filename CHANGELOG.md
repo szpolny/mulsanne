@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/szpolny/mulsanne/compare/v0.8.0...v0.8.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* cache the daily race schedule and fetch it about once a day ([#19](https://github.com/szpolny/mulsanne/issues/19)) ([703ddd5](https://github.com/szpolny/mulsanne/commit/703ddd51476af8b2ecaa8e6cd79aa74f99ce6d8d))
+
 ## [0.8.0](https://github.com/szpolny/mulsanne/compare/v0.7.1...v0.8.0) (2026-11-07)
 
 
