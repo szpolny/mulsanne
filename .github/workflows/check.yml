@@ -8,10 +8,30 @@ permissions:
   contents: read
 
 jobs:
+  bridge:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: lmu-bridge -> target
+      - run: cargo test --locked --manifest-path lmu-bridge/Cargo.toml
+      - run: cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lmu-bridge
+          path: lmu-bridge/target/release/lmu-bridge.exe
+
   linux:
+    needs: bridge
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: lmu-bridge
+          path: src-tauri/resources
       - run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libdbus-1-dev patchelf xvfb openbox xcompmgr xdotool imagemagick x11-utils libx11-dev libxext-dev lua5.4
@@ -30,70 +50,26 @@ jobs:
       - run: pnpm check
       - run: pnpm test
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
-      - name: Build unsigned Linux packages
-        run: pnpm tauri build --ci --no-sign --bundles appimage,deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: '1'
+      - name: Build native packages
+        run: pnpm tauri build --ci --no-sign --bundles deb,rpm --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
       - name: Install and smoke-test the Debian package
         shell: bash
         run: |
           packages=(src-tauri/target/release/bundle/deb/*.deb)
-          sudo dpkg -i "${packages[0]}"
-          node scripts/smoke-linux.mjs /usr/bin/lm-overlay src-tauri/target/smoke-deb
-      - name: Smoke-test the AppImage
-        shell: bash
-        run: |
-          images=(src-tauri/target/release/bundle/appimage/*.AppImage)
-          node scripts/smoke-linux.mjs "${images[0]}" src-tauri/target/smoke-appimage
+          sudo apt-get install -y "${packages[0]}"
+          dbus-run-session -- node scripts/smoke-linux.mjs /usr/bin/mulsanne src-tauri/target/smoke-deb
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: linux-packages-and-smoke-results
           path: |
-            src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/smoke-*/
 
-  bridge:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: lmu-bridge -> target
-      - run: cargo test --locked --manifest-path lmu-bridge/Cargo.toml
-      - run: cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lmu-bridge
-          path: lmu-bridge/target/release/lmu-bridge.exe
-
-  linux-installer:
-    needs: [linux, bridge]
+  nix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: linux-packages-and-smoke-results
-          path: artifacts/linux
-      - uses: actions/download-artifact@v4
-        with:
-          name: lmu-bridge
-          path: artifacts/bridge
-      - name: Assemble experimental installer for PR testing
-        shell: bash
-        run: |
-          shopt -s globstar nullglob
-          images=(artifacts/linux/**/*.AppImage)
-          test "${#images[@]}" -eq 1
-          archive=Mulsanne_linux-experimental_x86_64.tar.gz
-          bash scripts/package-linux.sh "${images[0]}" artifacts/bridge/lmu-bridge.exe "$archive"
-          sha256sum "$archive" > "$archive.sha256"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-experimental-installer
-          path: |
-            Mulsanne_linux-experimental_x86_64.tar.gz
-            Mulsanne_linux-experimental_x86_64.tar.gz.sha256
+      - uses: cachix/install-nix-action@v31
+      - run: nix build .#mulsanne

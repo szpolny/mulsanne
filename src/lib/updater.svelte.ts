@@ -33,7 +33,7 @@ export async function checkForUpdate() {
   updater.error = "";
   try {
     if ((await api.getStatus()).experimentalLinux) {
-      // The app, Proton bridge and compositor rules must update together.
+      // Native Linux packages are updated by the package manager.
       updater.phase = "manual";
       return;
     }

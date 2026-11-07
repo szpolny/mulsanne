@@ -24,7 +24,7 @@ Use **Demo data** on the **Live** page to arrange the overlay without running th
 
 ## Experimental Linux support
 
-Experimental x86-64 Linux support includes AppImage and `.deb` builds, an automatic Proton telemetry bridge, and fullscreen HUD integration tested on Hyprland/XWayland. The portable installer adds Mulsanne to your app menu. See [Linux installation and verification](docs/linux.md) for Ubuntu/Debian/Mint, Fedora, Arch/Manjaro, openSUSE, and NixOS/Nix instructions and current limitations.
+Experimental native Linux packages include the Proton bridge and fullscreen HUD integration tested on Hyprland/XWayland. Install with the Nix flake, `.deb`, or `.rpm`; see [Linux installation](docs/linux.md).
 
 ## Feedback
 

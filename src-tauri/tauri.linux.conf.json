@@ -1,0 +1,38 @@
+{
+  "bundle": {
+    "targets": [
+      "deb",
+      "rpm"
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "bash",
+          "coreutils",
+          "util-linux"
+        ],
+        "files": {
+          "/usr/bin/mulsanne": "../packaging/linux/launch.sh",
+          "/usr/lib/mulsanne/run-lmu-bridge.sh": "../scripts/run-lmu-bridge.sh",
+          "/usr/lib/mulsanne/hyprland.lua": "../packaging/linux/hyprland.lua",
+          "/usr/lib/mulsanne/lmu-bridge.exe": "resources/lmu-bridge.exe"
+        },
+        "desktopTemplate": "../packaging/linux/mulsanne.desktop"
+      },
+      "rpm": {
+        "depends": [
+          "bash",
+          "coreutils",
+          "util-linux"
+        ],
+        "files": {
+          "/usr/bin/mulsanne": "../packaging/linux/launch.sh",
+          "/usr/lib/mulsanne/run-lmu-bridge.sh": "../scripts/run-lmu-bridge.sh",
+          "/usr/lib/mulsanne/hyprland.lua": "../packaging/linux/hyprland.lua",
+          "/usr/lib/mulsanne/lmu-bridge.exe": "resources/lmu-bridge.exe"
+        },
+        "desktopTemplate": "../packaging/linux/mulsanne.desktop"
+      }
+    }
+  }
+}

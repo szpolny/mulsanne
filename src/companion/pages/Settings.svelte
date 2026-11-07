@@ -106,7 +106,7 @@
         <div class="font-medium">Version {updater.version}</div>
         <div class="text-muted">
           {#if updater.phase === "manual"}
-            Update Linux by installing the complete archive from the next release.
+            Updates are managed by your package manager.
           {:else if updater.phase === "checking"}
             Checking for updates…
           {:else if updater.phase === "available"}

@@ -32,6 +32,20 @@ find_game() {
   return 1
 }
 
+cache_bridge() {
+  local digest destination pending
+  digest=$(sha256sum < "$1")
+  digest=${digest%% *}
+  destination=${XDG_CACHE_HOME:-$HOME/.cache}/mulsanne/bridge/$digest/lmu-bridge.exe
+  if [[ ! -f $destination ]]; then
+    mkdir -p -- "${destination%/*}"
+    pending=$(mktemp "${destination%/*}/.bridge.XXXXXX")
+    cp -- "$1" "$pending"
+    mv -f -- "$pending" "$destination"
+  fi
+  printf '%s\n' "$destination"
+}
+
 run_bridge() {
   local bridge=$1
   shift
@@ -42,6 +56,9 @@ run_bridge() {
   # Wine must inherit pipes: host log files can crash Proton in an isolated runtime.
   if ((${#GAME_NAMESPACES[@]})); then
     command -v nsenter >/dev/null || { echo 'Install util-linux (nsenter) to attach to the Steam runtime.' >&2; return 1; }
+    # Steam replaces /usr inside its runtime. A bridge installed by apt/dnf must
+    # be copied to the shared home directory before entering that namespace.
+    bridge=$(cache_bridge "$bridge")
     nsenter --target "$GAME_PID" "${GAME_NAMESPACES[@]}" --preserve-credentials --root --wd -- \
       /usr/bin/env "${GAME_RUNTIME[@]}" "WINEDEBUG=${WINEDEBUG:--all}" "$GAME_WINE" "$bridge" "$@" </dev/null 2>&1 | cat
   else

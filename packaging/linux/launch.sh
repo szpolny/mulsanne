@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
 # Starts the native companion/HUD and attaches the bridge when LMU is running.
 set -euo pipefail
-base=$(cd -- "$(dirname -- "$0")" && pwd)
+base=${MULSANNE_LIBEXEC:-/usr/lib/mulsanne}
 state=${XDG_STATE_HOME:-$HOME/.local/state}/mulsanne
 mkdir -p -- "$state"
 exec 9>"$state/launcher.lock"
 flock -n 9 || exit 0
 if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
   hyprctl eval "$(cat "$base/hyprland.lua")" >>"$state/app.log" 2>&1 || true
-fi
-# Read documented settings as data, never as executable shell code.
-settings=${XDG_CONFIG_HOME:-$HOME/.config}/mulsanne/launcher.env
-if [[ -f $settings ]]; then
-  while IFS= read -r setting; do
-    case $setting in APPIMAGE_EXTRACT_AND_RUN=1) export APPIMAGE_EXTRACT_AND_RUN=1;; esac
-  done < "$settings"
 fi
 app_pid='' bridge_pid=''
 cleanup() {
@@ -29,20 +22,7 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 0' INT TERM
-app=("$base/Mulsanne.AppImage")
-if [[ -f $base/native-binary ]]; then
-  IFS= read -r native < "$base/native-binary"
-  app=("$native")
-elif [[ -e /etc/NIXOS ]]; then
-  if command -v appimage-run >/dev/null; then
-    app=(appimage-run "${app[@]}")
-  else
-    echo 'Install appimage-run first: nix profile install nixpkgs#appimage-run' >&2
-    command -v notify-send >/dev/null && notify-send Mulsanne 'Install appimage-run, then relaunch Mulsanne.' || true
-    exit 1
-  fi
-fi
-setsid env GDK_BACKEND=x11 "${app[@]}" >>"$state/app.log" 2>&1 9>&- &
+setsid env GDK_BACKEND=x11 "${MULSANNE_BINARY:-lm-overlay}" >>"$state/app.log" 2>&1 9>&- &
 app_pid=$!
 mirror=${MULSANNE_LMU_SHM:-/dev/shm/LMU_Data}
 windows_mirror="Z:${mirror//\//\\}"

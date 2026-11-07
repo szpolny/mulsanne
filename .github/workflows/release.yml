@@ -54,16 +54,9 @@ jobs:
         include:
           - os: windows-latest
             bundles: nsis
-          - os: ubuntu-22.04
-            bundles: appimage,deb
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      - if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
 
       - uses: pnpm/action-setup@v4
         with:
@@ -98,26 +91,41 @@ jobs:
         shell: bash
         run: |
           cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
-          gh release upload "${{ needs.release-please.outputs.tag_name }}" lmu-bridge/target/release/lmu-bridge.exe scripts/run-lmu-bridge.sh --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lmu-bridge
+          path: lmu-bridge/target/release/lmu-bridge.exe
 
-  linux-experimental:
+  linux:
     needs: [release-please, build]
     if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Assemble experimental Linux installer
+      - uses: actions/download-artifact@v4
+        with:
+          name: lmu-bridge
+          path: src-tauri/resources
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
-        shell: bash
-        run: |
-          mkdir -p release-assets
-          gh release download "$RELEASE_TAG" --dir release-assets --pattern '*.AppImage' --pattern 'lmu-bridge.exe'
-          images=(release-assets/*.AppImage)
-          archive="Mulsanne_${RELEASE_TAG#v}_linux-experimental_x86_64.tar.gz"
-          bash scripts/package-linux.sh "${images[0]}" release-assets/lmu-bridge.exe "$archive"
-          sha256sum "$archive" > "$archive.sha256"
-          gh release upload "$RELEASE_TAG" "$archive" "$archive.sha256" --clobber
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --no-sign --bundles deb,rpm --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          tagName: ${{ needs.release-please.outputs.tag_name }}
+          releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
+          includeUpdaterJson: false

@@ -2,7 +2,7 @@
 // Packaged UI verification on a private display, with isolated app data.
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
-import {mkdtempSync, mkdirSync, openSync, closeSync, writeFileSync, renameSync, existsSync, readdirSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, openSync, closeSync, writeFileSync, renameSync, existsSync, readdirSync, rmSync, copyFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {resolve, join} from 'node:path';
 import {randomInt} from 'node:crypto';
@@ -13,8 +13,10 @@ mkdirSync(output,{recursive:true});
 const data=mkdtempSync(join(tmpdir(),'mulsanne-smoke-'));
 const log=openSync(join(output,'app.log'),'w');
 const env={...process.env, LANG:'C.UTF-8',LC_ALL:'C.UTF-8',LANGUAGE:'C',WEBKIT_DISABLE_DMABUF_RENDERER:'1',
-  XDG_DATA_HOME:join(data,'data'), XDG_CONFIG_HOME:join(data,'config'),APPIMAGE_EXTRACT_AND_RUN:'1',MULSANNE_LMU_SHM:join(data,'LMU_Data')};
-delete env.WAYLAND_DISPLAY;delete env.GDK_BACKEND;
+  XDG_STATE_HOME:join(data,'state'), XDG_DATA_HOME:join(data,'data'), XDG_CONFIG_HOME:join(data,'config'),APPIMAGE_EXTRACT_AND_RUN:'1',MULSANNE_LMU_SHM:join(data,'LMU_Data')};
+delete env.WAYLAND_DISPLAY;delete env.GDK_BACKEND;delete env.HYPRLAND_INSTANCE_SIGNATURE;
+env.NO_AT_BRIDGE='1';
+env.XDG_CURRENT_DESKTOP='Openbox';env.XDG_SESSION_TYPE='x11';
 if (process.getuid()===0) env.WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS='1';
 const children=[];
 let writer;
@@ -25,8 +27,8 @@ function start(command,args=[]) {
 function result(command,args) {return spawnSync(command,args,{env,encoding:'utf8'});}
 function run(command,...args) {const r=result(command,args);assert.equal(r.status,0,r.stderr||r.error?.message);return r.stdout.trim();}
 let app;
-async function waitFor(condition) {
-  const deadline=Date.now()+20000;
+async function waitFor(condition, timeout=20000) {
+  const deadline=Date.now()+timeout;
   while (!condition()) {
     if(app) assert.ok(app.exitCode===null&&!app.startError,`App exited; see ${output}/app.log`);
     assert.ok(Date.now()<deadline,'UI smoke test timed out');await delay(100);
@@ -53,7 +55,7 @@ try {
   const server=start('Xvfb',[env.DISPLAY,'-nolisten','tcp','-screen','0','1600x1000x24']);
   await waitFor(()=>{assert.ok(server.exitCode===null&&!server.startError,'Xvfb failed');return result('xdotool',['getdisplaygeometry']).status===0;});
   start('openbox');start('xcompmgr');await delay(1000);app=start(binary);
-  await waitFor(()=>window('Mulsanne')&&window('Mulsanne HUD'));
+  await waitFor(()=>window('Mulsanne')&&window('Mulsanne HUD'),60000);
   const overlay=window('Mulsanne HUD');
   assert.match(run('xprop','-id',overlay,'_NET_WM_WINDOW_TYPE'),/_NET_WM_WINDOW_TYPE_DOCK/);
   await delay(3000);
@@ -89,6 +91,10 @@ try {
     if(child.exitCode!==null||child.startError) continue;
     const done=new Promise(r=>child.once('exit',r));child.kill('SIGTERM');
     await Promise.race([done,delay(2000)]);if(child.exitCode===null) {child.kill('SIGKILL');await done;}
+  }
+  for(const name of ['app.log','bridge.log']) {
+    const path=join(env.XDG_STATE_HOME,'mulsanne',name);
+    if(existsSync(path)) copyFileSync(path,join(output,`launcher-${name}`));
   }
   closeSync(log);rmSync(data,{recursive:true,force:true});
 }

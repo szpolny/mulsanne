@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Mulsanne
+Comment=Experimental Linux telemetry companion and HUD for Le Mans Ultimate
+Exec=mulsanne
+Icon=lm-overlay
+Terminal=false
+Categories=Game;
+StartupNotify=false
