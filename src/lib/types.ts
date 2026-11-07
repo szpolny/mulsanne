@@ -372,6 +372,13 @@ export interface DailyRace {
   starts: number[];
 }
 
+/** The cached RaceControl schedule. */
+export interface DailySchedule {
+  races: DailyRace[];
+  /** Unix milliseconds. */
+  fetchedAt: number;
+}
+
 /** This install's account on the Mulsanne server. */
 export interface OnlineMe {
   id: string;
