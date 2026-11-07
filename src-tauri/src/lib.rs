@@ -53,7 +53,7 @@ fn needs_full_repaint() -> bool {
 
 /// Transparent, click-through, always-on-top window covering the primary
 /// monitor, following the game client on Linux. All widgets render inside it at their configured positions.
-/// Works over LMU in borderless/windowed mode (not exclusive fullscreen).
+/// Linux fullscreen stacking is supplied by the experimental compositor integration.
 fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     #[cfg(target_os = "linux")]
     let full_repaint = needs_full_repaint();
@@ -65,7 +65,7 @@ fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
         .decorations(false)
         .shadow(false)
         .always_on_top(true)
-        .visible_on_all_workspaces(cfg!(target_os = "linux"))
+        .visible_on_all_workspaces(false)
         .initialization_script(format!("window.__MULSANNE_FULL_REPAINT__ = {full_repaint};"))
         .skip_taskbar(true)
         // GTK ignores programmatic resize requests for non-resizable windows.

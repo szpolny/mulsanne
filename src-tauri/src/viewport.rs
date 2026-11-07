@@ -110,6 +110,10 @@ impl Tracker {
                     .set_size(PhysicalSize::new(bounds.width, bounds.height))
                     .is_ok()
             {
+                // GTK can reset input regions when the client is resized.
+                let editing = app.state::<crate::AppState>().edit_mode
+                    .load(std::sync::atomic::Ordering::Acquire);
+                let _ = window.set_ignore_cursor_events(!editing);
                 self.previous = Some(bounds);
             }
         }

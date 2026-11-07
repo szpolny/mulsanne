@@ -39,7 +39,7 @@ export async function install() {
         case "get_preview_snapshot":
           return fx.frames[previewFrame++ % fx.frames.length];
         case "get_status":
-          return { demo: true, editMode, overlayVisible: true, gameFocused: false, dataDir: "C:\\mock" };
+          return { demo: true, editMode, overlayVisible: true, gameFocused: false, experimentalLinux: false, dataDir: "C:\\mock" };
         case "list_monitors":
           return [
             { name: "\\\\.\\DISPLAY1", width: 2560, height: 1440, x: 0, y: 0, primary: true },

@@ -30,5 +30,5 @@ src/dev/fixtures/
 .claude
 lmu-bridge/target
 
-# Python diagnostic and smoke-test caches
+# Diagnostic caches
 __pycache__/

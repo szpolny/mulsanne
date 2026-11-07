@@ -21,6 +21,7 @@ pub struct Status {
     overlay_visible: bool,
     game_focused: bool,
     data_dir: String,
+    experimental_linux: bool,
 }
 
 #[tauri::command]
@@ -36,6 +37,7 @@ pub fn get_status(state: State<AppState>) -> Status {
         overlay_visible: state.overlay_visible.load(Ordering::Acquire),
         game_focused: state.shared.game_focused.load(Ordering::Acquire),
         data_dir: state.data_dir.display().to_string(),
+        experimental_linux: cfg!(target_os = "linux"),
     }
 }
 

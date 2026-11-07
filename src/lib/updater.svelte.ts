@@ -4,8 +4,9 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import changelog from "../../CHANGELOG.md?raw";
 import { parseChangelog, type ChangelogRelease } from "./changelog";
 import { config, saveConfig } from "./config.svelte";
+import { api } from "./api";
 
-export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error";
+export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error" | "manual";
 
 export const updater = $state({
   version: "",
@@ -31,6 +32,11 @@ export async function checkForUpdate() {
   updater.phase = "checking";
   updater.error = "";
   try {
+    if ((await api.getStatus()).experimentalLinux) {
+      // The app, Proton bridge and compositor rules must update together.
+      updater.phase = "manual";
+      return;
+    }
     pending = await check();
     if (pending) {
       updater.available = pending.version;

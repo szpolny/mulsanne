@@ -15,16 +15,16 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 
 ## Use
 
-1. Run Le Mans Ultimate in **borderless** or windowed mode.
+1. Run Le Mans Ultimate. On Windows, use **borderless** or windowed mode; see the Linux section below for experimental fullscreen support.
 2. Start Mulsanne. The companion app opens, and the overlay appears on your primary monitor.
 3. Press **Ctrl+Shift+F9** to edit the layout. Drag widgets to move them and scroll to resize one (Shift + scroll resizes all of them); press it again to finish.
 4. Press **Ctrl+Shift+F10** to show or hide the overlay. Configure widgets on the **Overlays** page.
 
 Use **Demo data** on the **Live** page to arrange the overlay without running the game. Laps are saved locally in `%APPDATA%\xyz.mulsanne\laps.db`; valid laps count toward your personal bests.
 
-## Linux
+## Experimental Linux support
 
-Mulsanne builds natively on Linux (AppImage and `.deb`) and uses X11 or XWayland for the overlay. LMU runs under Proton; run the release's `lmu-bridge.exe` inside the game's prefix to share telemetry and focus state with the native app. See [Linux setup and verification](docs/linux.md) for launch commands, dependencies, and tests.
+Experimental x86-64 Linux support includes AppImage and `.deb` builds, an automatic Proton telemetry bridge, and fullscreen HUD integration tested on Hyprland/XWayland. The portable installer adds Mulsanne to your app menu. See [Linux installation and verification](docs/linux.md) for Ubuntu/Debian/Mint, Fedora, Arch/Manjaro, openSUSE, and NixOS/Nix instructions and current limitations.
 
 ## Feedback
 
