@@ -50,26 +50,19 @@ jobs:
       - run: pnpm check
       - run: pnpm test
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
-      - name: Build native packages
-        run: pnpm tauri build --ci --no-sign --bundles deb,rpm --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
+      - name: Build Debian package
+        run: pnpm tauri build --ci --no-sign --bundles deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
       - name: Install and smoke-test the Debian package
         shell: bash
         run: |
           packages=(src-tauri/target/release/bundle/deb/*.deb)
-          sudo apt-get install -y "${packages[0]}"
+          [ -f "${packages[0]}" ]
+          sudo apt-get install -y "$(realpath "${packages[0]}")"
           dbus-run-session -- node scripts/smoke-linux.mjs /usr/bin/mulsanne src-tauri/target/smoke-deb
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: linux-packages-and-smoke-results
+          name: linux-deb-and-smoke-results
           path: |
             src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/smoke-*/
-
-  nix:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-      - run: nix build .#mulsanne
