@@ -21,6 +21,10 @@ export interface WidgetConfig {
   enabled: boolean;
   x: number;
   y: number;
+  /** Size multiplier for this widget, on top of the global scale. */
+  size: number;
+  /** Opacity for this widget, on top of the global opacity. */
+  alpha: number;
   options: Record<string, any>;
 }
 
@@ -43,6 +47,8 @@ export interface AppConfig {
     scale: number;
     /** Opacity applied to every widget. */
     opacity: number;
+    /** Name of the monitor the overlay covers; "" for the primary monitor. */
+    monitor: string;
   };
   /** Lap rankings and car setup sharing. Off until the user opts in. */
   online: {
@@ -175,7 +181,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "relative",
     name: "Relative",
     description: "Cars physically around you on track with time gaps, virtual energy left and optional lap times.",
-    defaults: { enabled: true, x: 1530, y: 560 },
+    defaults: { enabled: true, x: 1220, y: 600 },
     options: [
       { key: "ahead", label: "Cars ahead", type: "number", min: 1, max: 8, step: 1 },
       { key: "behind", label: "Cars behind", type: "number", min: 1, max: 8, step: 1 },
@@ -189,18 +195,45 @@ export const WIDGETS: WidgetMeta[] = [
   {
     id: "fuel",
     name: "Fuel & energy",
-    description: "Fuel and virtual energy per lap, laps left and amount needed to finish.",
+    description: "Fuel and virtual energy per lap, laps left, amount needed to finish and per-lap targets for stretching a stint.",
     defaults: { enabled: true, x: 1590, y: 300 },
-    options: [],
-    optionDefaults: {},
+    options: [
+      { key: "showLast", label: "Last lap usage", type: "boolean" },
+      { key: "showSaver", label: "Saver: per-lap target to make the stint one or two laps longer", type: "boolean" },
+      {
+        key: "saverResource",
+        label: "Saver based on",
+        type: "select",
+        choices: [
+          { value: "auto", label: "Whichever runs out first" },
+          { value: "fuel", label: "Fuel" },
+          { value: "energy", label: "Virtual energy" },
+        ],
+      },
+    ],
+    optionDefaults: { showLast: true, showSaver: true, saverResource: "auto" },
   },
   {
     id: "tyres",
     name: "Tyres",
-    description: "Tyre temperatures (I/M/O), pressures, wear and brake temps.",
+    description: "Car view of tyre temperatures (surface or core), pressures, tread wear per lap and brake temperatures.",
     defaults: { enabled: true, x: 20, y: 820 },
-    options: [{ key: "showBrakes", label: "Brake temperatures", type: "boolean" }],
-    optionDefaults: { showBrakes: true },
+    options: [
+      {
+        key: "tempLayer",
+        label: "Temperatures",
+        type: "select",
+        choices: [
+          { value: "surface", label: "Surface" },
+          { value: "core", label: "Core" },
+          { value: "both", label: "Surface and core" },
+        ],
+      },
+      { key: "showWearRate", label: "Wear per lap and estimated laps left", type: "boolean" },
+      { key: "wearLimit", label: "Tyre worn out at (% tread left)", type: "number", min: 0, max: 60, step: 5 },
+      { key: "showBrakes", label: "Brakes (temperature next to each tyre)", type: "boolean" },
+    ],
+    optionDefaults: { tempLayer: "surface", showWearRate: true, wearLimit: 0, showBrakes: true },
   },
   {
     id: "session",
@@ -261,7 +294,7 @@ function defaultWidgets(): Record<string, WidgetConfig> {
   return Object.fromEntries(
     WIDGETS.map((w) => [
       w.id,
-      { ...w.defaults, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
+      { ...w.defaults, size: 1, alpha: 1, options: structuredClone(w.optionDefaults) } satisfies WidgetConfig,
     ]),
   );
 }
@@ -270,7 +303,7 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92 },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92, monitor: "" },
     online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",
@@ -282,7 +315,7 @@ function defaults(): AppConfig {
 function mergeWidgets(stored: any): Record<string, WidgetConfig> {
   const base = defaultWidgets();
   for (const id of Object.keys(base)) {
-    // Drop legacy per-widget scale/opacity; those are global now.
+    // Drop legacy per-widget scale/opacity; size and alpha replace them, on top of the global values.
     const { scale: _scale, opacity: _opacity, ...s } = stored?.[id] ?? {};
     base[id] = { ...base[id], ...s, options: { ...base[id].options, ...(s.options ?? {}) } };
   }
@@ -370,6 +403,7 @@ export function resetLayout() {
   for (const [id, w] of Object.entries(config.value.widgets)) {
     w.x = d[id].x;
     w.y = d[id].y;
+    w.size = 1;
   }
   config.value.general.scale = 1;
   saveConfig();

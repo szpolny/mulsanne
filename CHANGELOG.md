@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.8.1](https://github.com/szpolny/mulsanne/compare/v0.8.0...v0.8.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* cache the daily race schedule and fetch it about once a day ([#19](https://github.com/szpolny/mulsanne/issues/19)) ([703ddd5](https://github.com/szpolny/mulsanne/commit/703ddd51476af8b2ecaa8e6cd79aa74f99ce6d8d))
+
+## [0.8.0](https://github.com/szpolny/mulsanne/compare/v0.7.1...v0.8.0) (2026-11-07)
+
+
+### Features
+
+* show tyre wear per lap, core temperatures and a fuel saver ([#17](https://github.com/szpolny/mulsanne/issues/17)) ([2883126](https://github.com/szpolny/mulsanne/commit/28831263e4c7604f02d1426cd3cf95cbd3b95a6c))
+
+## [0.7.1](https://github.com/szpolny/mulsanne/compare/v0.7.0...v0.7.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* clean up changelog references and show notes for skipped versions ([#14](https://github.com/szpolny/mulsanne/issues/14)) ([0cca665](https://github.com/szpolny/mulsanne/commit/0cca665a300e0e9e78285900df16dd20330b5431))
+
+## [0.7.0](https://github.com/szpolny/mulsanne/compare/v0.6.1...v0.7.0) (2026-10-31)
+
+
+### Features
+
+* add per-widget size and opacity ([#11](https://github.com/szpolny/mulsanne/issues/11)) ([1f1ab4e](https://github.com/szpolny/mulsanne/commit/1f1ab4e92f33a16a6123fb8951d5f93646819e92)), closes [#9](https://github.com/szpolny/mulsanne/issues/9)
+* choose which monitor the overlay appears on ([#13](https://github.com/szpolny/mulsanne/issues/13)) ([3530790](https://github.com/szpolny/mulsanne/commit/3530790f95897fc4176bc783510c740851e0ab3f)), closes [#8](https://github.com/szpolny/mulsanne/issues/8)
+
 ## [0.6.1](https://github.com/szpolny/mulsanne/compare/v0.6.0...v0.6.1) (2026-10-25)
 
 

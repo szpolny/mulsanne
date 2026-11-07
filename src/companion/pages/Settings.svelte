@@ -1,11 +1,22 @@
 <script lang="ts">
+  import { api } from "../../lib/api";
   import { config, saveConfig } from "../../lib/config.svelte";
+  import type { MonitorInfo } from "../../lib/types";
   import { live } from "../../lib/live.svelte";
   import { checkForUpdate, installUpdate, updater } from "../../lib/updater.svelte";
   import OnlineSettings from "../components/OnlineSettings.svelte";
   import Toggle from "../components/Toggle.svelte";
 
   const g = $derived(config.value.general);
+
+  let monitors = $state<MonitorInfo[]>([]);
+  const refreshMonitors = () => api.listMonitors().then((m) => (monitors = m)).catch(() => {});
+  refreshMonitors();
+  // "\\.\DISPLAY2" → "Display 2"
+  const monitorLabel = (m: MonitorInfo) => {
+    const n = m.name.match(/DISPLAY(\d+)$/i)?.[1];
+    return `${n ? `Display ${n}` : m.name} · ${m.width}×${m.height}${m.primary ? " (primary)" : ""}`;
+  };
 </script>
 
 <div class="mx-auto max-w-3xl p-6">
@@ -20,6 +31,21 @@
       <select class="field" bind:value={g.units} onchange={saveConfig}>
         <option value="metric">Metric (km/h, °C, kPa, L)</option>
         <option value="imperial">Imperial (mph, °F, psi, gal)</option>
+      </select>
+    </div>
+    <div class="flex items-center justify-between gap-6 p-4">
+      <div>
+        <div class="font-medium">Overlay monitor</div>
+        <div class="text-muted">Screen the widgets are shown on. Pick the one Le Mans Ultimate runs on.</div>
+      </div>
+      <select class="field" bind:value={g.monitor} onchange={saveConfig} onfocus={refreshMonitors}>
+        <option value="">Primary monitor</option>
+        {#each monitors as m (m.name)}
+          <option value={m.name}>{monitorLabel(m)}</option>
+        {/each}
+        {#if g.monitor && !monitors.some((m) => m.name === g.monitor)}
+          <option value={g.monitor}>{g.monitor} (not connected, using primary)</option>
+        {/if}
       </select>
     </div>
     <div class="flex items-center justify-between p-4">

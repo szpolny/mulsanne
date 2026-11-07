@@ -2,7 +2,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import changelog from "../../CHANGELOG.md?raw";
-import { parseChangelog, type ChangelogSection } from "./changelog";
+import { parseChangelog, type ChangelogRelease } from "./changelog";
 import { config, saveConfig } from "./config.svelte";
 
 export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error";
@@ -16,7 +16,8 @@ export const updater = $state({
   /** Download progress, 0..1 (0 while the total size is unknown). */
   progress: 0,
   error: "",
-  changelog: [] as ChangelogSection[],
+  /** Releases since the version the user last saw, newest first. */
+  changelog: [] as ChangelogRelease[],
   changelogOpen: false,
 });
 
@@ -69,8 +70,9 @@ export async function installUpdate() {
 export async function initUpdater() {
   if (!inTauri()) return;
   updater.version = await getVersion();
-  updater.changelog = parseChangelog(changelog, updater.version);
   const general = config.value.general;
+  // Include every release since the last one the user saw, in case they skipped updates.
+  updater.changelog = parseChangelog(changelog, updater.version, general.lastSeenVersion);
   if (general.lastSeenVersion !== updater.version) {
     updater.changelogOpen = general.showChangelog && updater.changelog.length > 0;
     general.lastSeenVersion = updater.version;

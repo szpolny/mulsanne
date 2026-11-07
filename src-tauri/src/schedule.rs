@@ -1,15 +1,25 @@
 //! Upcoming LMU daily races, scraped from the RaceControl homepage so the
 //! schedule can be browsed without the game running.
+//!
+//! RaceControl rate-limits and bans unusual traffic, so the result is cached
+//! on disk and fetched about once a UTC day: the page only lists the rest of
+//! the current UTC day, even though the race lineup changes weekly.
 
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 
 const URL: &str = "https://racecontrol.gg/";
 /// Marks the LMU section; the page also lists rFactor 2 daily races.
 const LMU_MARKER: &str = "lmu_logo";
+const CACHE_FILE: &str = "daily_races.json";
+/// Least time between two requests to RaceControl, refreshes and retries included.
+const MIN_REFETCH_MS: i64 = 30 * 60_000;
+const DAY_MS: i64 = 86_400_000;
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DailyRace {
     pub name: String,
@@ -19,6 +29,81 @@ pub struct DailyRace {
     pub image: Option<String>,
     /// Start times as Unix milliseconds (UTC).
     pub starts: Vec<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Schedule {
+    pub races: Vec<DailyRace>,
+    /// Unix milliseconds.
+    pub fetched_at: i64,
+}
+
+impl Schedule {
+    /// Whether RaceControl may list races this schedule doesn't have: a new
+    /// UTC day has started, or every listed start has passed.
+    fn is_stale(&self, now_ms: i64) -> bool {
+        self.fetched_at.div_euclid(DAY_MS) != now_ms.div_euclid(DAY_MS)
+            || !self.races.iter().flat_map(|r| &r.starts).any(|&t| t > now_ms)
+    }
+}
+
+struct Cache {
+    schedule: Option<Schedule>,
+    loaded: bool,
+    last_attempt: i64,
+    last_error: Option<String>,
+}
+
+static CACHE: Mutex<Cache> = Mutex::const_new(Cache { schedule: None, loaded: false, last_attempt: 0, last_error: None });
+
+/// The cached schedule. RaceControl is asked again only when the cache is
+/// stale (or `force`d) and wasn't asked in the last [`MIN_REFETCH_MS`].
+pub async fn daily_races(data_dir: &Path, force: bool) -> Result<Schedule, String> {
+    let path = data_dir.join(CACHE_FILE);
+    let mut cache = CACHE.lock().await;
+    if !cache.loaded {
+        cache.loaded = true;
+        cache.schedule = std::fs::read(&path).ok().and_then(|b| serde_json::from_slice(&b).ok());
+    }
+    let now = now_ms();
+    let stale = cache.schedule.as_ref().is_none_or(|s| s.is_stale(now));
+    let throttled = now - cache.last_attempt < MIN_REFETCH_MS;
+    if !(stale || force) || throttled {
+        return match (&cache.schedule, &cache.last_error) {
+            (Some(s), _) => Ok(s.clone()),
+            (None, Some(e)) => Err(e.clone()),
+            (None, None) => Err("The schedule hasn't been fetched yet".into()),
+        };
+    }
+
+    cache.last_attempt = now;
+    match fetch_daily_races().await {
+        Ok(races) => {
+            let schedule = Schedule { races, fetched_at: now };
+            if let Ok(json) = serde_json::to_vec(&schedule) {
+                let _ = std::fs::write(&path, json);
+            }
+            cache.last_error = None;
+            cache.schedule = Some(schedule.clone());
+            Ok(schedule)
+        }
+        Err(e) => {
+            cache.last_error = Some(e.clone());
+            // A failed refresh keeps the races still to come on screen.
+            match &cache.schedule {
+                Some(s) if !s.is_stale(now) => Ok(s.clone()),
+                _ => Err(e),
+            }
+        }
+    }
+}
+
+fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 pub async fn fetch_daily_races() -> Result<Vec<DailyRace>, String> {
@@ -39,11 +124,7 @@ pub async fn fetch_daily_races() -> Result<Vec<DailyRace>, String> {
         .text()
         .await
         .map_err(|e| e.to_string())?;
-    let now_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0);
-    parse(&html, now_ms).ok_or_else(|| "The RaceControl page layout has changed".into())
+    parse(&html, now_ms()).ok_or_else(|| "The RaceControl page layout has changed".into())
 }
 
 /// Parses the LMU "Upcoming Daily Races" section. Returns `None` when the
@@ -250,6 +331,24 @@ mod tests {
         assert_eq!(parse_start("1 Jan at 12:15am", now), Some(utc(2027, 1, 1, 0, 15)));
         assert_eq!(parse_start("31 Dec at 12:00pm", now), Some(utc(2026, 12, 31, 12, 0)));
         assert_eq!(parse_start("garbage", now), None);
+    }
+
+    #[test]
+    fn stale_on_new_utc_day_or_when_all_starts_passed() {
+        let race = |starts| DailyRace {
+            name: "LMP3 Fixed".into(),
+            tier: "beginner".into(),
+            track: "Le Mans".into(),
+            duration: "32 minutes".into(),
+            image: None,
+            starts,
+        };
+        let fetched_at = utc(2026, 11, 7, 9, 0);
+        let schedule = Schedule { races: vec![race(vec![utc(2026, 11, 7, 23, 0), utc(2026, 11, 8, 0, 30)])], fetched_at };
+        assert!(!schedule.is_stale(utc(2026, 11, 7, 23, 30)));
+        assert!(schedule.is_stale(utc(2026, 11, 8, 0, 5)));
+        let done = Schedule { races: vec![race(vec![utc(2026, 11, 7, 8, 0)])], fetched_at };
+        assert!(done.is_stale(utc(2026, 11, 7, 9, 5)));
     }
 
     #[test]

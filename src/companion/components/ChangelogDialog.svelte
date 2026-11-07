@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { config, saveConfig } from "../../lib/config.svelte";
   import { updater } from "../../lib/updater.svelte";
 
@@ -27,16 +28,36 @@
       </button>
     </header>
 
-    <div class="min-h-0 space-y-5 overflow-y-auto p-6 text-sm leading-relaxed">
-      {#each updater.changelog as section}
-        <section>
-          <h3 class="section-title mb-2">{section.title}</h3>
-          <ul class="list-disc space-y-2 pl-5 text-muted marker:text-accent">
-            {#each section.entries as entry}
-              <li>{entry}</li>
-            {/each}
-          </ul>
-        </section>
+    <div class="min-h-0 space-y-6 overflow-y-auto p-6 text-sm leading-relaxed">
+      {#each updater.changelog as release}
+        <div class="space-y-5">
+          {#if updater.changelog.length > 1}
+            <div class="flex items-baseline gap-2 border-b border-line pb-2">
+              <span class="font-semibold text-fg">Version {release.version}</span>
+              {#if release.date}<span class="text-xs text-muted">{release.date}</span>{/if}
+            </div>
+          {/if}
+          {#each release.sections as section}
+            <section>
+              <h3 class="section-title mb-2">{section.title}</h3>
+              <ul class="list-disc space-y-2 pl-5 text-muted marker:text-accent">
+                {#each section.entries as entry}
+                  <li>
+                    {entry.text}
+                    {#each entry.refs as ref}
+                      <button
+                        type="button"
+                        class="ml-1 text-xs text-muted/70 underline-offset-2 hover:text-fg hover:underline"
+                        title="View pull request {ref.label} on GitHub"
+                        onclick={() => openUrl(ref.url)}>{ref.label}</button
+                      >
+                    {/each}
+                  </li>
+                {/each}
+              </ul>
+            </section>
+          {/each}
+        </div>
       {:else}
         <p class="text-muted">No changelog entries are available for this version.</p>
       {/each}

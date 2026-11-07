@@ -1,7 +1,8 @@
 // Browser-only preview: fakes the Tauri backend with demo fixtures so the UI can
 // be developed in a normal browser (`pnpm dev`, then open http://localhost:1420
 // or http://localhost:1420/#overlay; add ?nolive to simulate the game not running,
-// ?nolaps for a fresh install with nothing recorded).
+// ?nolaps for a fresh install with nothing recorded, ?seen=0.6.0 to show the
+// changelog as if updating from that version).
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
@@ -15,9 +16,9 @@ export async function install() {
     return;
   }
   const fx = await res.json();
-  let config: unknown = null;
-  let editMode = location.hash.includes("edit");
   const params = new URLSearchParams(location.search);
+  let config: unknown = params.has("seen") ? { general: { lastSeenVersion: params.get("seen") } } : null;
+  let editMode = location.hash.includes("edit");
   const noLive = params.has("nolive");
   if (params.has("nolaps")) Object.assign(fx, { sessions: [], laps: [], traces: {}, personalBests: [], filters: { tracks: [], cars: [] } });
   let previewFrame = 0;
@@ -39,6 +40,11 @@ export async function install() {
           return fx.frames[previewFrame++ % fx.frames.length];
         case "get_status":
           return { demo: true, editMode, overlayVisible: true, gameFocused: false, dataDir: "C:\\mock" };
+        case "list_monitors":
+          return [
+            { name: "\\\\.\\DISPLAY1", width: 2560, height: 1440, x: 0, y: 0, primary: true },
+            { name: "\\\\.\\DISPLAY2", width: 1920, height: 1080, x: 2560, y: 0, primary: false },
+          ];
         case "get_config":
           return config;
         case "save_config":
@@ -70,7 +76,7 @@ export async function install() {
             name, tier, track, duration, image: null,
             starts: [0, 1, 2, 3].map((i) => at(first + i * every)).filter((t) => t < at(0) + 4 * 3_600_000),
           });
-          return [
+          const races = [
             race("Logitech McLaren G Challenge Winter - Q2", "beginner", "Monza", "30 minutes", 5, 45),
             race("LMP3 Fixed", "beginner", "Le Mans", "32 minutes", 15, 45),
             race("LMGT3 Fixed", "beginner", "Fuji Wec 2023", "32 minutes", 25, 45),
@@ -81,6 +87,7 @@ export async function install() {
             race("ELMS Super 60", "advanced", "Portimao Wec 2023", "1h 13 minutes", 50, 90),
             race("WEC-Xperience", "advanced", "Silverstone 2025", "1h 14 minutes", 70, 90),
           ];
+          return { races, fetchedAt: Date.now() };
         }
         case "online_register":
           onlineMe ??= { id: "mock-user", displayName: args.displayName ?? null, createdAt: Math.floor(Date.now() / 1000) };

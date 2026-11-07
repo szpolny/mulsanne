@@ -213,6 +213,9 @@ export interface Timing {
 export interface Strategy {
   fuelPerLap: number;
   vePerLap: number;
+  /** Used on the last lap that was not an out or in lap. */
+  fuelLastLap: number;
+  veLastLap: number;
   lapsOfFuel: number;
   lapsOfVe: number;
   lapsRemaining: number;
@@ -220,6 +223,12 @@ export interface Strategy {
   veToFinish: number;
   avgLapTime: number;
   samples: number;
+  /** Average tread used per green-flag lap on the current set, FL, FR, RL, RR (fraction 0..1). */
+  tyreWearPerLap: [number, number, number, number];
+  /** Tread used on the last lap on the current set. */
+  tyreWearLastLap: [number, number, number, number];
+  /** Laps behind `tyreWearPerLap`. */
+  tyreSamples: number;
 }
 
 export interface Snapshot {
@@ -242,6 +251,17 @@ export interface Status {
   /** LMU window has focus (always false when the game is not running). */
   gameFocused: boolean;
   dataDir: string;
+}
+
+/** A connected display the overlay can cover. */
+export interface MonitorInfo {
+  /** Id stored in `general.monitor`. */
+  name: string;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  primary: boolean;
 }
 
 export interface SessionSummary {
@@ -350,6 +370,13 @@ export interface DailyRace {
   image: string | null;
   /** Start times as Unix milliseconds. */
   starts: number[];
+}
+
+/** The cached RaceControl schedule. */
+export interface DailySchedule {
+  races: DailyRace[];
+  /** Unix milliseconds. */
+  fetchedAt: number;
 }
 
 /** This install's account on the Mulsanne server. */

@@ -8,7 +8,7 @@ use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, Trac
 use crate::engine::PreviewSim;
 use crate::model::Snapshot;
 use crate::online::{BoardSummary, Leaderboard, LeaderboardQuery, Me};
-use crate::schedule::DailyRace;
+use crate::schedule::Schedule;
 use crate::AppState;
 
 type CmdResult<T> = Result<T, String>;
@@ -56,6 +56,11 @@ pub fn save_config(app: AppHandle, state: State<AppState>, config: Value) -> Cmd
     if let Some(hz) = config.pointer("/general/updateHz").and_then(Value::as_u64) {
         state.shared.emit_hz.store(hz as u32, Ordering::Relaxed);
     }
+    let monitor = config.pointer("/general/monitor").and_then(Value::as_str).unwrap_or_default();
+    let moved = *state.overlay_monitor.lock().unwrap_or_else(|e| e.into_inner()) != monitor;
+    if moved {
+        crate::place_overlay(&app, monitor).map_err(|e| e.to_string())?;
+    }
     app.emit("config-changed", &config).map_err(|e| e.to_string())
 }
 
@@ -95,6 +100,39 @@ pub fn set_overlay_visible(app: AppHandle, visible: bool) {
 pub fn set_demo_mode(app: AppHandle, state: State<AppState>, enabled: bool) {
     state.shared.demo.store(enabled, Ordering::Release);
     let _ = app.emit("demo-mode", enabled);
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorInfo {
+    /// Id stored in `general.monitor`.
+    name: String,
+    width: u32,
+    height: u32,
+    x: i32,
+    y: i32,
+    primary: bool,
+}
+
+/// Connected monitors the overlay can be placed on.
+#[tauri::command]
+pub fn list_monitors(app: AppHandle) -> CmdResult<Vec<MonitorInfo>> {
+    let primary = app.primary_monitor().map_err(|e| e.to_string())?.and_then(|m| m.name().cloned());
+    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+    Ok(monitors
+        .into_iter()
+        .filter_map(|m| {
+            let name = m.name()?.clone();
+            Some(MonitorInfo {
+                primary: primary.as_ref() == Some(&name),
+                width: m.size().width,
+                height: m.size().height,
+                x: m.position().x,
+                y: m.position().y,
+                name,
+            })
+        })
+        .collect())
 }
 
 /// Next frame of the companion's preview-only demo data (see `PreviewSim`).
@@ -166,8 +204,8 @@ pub fn delete_session(state: State<AppState>, session_id: i64) -> CmdResult<()> 
 }
 
 #[tauri::command]
-pub async fn daily_races() -> CmdResult<Vec<DailyRace>> {
-    crate::schedule::fetch_daily_races().await
+pub async fn daily_races(state: State<'_, AppState>, force: bool) -> CmdResult<Schedule> {
+    crate::schedule::daily_races(&state.data_dir, force).await
 }
 
 #[tauri::command]

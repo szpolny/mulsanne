@@ -95,6 +95,14 @@
         <span class="text-muted">Position</span>
         <span class="col-span-2 text-muted tnum">x {Math.round(cfg.x)} · y {Math.round(cfg.y)}</span>
 
+        <span class="text-muted">Size</span>
+        <input type="range" min="0.4" max="3" step="0.05" bind:value={cfg.size} oninput={saveConfig} class="accent-accent" />
+        <span class="text-right tnum">{Math.round(cfg.size * 100)}%</span>
+
+        <span class="text-muted">Opacity</span>
+        <input type="range" min="0.2" max="1" step="0.01" bind:value={cfg.alpha} oninput={saveConfig} class="accent-accent" />
+        <span class="text-right tnum">{Math.round(cfg.alpha * 100)}%</span>
+
         {#each meta.options as o (o.key)}
           <span class="text-muted">{o.label}</span>
           {#if o.type === "boolean"}

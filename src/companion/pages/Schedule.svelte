@@ -19,12 +19,12 @@
   let now = $state(Date.now());
   let tier = $state<string | null>(null);
 
-  async function load() {
+  /** Reads the backend's cache, which asks RaceControl only about once a UTC day. */
+  async function load(force = false) {
     loading = true;
     try {
-      races = await api.dailyRaces();
+      ({ races, fetchedAt } = await api.dailyRaces(force));
       error = null;
-      fetchedAt = Date.now();
     } catch (e) {
       error = String(e);
     } finally {
@@ -35,6 +35,7 @@
   onMount(() => {
     void load();
     const tick = setInterval(() => (now = Date.now()), 15_000);
+    // Cheap: picks up the next UTC day's races once the cache goes stale.
     const refresh = setInterval(load, 5 * 60_000);
     return () => {
       clearInterval(tick);
@@ -74,7 +75,7 @@
         Upcoming Le Mans Ultimate daily races from RaceControl, in your local time. No game needed.
       </p>
     </div>
-    <button class="btn shrink-0" disabled={loading} onclick={load}>
+    <button class="btn shrink-0" disabled={loading} onclick={() => load(true)}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={loading ? "animate-spin" : ""}><path d="M20 12a8 8 0 1 1-2.34-5.66 M20 4v4h-4" /></svg>
       {loading ? "Loading" : "Refresh"}
     </button>
@@ -143,7 +144,7 @@
 
   {#if fetchedAt}
     <p class="mt-4 text-xs text-faint">
-      Source: racecontrol.gg · updated {timeFmt.format(fetchedAt)} · refreshes every 5 minutes. RaceControl only lists the rest of the current UTC day.
+      Source: racecontrol.gg · updated {timeFmt.format(fetchedAt)} · checked about once a day, at most every 30 minutes. RaceControl only lists the rest of the current UTC day.
       Track outlines from Outlap, f1-circuits (MIT) and © OpenStreetMap contributors (ODbL).
     </p>
   {/if}

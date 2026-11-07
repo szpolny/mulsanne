@@ -324,6 +324,9 @@ pub struct Timing {
 pub struct Strategy {
     pub fuel_per_lap: f64,
     pub ve_per_lap: f64,
+    /// Used on the last lap that was not an out or in lap.
+    pub fuel_last_lap: f64,
+    pub ve_last_lap: f64,
     pub laps_of_fuel: f64,
     pub laps_of_ve: f64,
     pub laps_remaining: f64,
@@ -331,4 +334,10 @@ pub struct Strategy {
     pub ve_to_finish: f64,
     pub avg_lap_time: f64,
     pub samples: u32,
+    /// Average tread used per green-flag lap on the current set, FL, FR, RL, RR (fraction 0..1).
+    pub tyre_wear_per_lap: [f64; 4],
+    /// Tread used on the last lap on the current set.
+    pub tyre_wear_last_lap: [f64; 4],
+    /// Laps behind `tyre_wear_per_lap`.
+    pub tyre_samples: u32,
 }
