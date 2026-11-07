@@ -2,11 +2,11 @@ import { getVersion } from "@tauri-apps/api/app";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import changelog from "../../CHANGELOG.md?raw";
-import { parseChangelog, type ChangelogRelease } from "./changelog";
+import { compareVersions, parseChangelog, type ChangelogRelease } from "./changelog";
 import { config, saveConfig } from "./config.svelte";
 import { api } from "./api";
 
-export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error" | "manual";
+export type UpdatePhase = "idle" | "checking" | "available" | "downloading" | "upToDate" | "error" | "outdated";
 
 export const updater = $state({
   version: "",
@@ -24,6 +24,23 @@ export const updater = $state({
 
 let pending: Update | null = null;
 
+const LATEST_RELEASE_URL = "https://api.github.com/repos/szpolny/mulsanne/releases/latest";
+
+/** Native Linux packages can't self-update; only report whether a newer release exists. */
+async function checkLatestRelease() {
+  const res = await fetch(LATEST_RELEASE_URL, { headers: { Accept: "application/vnd.github+json" } });
+  if (!res.ok) throw new Error(`GitHub returned ${res.status}`);
+  const release = await res.json();
+  const latest = String(release.tag_name ?? "").replace(/^v/, "");
+  if (latest && compareVersions(latest, updater.version) > 0) {
+    updater.available = latest;
+    updater.notes = release.body ?? "";
+    updater.phase = "outdated";
+  } else {
+    updater.phase = "upToDate";
+  }
+}
+
 const inTauri = () => "__TAURI_INTERNALS__" in window;
 
 export async function checkForUpdate() {
@@ -33,8 +50,7 @@ export async function checkForUpdate() {
   updater.error = "";
   try {
     if ((await api.getStatus()).experimentalLinux) {
-      // Native Linux packages are updated by the package manager.
-      updater.phase = "manual";
+      await checkLatestRelease();
       return;
     }
     pending = await check();

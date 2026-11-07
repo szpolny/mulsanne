@@ -40,6 +40,10 @@ The packages include the app, launcher and bridge. They can be upgraded/removed
 with the package manager. Automatic apt/dnf update discovery requires a package
 repository; one is not provided yet.
 
+Mulsanne does not update itself on Linux. It checks GitHub for a newer release on
+launch and shows an "Update available" notice in the sidebar and Settings, so you
+know to update through your package manager.
+
 ## Run
 
 Start **Mulsanne** from the app menu and LMU through Steam, in either order.

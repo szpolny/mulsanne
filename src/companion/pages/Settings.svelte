@@ -105,8 +105,8 @@
       <div>
         <div class="font-medium">Version {updater.version}</div>
         <div class="text-muted">
-          {#if updater.phase === "manual"}
-            Updates are managed by your package manager.
+          {#if updater.phase === "outdated"}
+            Version {updater.available} is available. Update with your package manager.
           {:else if updater.phase === "checking"}
             Checking for updates…
           {:else if updater.phase === "available"}
@@ -126,7 +126,7 @@
         <button class="btn" disabled={!updater.version} onclick={() => (updater.changelogOpen = true)}>View changelog</button>
         {#if updater.phase === "available"}
           <button class="btn btn-primary" onclick={installUpdate}>Install and restart</button>
-        {:else if updater.phase !== "manual"}
+        {:else}
           <button class="btn" disabled={updater.phase === "checking" || updater.phase === "downloading"} onclick={checkForUpdate}>
             Check for updates
           </button>
