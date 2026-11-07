@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/szpolny/mulsanne/compare/v0.8.1...v0.9.0) (2026-11-07)
+
+
+### Features
+
+* add experimental Linux support ([#21](https://github.com/szpolny/mulsanne/issues/21)) ([3a294d5](https://github.com/szpolny/mulsanne/commit/3a294d5bcbcaef107e8c7e793cf80b45c8daca3e))
+
 ## [0.8.1](https://github.com/szpolny/mulsanne/compare/v0.8.0...v0.8.1) (2026-11-07)
 
 
