@@ -19,6 +19,7 @@ import type {
 export const api = {
   getSnapshot: () => invoke<Snapshot>("get_snapshot"),
   getStatus: () => invoke<Status>("get_status"),
+  latestRelease: () => invoke<{ version: string; notes: string }>("latest_release"),
   getConfig: () => invoke<unknown>("get_config"),
   saveConfig: (config: unknown) => invoke<void>("save_config", { config }),
   setEditMode: (enabled: boolean) => invoke<void>("set_edit_mode", { enabled }),

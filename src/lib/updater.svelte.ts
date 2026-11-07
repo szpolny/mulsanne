@@ -24,24 +24,19 @@ export const updater = $state({
 
 let pending: Update | null = null;
 
-const LATEST_RELEASE_URL = "https://api.github.com/repos/szpolny/mulsanne/releases/latest";
+const inTauri = () => "__TAURI_INTERNALS__" in window;
 
 /** Native Linux packages can't self-update; only report whether a newer release exists. */
 async function checkLatestRelease() {
-  const res = await fetch(LATEST_RELEASE_URL, { headers: { Accept: "application/vnd.github+json" } });
-  if (!res.ok) throw new Error(`GitHub returned ${res.status}`);
-  const release = await res.json();
-  const latest = String(release.tag_name ?? "").replace(/^v/, "");
-  if (latest && compareVersions(latest, updater.version) > 0) {
-    updater.available = latest;
-    updater.notes = release.body ?? "";
+  const latest = await api.latestRelease();
+  if (compareVersions(latest.version, updater.version) > 0) {
+    updater.available = latest.version;
+    updater.notes = latest.notes;
     updater.phase = "outdated";
   } else {
     updater.phase = "upToDate";
   }
 }
-
-const inTauri = () => "__TAURI_INTERNALS__" in window;
 
 export async function checkForUpdate() {
   if (!inTauri() || updater.phase === "checking" || updater.phase === "downloading") return;

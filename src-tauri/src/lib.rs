@@ -218,6 +218,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_snapshot,
             commands::get_status,
+            commands::latest_release,
             commands::get_config,
             commands::save_config,
             commands::set_edit_mode,
