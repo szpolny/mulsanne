@@ -7,7 +7,7 @@
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
-import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { version } from "../../package.json";
 
 export async function install() {
@@ -32,6 +32,7 @@ export async function install() {
   const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null; trace: string | null }>();
 
   mockWindows("main");
+  mockConvertFileSrc("linux");
   mockIPC(
     (cmd, args: any) => {
       switch (cmd) {

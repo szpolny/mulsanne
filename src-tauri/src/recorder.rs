@@ -309,6 +309,7 @@ impl Recorder {
                     session_type: snap.session.kind.label().into(),
                     car: car.clone(),
                     vehicle_name: p.vehicle_name.clone(),
+                    veh_file: p.veh_file.clone(),
                     car_class: p.vehicle_class.clone(),
                     driver: snap.session.player_name.clone(),
                     game_version: (snap.game_version > 0).then_some(snap.game_version),
@@ -344,6 +345,7 @@ impl Recorder {
         if session.record.car != car {
             session.record.car = car.clone();
             session.record.vehicle_name = p.vehicle_name.clone();
+            session.record.veh_file = p.veh_file.clone();
             session.record.car_class = p.vehicle_class.clone();
         }
 
@@ -565,7 +567,7 @@ mod tests {
         let mut sim = crate::demo::DemoSim::new();
 
         let mut last = None;
-        for _ in 0..(60 * 60 * 6) {
+        for _ in 0..(60 * 60 * 8) {
             let mut snap = sim.step(1.0 / 60.0);
             rec.update(&mut snap);
             last = Some(snap);
@@ -574,7 +576,7 @@ mod tests {
         assert!(laps.len() >= 2, "expected laps, got {}", laps.len());
         let len = last.as_ref().unwrap().session.track_length;
         for lap in &laps {
-            assert!(lap.lap_time > 60.0 && lap.lap_time < 200.0, "lap time {}", lap.lap_time);
+            assert!(lap.lap_time > 180.0 && lap.lap_time < 240.0, "lap time {}", lap.lap_time);
             let [s1, s2, s3] = lap.sectors;
             let sum = s1.unwrap() + s2.unwrap() + s3.unwrap();
             assert!((sum - lap.lap_time).abs() < 1e-6);
@@ -620,7 +622,7 @@ mod tests {
         };
 
         let mut snap = step(&mut rec, 0.0);
-        for _ in 0..(60 * 60 * 5) {
+        for _ in 0..(60 * 60 * 8) {
             snap = step(&mut rec, 0.0);
         }
         let st = &snap.strategy;

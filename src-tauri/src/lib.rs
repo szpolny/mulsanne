@@ -1,3 +1,4 @@
+mod car_render;
 mod commands;
 mod damage;
 pub mod db;
@@ -129,6 +130,7 @@ pub fn run() {
     let visibility_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F10);
 
     tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol(car_render::SCHEME, car_render::handle)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -170,6 +172,7 @@ pub fn run() {
 
             let db = Arc::new(db::Db::open(&data_dir.join("laps.db")).map_err(|e| format!("database: {e}"))?);
             let shared = Arc::new(engine::Shared::new());
+            *shared.game_dir.write().unwrap_or_else(|e| e.into_inner()) = car_render::load_game_dir(&data_dir);
             let config_path = config_dir.join("config.json");
             let uploads = Arc::new(tokio::sync::Notify::new());
 

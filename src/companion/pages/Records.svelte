@@ -5,6 +5,7 @@
   import type { PersonalBest } from "../../lib/types";
   import { config } from "../../lib/config.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
+  import TrackOutline from "../../lib/TrackOutline.svelte";
   import UploadStatus from "../components/UploadStatus.svelte";
   import { nav } from "../nav.svelte";
 
@@ -53,7 +54,10 @@
 
   {#each byTrack as [track, rows] (track)}
     <div class="card mb-5 overflow-hidden">
-      <div class="section-title bg-surface-2 px-4 py-2.5">{track}</div>
+      <div class="section-title flex items-center gap-2.5 bg-surface-2 px-4 py-2.5">
+        <TrackOutline {track} hideMissing class="h-7 w-7 shrink-0 text-fg/80" />
+        {track}
+      </div>
       <table class="w-full text-sm tnum">
         <tbody>
           {#each rows as b (b.lapId)}

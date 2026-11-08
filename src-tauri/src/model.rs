@@ -113,6 +113,8 @@ pub struct Player {
     pub id: i32,
     pub vehicle_name: String,
     pub vehicle_model: String,
+    /// The livery's `.VEH` file name without extension; keys the game's car renders.
+    pub veh_file: String,
     pub vehicle_class: String,
     pub elapsed_time: f64,
     pub lap_number: i32,
@@ -229,6 +231,9 @@ pub struct Vehicle {
     pub class_place: u16,
     pub driver: String,
     pub vehicle: String,
+    /// Only read for the player car, so it stays out of the per-frame payload.
+    #[serde(skip)]
+    pub veh_file: String,
     pub team: String,
     pub class: String,
     pub is_player: bool,
