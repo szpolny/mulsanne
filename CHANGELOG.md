@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/szpolny/mulsanne/compare/v0.9.0...v0.10.0) (2026-11-08)
+
+
+### Features
+
+* ask users to star the project on GitHub ([#23](https://github.com/szpolny/mulsanne/issues/23)) ([88d8345](https://github.com/szpolny/mulsanne/commit/88d83451ed1536e8212e4230164597f637b0a428))
+* show the game's car renders for the driven livery ([#25](https://github.com/szpolny/mulsanne/issues/25)) ([6d71e8d](https://github.com/szpolny/mulsanne/commit/6d71e8ddd2b195edb9a4a5df26932d428168e6c5))
+
 ## [0.9.0](https://github.com/szpolny/mulsanne/compare/v0.8.1...v0.9.0) (2026-11-07)
 
 
