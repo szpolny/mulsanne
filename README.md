@@ -2,6 +2,12 @@
 
 # Mulsanne
 
+<p>
+  <a href="https://github.com/szpolny/mulsanne/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/szpolny/mulsanne?style=for-the-badge&labelColor=131317&color=e3101f&label=Latest&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjQgMTAgNTggNDQiPjxwYXRoIGQ9Ik02IDUyIDIyIDEyaDEwTDE2IDUyeiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0yMCA1MiAzNiAxMmgxMEwzMCA1MnoiIGZpbGw9IiNlMzEwMWYiLz48cGF0aCBkPSJNMzQgNTIgNTAgMTJoMTBMNDQgNTJ6IiBmaWxsPSIjZTMxMDFmIiBvcGFjaXR5PSIuNTUiLz48L3N2Zz4%3D"></a>
+  <a href="https://github.com/szpolny/mulsanne/releases/latest"><img alt="Windows x64 installer" src="https://img.shields.io/badge/Windows-x64%20installer-24242b?style=for-the-badge&labelColor=131317&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZD0iTTAgMGgxMS40djExLjRIMHpNMTIuNiAwSDI0djExLjRIMTIuNnpNMCAxMi42aDExLjRWMjRIMHpNMTIuNiAxMi42SDI0VjI0SDEyLjZ6IiBmaWxsPSIjZjRmNGY2Ii8%2BPC9zdmc%2B"></a>
+  <a href="docs/linux.md"><img alt="Linux: deb, rpm and Nix packages (experimental)" src="https://img.shields.io/badge/Linux-deb%20%C2%B7%20rpm%20%C2%B7%20nix-24242b?style=for-the-badge&labelColor=131317&logo=linux&logoColor=f4f4f6"></a>
+</p>
+
 Mulsanne is a customizable in-game overlay and telemetry companion for **Le Mans Ultimate**. It reads the game's built-in shared memory, so no game plugin is needed.
 
 Website: [mulsanne.xyz](https://mulsanne.xyz)
@@ -12,6 +18,23 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 - Automatic lap recording with personal bests, telemetry traces, and lap comparison in the companion app.
 - An upcoming daily race schedule from RaceControl, shown in your local time without running the game.
 - Demo data for arranging the overlay without running the game.
+
+## Screenshots
+
+<img alt="Mulsanne overlay with standings, relative gaps, fuel, tyres and a track map" src="docs/screenshots/overlay.png">
+
+<details>
+<summary><strong>More screenshots</strong></summary>
+<br>
+
+<img alt="Comparing two laps on the Analysis page" src="docs/screenshots/analysis.png">
+
+<img alt="Live page" src="docs/screenshots/live.png" width="49%"> <img alt="Overlays page" src="docs/screenshots/overlays.png" width="49%">
+<img alt="Sessions page" src="docs/screenshots/sessions.png" width="49%"> <img alt="Daily race schedule" src="docs/screenshots/schedule.png" width="49%">
+
+</details>
+
+Screenshots use the built-in demo data.
 
 ## Use
 
