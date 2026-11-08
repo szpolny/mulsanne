@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
+  import CarRender from "../../lib/CarRender.svelte";
   import { useLive } from "../../lib/live.svelte";
 
   const live = useLive();
-  let {}: { opts: Record<string, any>; units: Units; edit: boolean } = $props();
+  let { opts }: { opts: Record<string, any>; units: Units; edit: boolean } = $props();
   const p = $derived(live.snap?.player);
   const damage = $derived(p?.damage);
   const GOOD = "#43c9ad";
@@ -44,29 +45,32 @@
     <span class="status" style:color={statusColor}><i style:background={statusColor}></i>{status}</span>
   </div>
   <div class="content">
-    <svg width="112" height="148" viewBox="0 0 112 148" role="img" aria-label="Bodywork and suspension damage, front at top">
-      <title>Outer outline shows bodywork dents. Four labelled joints show suspension damage. Grey suspension means unavailable.</title>
-      <path d="M52 10 L56 6 L60 10" fill="none" stroke="#9a9aa6" stroke-width="1.5" />
-      <path d="M36 30 Q36 24 56 24 Q76 24 76 30 V120 Q76 126 56 126 Q36 126 36 120 Z"
-        fill="rgb(255 255 255 / 0.035)" stroke="rgb(255 255 255 / 0.08)" />
-      {#each BODY as zone}
-        {@const severity = p ? Math.max(...zone.indices.map((i) => p.dents[i] ?? 0)) : null}
-        <path d={zone.path} fill="none" stroke={severity == null || severity === 0 ? UNKNOWN : severity === 1 ? "#eac65c" : WARN}
-          stroke-width="3" stroke-linecap="round">
-          <title>{zone.label}: {severity == null ? "No data" : severity === 0 ? "No dents reported" : severity === 1 ? "Light dents" : "Heavy dents"}</title>
-        </path>
-      {/each}
-      {#each CORNERS as { x, y, label }, i}
-        {@const value = damage?.suspension[i]}
-        <g>
-          <title>{label} suspension damage: {percent(value)}</title>
-          <text {x} y={y - 10} text-anchor="middle" fill="#9a9aa6" font-size="9" font-weight="600">{label}</text>
-          <path d={`M${x - 6} ${y + 3} h12`} stroke={damageColor(value)} stroke-width="2" stroke-linecap="round" />
-          <circle cx={x} cy={y + 3} r="3" fill="#141419" stroke={damageColor(value)} stroke-width="2" />
-        </g>
-      {/each}
-      <text x="56" y="78" text-anchor="middle" fill="#9a9aa6" font-size="9">Susp.</text>
-    </svg>
+    <div class="diagram">
+      {#if opts.showCar}<CarRender file={p?.vehFile} view="top" class="car" />{/if}
+      <svg width="112" height="148" viewBox="0 0 112 148" role="img" aria-label="Bodywork and suspension damage, front at top">
+        <title>Outer outline shows bodywork dents. Four labelled joints show suspension damage. Grey suspension means unavailable.</title>
+        <path d="M52 10 L56 6 L60 10" fill="none" stroke="#9a9aa6" stroke-width="1.5" />
+        <path d="M36 30 Q36 24 56 24 Q76 24 76 30 V120 Q76 126 56 126 Q36 126 36 120 Z"
+          fill="rgb(255 255 255 / 0.035)" stroke="rgb(255 255 255 / 0.08)" />
+        {#each BODY as zone}
+          {@const severity = p ? Math.max(...zone.indices.map((i) => p.dents[i] ?? 0)) : null}
+          <path d={zone.path} fill="none" stroke={severity == null || severity === 0 ? UNKNOWN : severity === 1 ? "#eac65c" : WARN}
+            stroke-width="3" stroke-linecap="round">
+            <title>{zone.label}: {severity == null ? "No data" : severity === 0 ? "No dents reported" : severity === 1 ? "Light dents" : "Heavy dents"}</title>
+          </path>
+        {/each}
+        {#each CORNERS as { x, y, label }, i}
+          {@const value = damage?.suspension[i]}
+          <g>
+            <title>{label} suspension damage: {percent(value)}</title>
+            <text {x} y={y - 10} text-anchor="middle" fill="#9a9aa6" font-size="9" font-weight="600">{label}</text>
+            <path d={`M${x - 6} ${y + 3} h12`} stroke={damageColor(value)} stroke-width="2" stroke-linecap="round" />
+            <circle cx={x} cy={y + 3} r="3" fill="#141419" stroke={damageColor(value)} stroke-width="2" />
+          </g>
+        {/each}
+        <text x="56" y="78" text-anchor="middle" fill="#9a9aa6" font-size="9">Susp.</text>
+      </svg>
+    </div>
     <div class="readouts">
       <div class="readout"><span>Aero damage</span><strong style:color={damageColor(damage?.aero)}>{percent(damage?.aero)}</strong></div>
       <div class="readout" title="Most damaged suspension corner; the diagram shows each corner separately">
@@ -89,7 +93,11 @@
   .status { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
   .status i { width: 5px; height: 5px; border-radius: 50%; }
   .content { display: flex; align-items: center; gap: 2px; }
-  svg { flex-shrink: 0; }
+  .diagram { position: relative; flex-shrink: 0; width: 112px; height: 148px; }
+  /* The top-down image is 2:5 with the car centred; this lines it up with the bodywork outline. */
+  .diagram :global(.car) { position: absolute; left: 30px; top: 10px; width: 52px; height: 130px; opacity: 0.6; }
+  svg { position: relative; display: block; }
+  svg text { paint-order: stroke; stroke: rgb(20 20 25 / 0.85); stroke-width: 2.5px; stroke-linejoin: round; }
   .readouts { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 12px; font-size: 11px; }
   .readout { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; color: var(--color-muted); }
   .readout strong { font-size: 12px; font-weight: 600; }

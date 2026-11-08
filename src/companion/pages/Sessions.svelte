@@ -5,6 +5,7 @@
   import type { Filters, LapRecord, SessionSummary } from "../../lib/types";
   import { config } from "../../lib/config.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
+  import CarRender from "../../lib/CarRender.svelte";
   import LapTable from "../components/LapTable.svelte";
   import { nav } from "../nav.svelte";
 
@@ -93,8 +94,13 @@
             <span class="truncate font-medium">{s.track}</span>
             <span class="shrink-0 text-sm font-semibold text-best tnum">{lapTime(s.bestLap)}</span>
           </div>
-          <div class="truncate text-xs text-muted">{s.car} · {s.sessionType}{s.source === "demo" ? " · demo" : ""}</div>
-          <div class="text-xs text-faint">{dateTime(s.startedAt)} · {s.lapCount} laps</div>
+          <div class="flex items-center gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-xs text-muted">{s.car} · {s.sessionType}{s.source === "demo" ? " · demo" : ""}</div>
+              <div class="text-xs text-faint">{dateTime(s.startedAt)} · {s.lapCount} laps</div>
+            </div>
+            <CarRender file={s.vehFile} view="thumb" class="h-9 w-[90px] shrink-0 object-contain" />
+          </div>
         </button>
       {:else}
         <div class="p-6 text-center text-sm text-muted">No sessions yet. Drive some laps!</div>
@@ -105,15 +111,18 @@
   <section class="min-w-0 flex-1 overflow-y-auto p-6">
     {#if current}
       <div class="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h1 class="page-title">{current.track}</h1>
-          <div class="text-sm text-muted">
-            {current.car} ({current.carClass}) · {current.sessionType} · {dateTime(current.startedAt)}{current.gameVersion
-              ? ` · game version ${current.gameVersion}`
-              : ""}
+        <div class="flex min-w-0 items-center gap-4">
+          <CarRender file={current.vehFile} view="front" alt={current.car} class="h-20 w-[200px] shrink-0 object-contain" />
+          <div class="min-w-0">
+            <h1 class="page-title">{current.track}</h1>
+            <div class="text-sm text-muted">
+              {current.car} ({current.carClass}) · {current.sessionType} · {dateTime(current.startedAt)}{current.gameVersion
+                ? ` · game version ${current.gameVersion}`
+                : ""}
+            </div>
           </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex shrink-0 gap-2">
           <button
             class="btn btn-primary"
             disabled={selected.length === 0}

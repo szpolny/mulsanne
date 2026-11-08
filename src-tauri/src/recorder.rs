@@ -309,6 +309,7 @@ impl Recorder {
                     session_type: snap.session.kind.label().into(),
                     car: car.clone(),
                     vehicle_name: p.vehicle_name.clone(),
+                    veh_file: p.veh_file.clone(),
                     car_class: p.vehicle_class.clone(),
                     driver: snap.session.player_name.clone(),
                     game_version: (snap.game_version > 0).then_some(snap.game_version),
@@ -344,6 +345,7 @@ impl Recorder {
         if session.record.car != car {
             session.record.car = car.clone();
             session.record.vehicle_name = p.vehicle_name.clone();
+            session.record.veh_file = p.veh_file.clone();
             session.record.car_class = p.vehicle_class.clone();
         }
 

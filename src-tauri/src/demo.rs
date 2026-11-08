@@ -236,8 +236,9 @@ impl DemoSim {
 
         let player = Player {
             id: 1,
-            vehicle_name: "#99 Demo Racing".into(),
-            vehicle_model: "Porsche 963".into(),
+            vehicle_name: "#83 AF Corse".into(),
+            vehicle_model: "Ferrari 499P".into(),
+            veh_file: "83_26_AFCO45368276".into(),
             vehicle_class: "Hypercar".into(),
             elapsed_time: self.time,
             lap_number: self.lap_number,
@@ -341,9 +342,9 @@ impl DemoSim {
         let mut vehicles: Vec<Vehicle> = Vec::with_capacity(self.opponents.len() + 1);
         vehicles.push(Vehicle {
             id: 1,
-            driver: "You".into(),
+            driver: "R. Kubica".into(),
             vehicle: player.vehicle_name.clone(),
-            team: "Demo Racing".into(),
+            team: "AF Corse".into(),
             class: "Hypercar".into(),
             is_player: true,
             total_laps: self.lap_number as i16,
@@ -356,8 +357,8 @@ impl DemoSim {
             speed,
             pos: [x, 0.0, z],
             fuel_fraction: self.fuel / 75.0,
-            number: "99".into(),
-            model: "Porsche 963".into(),
+            number: "83".into(),
+            model: "Ferrari 499P".into(),
             tyre_compound: "Medium".into(),
             tyre_wear: Some(self.wear.iter().sum::<f64>() / 4.0),
             virtual_energy: Some(self.ve),
@@ -446,7 +447,7 @@ impl DemoSim {
                 sector_flags_raw: [11; 3],
                 start_light: 0,
                 num_red_lights: 0,
-                player_name: "Demo Driver".into(),
+                player_name: "Robert Kubica".into(),
                 weather: Weather {
                     ambient_temp: 24.0,
                     track_temp: 36.0,

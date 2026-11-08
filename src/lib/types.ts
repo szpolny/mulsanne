@@ -63,6 +63,8 @@ export interface Player {
   id: number;
   vehicleName: string;
   vehicleModel: string;
+  /** Keys the game's render of this livery. */
+  vehFile: string;
   vehicleClass: string;
   elapsedTime: number;
   lapNumber: number;
@@ -274,6 +276,8 @@ export interface SessionSummary {
   sessionType: string;
   car: string;
   vehicleName: string;
+  /** Keys the game's render of this livery; empty for older sessions. */
+  vehFile: string;
   carClass: string;
   driver: string;
   /** LMU build number; null for demo data and older sessions. */

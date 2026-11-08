@@ -7,6 +7,7 @@
   import { live } from "../../lib/live.svelte";
   import type { LapRecord, LapRecordedEvent, SessionSummary } from "../../lib/types";
   import CarLogo from "../../overlay/CarLogo.svelte";
+  import CarRender from "../../lib/CarRender.svelte";
   import LapTable from "../components/LapTable.svelte";
   import Toggle from "../components/Toggle.svelte";
   import { nav } from "../nav.svelte";
@@ -56,7 +57,7 @@
         </p>
       {:else}
         <div class="flex items-end justify-between gap-6">
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <span class="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent-hi">{sessionLabel(snap.session.kind)}</span>
               {#if snap.source === "demo"}
@@ -72,6 +73,7 @@
             </div>
           </div>
           {#if p}
+            <CarRender file={p.vehFile} view="front" alt={p.vehicleModel} class="-my-3 h-[120px] w-[300px] min-w-0 shrink object-contain" />
             <div class="shrink-0 text-right">
               <div class="text-xs text-muted">Lap {p.lapNumber + 1}</div>
               <div class="font-display text-4xl leading-none font-semibold tnum">{lapTime(snap.timing.currentLapTime, 1)}</div>

@@ -78,6 +78,8 @@ pub struct SessionRecord {
     pub session_type: String,
     pub car: String,
     pub vehicle_name: String,
+    /// Keys the game's render of this livery; empty for sessions recorded before it was stored.
+    pub veh_file: String,
     pub car_class: String,
     pub driver: String,
     /// LMU build number; `None` for demo data and sessions recorded before it was stored.
@@ -182,7 +184,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     vehicle_name  TEXT NOT NULL,
     car_class     TEXT NOT NULL,
     driver        TEXT NOT NULL,
-    game_version  INTEGER
+    game_version  INTEGER,
+    veh_file      TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS laps (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -281,6 +284,7 @@ impl Db {
         conn.execute_batch(SCHEMA).map_err(err)?;
         // Columns added after their table; SCHEMA only creates missing tables.
         add_column(&conn, "sessions", "game_version", "INTEGER")?;
+        add_column(&conn, "sessions", "veh_file", "TEXT NOT NULL DEFAULT ''")?;
         add_column(&conn, "lap_uploads", "trace", "TEXT")?;
         Ok(Self { conn: Mutex::new(conn) })
     }
@@ -295,9 +299,9 @@ impl Db {
         let s = &lap.session;
         let conn = self.conn();
         conn.execute(
-            "INSERT OR IGNORE INTO sessions (id, started_at, source, track, track_length, session_type, car, vehicle_name, car_class, driver, game_version)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-            params![s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version],
+            "INSERT OR IGNORE INTO sessions (id, started_at, source, track, track_length, session_type, car, vehicle_name, car_class, driver, game_version, veh_file)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            params![s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version, s.veh_file],
         )
         .map_err(err)?;
         conn.execute(
@@ -332,7 +336,7 @@ impl Db {
         let conn = self.conn();
         let mut stmt = conn
             .prepare(
-                "SELECT s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version,
+                "SELECT s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version, s.veh_file,
                         COUNT(l.id), COALESCE(SUM(l.valid), 0),
                         MIN(CASE WHEN l.valid = 1 AND l.out_lap = 0 AND l.in_lap = 0 THEN l.lap_time END)
                  FROM sessions s LEFT JOIN laps l ON l.session_id = s.id
@@ -355,10 +359,11 @@ impl Db {
                         car_class: r.get(8)?,
                         driver: r.get(9)?,
                         game_version: r.get(10)?,
+                        veh_file: r.get(11)?,
                     },
-                    lap_count: r.get(11)?,
-                    valid_laps: r.get(12)?,
-                    best_lap: r.get(13)?,
+                    lap_count: r.get(12)?,
+                    valid_laps: r.get(13)?,
+                    best_lap: r.get(14)?,
                 })
             })
             .map_err(err)?;
@@ -713,6 +718,7 @@ mod tests {
             session_type: "Practice".into(),
             car: "Car".into(),
             vehicle_name: "#1 Car".into(),
+            veh_file: String::new(),
             car_class: "GT3".into(),
             driver: "Me".into(),
             game_version: None,

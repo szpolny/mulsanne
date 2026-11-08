@@ -279,8 +279,8 @@ export const WIDGETS: WidgetMeta[] = [
     name: "Damage",
     description: "Bodywork, aero and suspension damage, detached parts and overheating.",
     defaults: { enabled: false, x: 330, y: 860 },
-    options: [],
-    optionDefaults: {},
+    options: [{ key: "showCar", label: "Car render", type: "boolean" }],
+    optionDefaults: { showCar: true },
   },
   {
     id: "electronics",
