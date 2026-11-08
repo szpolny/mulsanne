@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
+  import { relativeGap } from "../../lib/estimates";
   import { classColor, lapTime, penaltyBadge, penaltyTitle, shortName } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
   import type { Vehicle } from "../../lib/types";
@@ -33,7 +34,7 @@
         if (d > len / 2) d -= len;
         if (d < -len / 2) d += len;
         const raceDiff = v.totalLaps * len + v.lapDist - myTotal - d;
-        return { v, gap: (d / len) * lapTime, lapDiff: Math.round(raceDiff / len) };
+        return { v, gap: relativeGap(me, v, len, lapTime), lapDiff: Math.round(raceDiff / len) };
       });
     const ahead = others
       .filter((r) => r.gap >= 0)

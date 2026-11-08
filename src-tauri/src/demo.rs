@@ -285,6 +285,7 @@ impl DemoSim {
                 optimal_temp: 90.0,
                 pressure: 168.0 + offset * 0.2,
                 wear,
+                compound: "Medium".into(),
                 brake_temp: 350.0 + brake * 400.0 + offset,
                 ride_height: 0.05,
                 ..Default::default()
@@ -416,7 +417,7 @@ impl DemoSim {
             fuel_fraction: self.fuel / 75.0,
             number: "83".into(),
             model: "Ferrari 499P".into(),
-            tyre_compound: "Medium".into(),
+            tyre_compounds: std::array::from_fn(|_| "Medium".into()),
             tyre_wear: Some(self.wear.iter().sum::<f64>() / 4.0),
             virtual_energy: Some(self.ve),
             ..Default::default()
@@ -450,7 +451,11 @@ impl DemoSim {
                 fuel_fraction: 0.6,
                 number: crate::lmu::car_number(&o.vehicle),
                 model: o.vehicle.split_once(' ').map(|(_, m)| m.to_string()).unwrap_or_default(),
-                tyre_compound: ["Soft", "Medium", "Hard"][o.id as usize % 3].into(),
+                // Every fifth car runs a harder front axle so mixed sets show up in the demo.
+                tyre_compounds: std::array::from_fn(|i| {
+                    let base = ["Soft", "Medium", "Hard"][o.id as usize % 3];
+                    if o.id % 5 == 0 && i < 2 { "Hard".into() } else { base.into() }
+                }),
                 tyre_wear: Some((1.0 - self.time * 0.00003 * (1.0 + (o.id % 4) as f64 * 0.3)).max(0.0)),
                 // ~8% per lap, refilled when it runs out.
                 virtual_energy: Some(1.0 - (o.progress / len * 0.08 + (o.id % 7) as f64 * 0.11).rem_euclid(0.95)),

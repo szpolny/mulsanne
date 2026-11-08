@@ -187,7 +187,7 @@
           {/if}
         </span>
         {#if opts.showTyres}
-          <TyreBadge compound={r.v.tyreCompound} wear={r.v.tyreWear} laps={r.v.tyreLaps} />
+          <TyreBadge compounds={r.v.tyreCompounds} wear={r.v.tyreWear} laps={r.v.tyreLaps} />
         {/if}
         {#if opts.showEnergy}<EnergyBadge value={r.v.virtualEnergy} />{/if}
         {#if opts.showPits}

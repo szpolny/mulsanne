@@ -49,7 +49,7 @@ pub fn parse(buf: &[u8]) -> Snapshot {
     for v in &mut vehicles {
         if let Some(t) = telemetry.get(&v.id) {
             v.model = cstr(&t.vehicle_model);
-            v.tyre_compound = cstr(&t.front_tire_compound_name);
+            v.tyre_compounds = telem_compounds(t);
             let wheels = t.wheels;
             let wear = wheels.iter().map(|w| { w.wear }).sum::<f64>() / 4.0;
             // Remote cars may report 0 when the server does not share wear.
@@ -207,7 +207,30 @@ pub fn assign_class_places(vehicles: &mut [Vehicle]) {
     }
 }
 
-fn parse_wheel(w: &layout::TelemWheel) -> Wheel {
+fn telem_compounds(t: &TelemInfo) -> [String; 4] {
+    let wheels = t.wheels;
+    corner_compounds(
+        [cstr(&t.front_tire_compound_name), cstr(&t.rear_tire_compound_name)],
+        [t.front_tire_compound_index, t.rear_tire_compound_index],
+        wheels.map(|w| w.compound_index),
+    )
+}
+
+/// The game names one compound per axle, so each corner gets the name whose index it reports.
+/// Per-wheel indices are only trusted when they agree with both axles; otherwise each corner
+/// takes its axle's name.
+fn corner_compounds(names: [String; 2], axle_index: [u8; 2], wheel_index: [u8; 4]) -> [String; 4] {
+    let trusted = (wheel_index[0] == axle_index[0] || wheel_index[1] == axle_index[0])
+        && (wheel_index[2] == axle_index[1] || wheel_index[3] == axle_index[1]);
+    std::array::from_fn(|i| {
+        let axle = usize::from(i >= 2);
+        let other = 1 - axle;
+        let swapped = trusted && wheel_index[i] != axle_index[axle] && wheel_index[i] == axle_index[other];
+        names[if swapped { other } else { axle }].clone()
+    })
+}
+
+fn parse_wheel(w: &layout::TelemWheel, compound: String) -> Wheel {
     let t = w.temperature;
     let inner = w.tire_inner_layer_temperature;
     Wheel {
@@ -221,6 +244,7 @@ fn parse_wheel(w: &layout::TelemWheel) -> Wheel {
         },
         pressure: w.pressure,
         wear: w.wear,
+        compound,
         brake_temp: w.brake_temp,
         ride_height: w.ride_height,
         flat: w.flat != 0,
@@ -236,6 +260,7 @@ fn parse_player(t: &TelemInfo, scoring: Option<&Vehicle>, info: &ScoringInfo) ->
     let ori_z = t.ori[2];
     let (oz_x, oz_z) = (ori_z.x, ori_z.z);
     let wheels = t.wheels;
+    let compounds = telem_compounds(t);
 
     Player {
         id: t.id,
@@ -318,12 +343,7 @@ fn parse_player(t: &TelemInfo, scoring: Option<&Vehicle>, info: &ScoringInfo) ->
 
         front_compound: cstr(&t.front_tire_compound_name),
         rear_compound: cstr(&t.rear_tire_compound_name),
-        wheels: [
-            parse_wheel(&wheels[0]),
-            parse_wheel(&wheels[1]),
-            parse_wheel(&wheels[2]),
-            parse_wheel(&wheels[3]),
-        ],
+        wheels: std::array::from_fn(|i| parse_wheel(&wheels[i], compounds[i].clone())),
     }
 }
 
@@ -334,5 +354,25 @@ mod tests {
         assert_eq!(super::car_number("Toyota Racing 2026 #7:WEC"), "7");
         assert_eq!(super::car_number("Aston Martin THOR Team 2026 #007:WEC"), "007");
         assert_eq!(super::car_number("No number"), "");
+    }
+
+    fn compounds(axle: [u8; 2], wheel: [u8; 4]) -> [String; 4] {
+        super::corner_compounds(["Hard".into(), "Medium".into()], axle, wheel)
+    }
+
+    #[test]
+    fn names_each_axle() {
+        assert_eq!(compounds([2, 1], [2, 2, 1, 1]), ["Hard", "Hard", "Medium", "Medium"]);
+    }
+
+    #[test]
+    fn names_a_corner_that_differs_across_the_axle() {
+        assert_eq!(compounds([2, 1], [2, 1, 1, 1]), ["Hard", "Medium", "Medium", "Medium"]);
+    }
+
+    #[test]
+    fn falls_back_to_axle_names_when_wheel_indices_disagree() {
+        // Unset wheel indices must not turn the rear tyres into the front compound.
+        assert_eq!(compounds([0, 1], [0, 0, 0, 0]), ["Hard", "Hard", "Medium", "Medium"]);
     }
 }
