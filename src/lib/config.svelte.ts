@@ -41,6 +41,10 @@ export interface AppConfig {
     showChangelog: boolean;
     /** Last installed version whose release notes were handled. */
     lastSeenVersion: string;
+    /** App launches counted until the GitHub star popup has been answered. */
+    launches: number;
+    /** The user starred or dismissed the GitHub star popup, so it never shows again. */
+    starPromptDone: boolean;
     /** Grid snap in edit mode (px). */
     snap: number;
     /** Size multiplier applied to every widget. */
@@ -303,7 +307,7 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", snap: 4, scale: 1, opacity: 0.92, monitor: "" },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", launches: 0, starPromptDone: false, snap: 4, scale: 1, opacity: 0.92, monitor: "" },
     online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",
