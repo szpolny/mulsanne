@@ -29,6 +29,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 flate2 = "1"
+# Reads car renders out of the game's UI.zip.
+zip = { version = "4", default-features = false, features = ["deflate-flate2"] }
 # Same HTTP client and TLS stack the updater already pulls in.
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }

@@ -1,4 +1,4 @@
-//! Synthetic data source: a car lapping a generated circuit with a multi-class
+//! Synthetic data source: a car lapping Le Mans with a multi-class
 //! field. Used for layout editing and development without the game.
 
 use std::f64::consts::TAU;
@@ -7,10 +7,32 @@ use crate::lmu::assign_class_places;
 use crate::model::{Penalty, PenaltyKind, Player, Session, SessionKind, Snapshot, Source, Vehicle, Weather, Wheel};
 
 const TRACK_POINTS: usize = 2400;
-const MAX_LAT_ACCEL: f64 = 22.0;
-const MAX_ACCEL: f64 = 7.0;
+const MAX_LAT_ACCEL: f64 = 20.0;
+const MAX_ACCEL: f64 = 5.0;
 const MAX_DECEL: f64 = 28.0;
 const SESSION_LENGTH: f64 = 60.0 * 60.0;
+const TRACK_LENGTH: f64 = 13_626.0;
+/// Roughly what the constants above lap in.
+const LAP_ESTIMATE: f64 = 205.0;
+/// Rounds the outline's corners; in track points, on each side.
+const SMOOTH_RADIUS: usize = 6;
+
+/// Not the game's own "Circuit de la Sarthe", so demo laps stay out of real personal bests.
+pub const TRACK_NAME: &str = "Le Mans (Demo)";
+
+/// The `le-mans` outline from `src/lib/tracks/outlines.ts` (see its CREDITS.md),
+/// in driving order from the start line. North is towards smaller y.
+const OUTLINE: [(f64, f64); 51] = [
+    (0.15, 23.4), (0.3, 18.8), (0.9, 15.6), (1.8, 13.3), (4.9, 11.1), (4.9, 9.7),
+    (7.7, 7.9), (9.3, 6.0), (10.7, 5.4), (13.3, 5.1), (13.9, 4.5), (14.6, 2.3),
+    (16.6, 1.0), (19.5, 0.0), (23.3, 2.8), (27.6, 9.7), (35.6, 34.6), (35.2, 36.4),
+    (36.6, 37.8), (37.3, 39.7), (46.7, 68.9), (48.1, 70.1), (47.8, 72.2), (49.2, 77.5),
+    (50.4, 96.8), (49.7, 99.7), (49.3, 100.0), (36.7, 96.5), (27.1, 91.7), (21.5, 87.6),
+    (18.2, 84.9), (16.8, 81.6), (11.1, 83.3), (8.5, 72.7), (4.9, 65.3), (2.2, 60.9),
+    (2.4, 59.1), (4.3, 56.8), (4.7, 55.7), (4.4, 52.6), (2.6, 50.6), (2.1, 49.1),
+    (2.4, 47.8), (4.0, 46.1), (4.3, 45.0), (3.8, 41.4), (4.0, 38.7), (1.9, 31.1),
+    (1.0, 30.2), (0.7, 28.6), (0.0, 28.0),
+];
 
 struct Track {
     x: Vec<f64>,
@@ -23,14 +45,17 @@ struct Track {
 
 impl Track {
     fn generate() -> Self {
-        let mut x = Vec::with_capacity(TRACK_POINTS);
-        let mut z = Vec::with_capacity(TRACK_POINTS);
-        for i in 0..TRACK_POINTS {
-            let a = i as f64 / TRACK_POINTS as f64 * TAU;
-            let r = 620.0 * (1.0 + 0.22 * (3.0 * a).sin() + 0.12 * (5.0 * a + 0.8).cos() + 0.05 * (9.0 * a).sin());
-            x.push(r * a.cos() * 1.25);
-            z.push(r * a.sin());
+        let (mut x, mut z) = resample_outline();
+        for _ in 0..2 {
+            x = smooth(&x);
+            z = smooth(&z);
         }
+        let perimeter = (0..x.len()).map(|i| {
+            let j = (i + 1) % x.len();
+            (x[j] - x[i]).hypot(z[j] - z[i])
+        });
+        let scale = TRACK_LENGTH / perimeter.sum::<f64>();
+        x.iter_mut().chain(z.iter_mut()).for_each(|v| *v *= scale);
         let n = TRACK_POINTS;
         let mut dist = vec![0.0; n];
         for i in 1..n {
@@ -82,6 +107,38 @@ impl Track {
         let i = self.index_at(d);
         (self.x[i], self.z[i], self.speed[i], self.curvature[i])
     }
+}
+
+/// Evenly spaced points around the outline, as world (x, z): screen is (x, -z).
+fn resample_outline() -> (Vec<f64>, Vec<f64>) {
+    let n = OUTLINE.len();
+    let segment = |i: usize| {
+        let ((ax, ay), (bx, by)) = (OUTLINE[i], OUTLINE[(i + 1) % n]);
+        (bx - ax).hypot(by - ay)
+    };
+    let perimeter: f64 = (0..n).map(segment).sum();
+    let (mut x, mut z) = (Vec::with_capacity(TRACK_POINTS), Vec::with_capacity(TRACK_POINTS));
+    let (mut seg, mut seg_start) = (0, 0.0);
+    for i in 0..TRACK_POINTS {
+        let at = i as f64 / TRACK_POINTS as f64 * perimeter;
+        while seg_start + segment(seg) < at {
+            seg_start += segment(seg);
+            seg += 1;
+        }
+        let f = (at - seg_start) / segment(seg);
+        let ((ax, ay), (bx, by)) = (OUTLINE[seg], OUTLINE[(seg + 1) % n]);
+        x.push(ax + (bx - ax) * f);
+        z.push(-(ay + (by - ay) * f));
+    }
+    (x, z)
+}
+
+/// Moving average around the closed loop.
+fn smooth(values: &[f64]) -> Vec<f64> {
+    let n = values.len();
+    (0..n)
+        .map(|i| (0..=2 * SMOOTH_RADIUS).map(|k| values[(i + n + k - SMOOTH_RADIUS) % n]).sum::<f64>() / (2 * SMOOTH_RADIUS + 1) as f64)
+        .collect()
 }
 
 struct Opponent {
@@ -236,8 +293,9 @@ impl DemoSim {
 
         let player = Player {
             id: 1,
-            vehicle_name: "#99 Demo Racing".into(),
-            vehicle_model: "Porsche 963".into(),
+            vehicle_name: "#83 AF Corse".into(),
+            vehicle_model: "Ferrari 499P".into(),
+            veh_file: "83_26_AFCO45368276".into(),
             vehicle_class: "Hypercar".into(),
             elapsed_time: self.time,
             lap_number: self.lap_number,
@@ -271,7 +329,7 @@ impl DemoSim {
             water_temp: 88.0,
             oil_temp: 102.0,
             turbo_boost: 0.0,
-            delta_best: if self.best > 0.0 { (self.lap_variation - 1.0) * 40.0 * self.progress / len } else { 0.0 },
+            delta_best: if self.best > 0.0 { (self.lap_variation - 1.0) * LAP_ESTIMATE * self.progress / len } else { 0.0 },
             lap_invalidated: self.invalid && self.progress > len * 0.4,
             track_limits_steps: 0,
             track_limits_steps_per_penalty: 20,
@@ -341,9 +399,9 @@ impl DemoSim {
         let mut vehicles: Vec<Vehicle> = Vec::with_capacity(self.opponents.len() + 1);
         vehicles.push(Vehicle {
             id: 1,
-            driver: "You".into(),
+            driver: "R. Kubica".into(),
             vehicle: player.vehicle_name.clone(),
-            team: "Demo Racing".into(),
+            team: "AF Corse".into(),
             class: "Hypercar".into(),
             is_player: true,
             total_laps: self.lap_number as i16,
@@ -352,12 +410,12 @@ impl DemoSim {
             best_lap: self.best,
             last_lap: self.last,
             time_into_lap: self.time - self.lap_start,
-            estimated_lap_time: if self.best > 0.0 { self.best } else { 110.0 },
+            estimated_lap_time: if self.best > 0.0 { self.best } else { LAP_ESTIMATE },
             speed,
             pos: [x, 0.0, z],
             fuel_fraction: self.fuel / 75.0,
-            number: "99".into(),
-            model: "Porsche 963".into(),
+            number: "83".into(),
+            model: "Ferrari 499P".into(),
             tyre_compound: "Medium".into(),
             tyre_wear: Some(self.wear.iter().sum::<f64>() / 4.0),
             virtual_energy: Some(self.ve),
@@ -378,7 +436,7 @@ impl DemoSim {
                 best_lap: o.best,
                 last_lap: o.last,
                 time_into_lap: self.time - o.lap_start,
-                estimated_lap_time: 110.0 / o.pace,
+                estimated_lap_time: LAP_ESTIMATE / o.pace,
                 num_pitstops: o.pitstops,
                 // A few cars carry an unserved penalty so the badges show up in the demo.
                 num_penalties: if o.id % 6 == 3 { 1 } else { 0 },
@@ -431,7 +489,7 @@ impl DemoSim {
             frame: 0,
             game_version: 0,
             session: Session {
-                track: "Demo Circuit".into(),
+                track: TRACK_NAME.into(),
                 track_length: len,
                 code: 1,
                 kind: SessionKind::Practice,
@@ -446,7 +504,7 @@ impl DemoSim {
                 sector_flags_raw: [11; 3],
                 start_light: 0,
                 num_red_lights: 0,
-                player_name: "Demo Driver".into(),
+                player_name: "Robert Kubica".into(),
                 weather: Weather {
                     ambient_temp: 24.0,
                     track_temp: 36.0,

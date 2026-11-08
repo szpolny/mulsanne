@@ -1,6 +1,7 @@
 //! Background threads: the data loop (game or demo -> recorder -> UI events)
 //! and the database writer for finished laps.
 
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, RwLock};
@@ -24,6 +25,8 @@ pub struct Shared {
     /// Max snapshot events per second sent to the windows.
     pub emit_hz: AtomicU32,
     pub reload_reference: AtomicBool,
+    /// Install folder of the game, last seen while it was running.
+    pub game_dir: RwLock<Option<PathBuf>>,
     /// HWND of the running game window, 0 when not connected.
     pub game_window: AtomicU64,
     /// Whether the game window currently has keyboard focus.
@@ -38,6 +41,7 @@ impl Shared {
             demo: AtomicBool::new(false),
             emit_hz: AtomicU32::new(30),
             reload_reference: AtomicBool::new(false),
+            game_dir: RwLock::new(None),
             game_window: AtomicU64::new(0),
             game_focused: AtomicBool::new(false),
         }
@@ -210,7 +214,9 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
                         Snapshot::default()
                     } else {
                         let hwnd = shm::game_window(&buf);
-                        shared.game_window.store(hwnd, Ordering::Release);
+                        if shared.game_window.swap(hwnd, Ordering::AcqRel) != hwnd {
+                            crate::car_render::remember_game_dir(&app, &shared, hwnd);
+                        }
                         let mut s = lmu::parse(&buf);
                         penalties.update(&mut s, hwnd);
                         let key = (s.session.current_et, s.player.as_ref().map_or(0.0, |p| p.elapsed_time));
@@ -260,7 +266,7 @@ pub struct PreviewSim {
 impl PreviewSim {
     /// Simulated time run up front so lap times, deltas and fuel averages are
     /// already filled in when the preview first appears.
-    const WARMUP_SECS: f64 = 300.0;
+    const WARMUP_SECS: f64 = 450.0;
     const STEP_SECS: f64 = 0.02;
 
     pub fn new(db: Arc<Db>) -> Self {

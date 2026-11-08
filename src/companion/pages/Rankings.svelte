@@ -3,6 +3,7 @@
   import { config } from "../../lib/config.svelte";
   import { classColor, dateTime, lapTime, sectorTime } from "../../lib/format";
   import type { BoardSummary, LeaderboardEntry } from "../../lib/types";
+  import TrackOutline from "../../lib/TrackOutline.svelte";
   import { uploads } from "../../lib/uploads.svelte";
   import { nav } from "../nav.svelte";
 
@@ -99,6 +100,7 @@
             onclick={() => (board = b)}
           >
             <span class="block h-8 w-1 shrink-0 rounded-full" style:background={classColor(b.carClass)}></span>
+            <TrackOutline track={b.track} hideMissing class="h-8 w-8 shrink-0 text-fg/80" />
             <span class="min-w-0 flex-1">
               <span class="block truncate font-medium">{b.track}</span>
               <span class="block text-xs text-muted">{b.carClass} · {b.drivers} {b.drivers === 1 ? "driver" : "drivers"}</span>
@@ -117,9 +119,12 @@
       {/if}
       {#if board}
         <div class="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h1 class="page-title">{board.track}</h1>
-            <div class="text-sm text-muted">{board.carClass} · best lap per driver</div>
+          <div class="flex min-w-0 items-center gap-4">
+            <TrackOutline track={board.track} hideMissing class="h-16 w-16 shrink-0 text-fg/80" />
+            <div class="min-w-0">
+              <h1 class="page-title">{board.track}</h1>
+              <div class="text-sm text-muted">{board.carClass} · best lap per driver</div>
+            </div>
           </div>
           <div class="flex shrink-0 gap-2">
             <select class="field text-sm" bind:value={sessionType} aria-label="Session type">

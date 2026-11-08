@@ -141,6 +141,7 @@ fn parse_vehicle(v: &VehicleScoring) -> Vehicle {
         class_place: 0,
         driver: cstr(&v.driver_name),
         vehicle: cstr(&v.vehicle_name),
+        veh_file: veh_stem(&cstr(&v.veh_filename)),
         team: cstr(&v.pit_group),
         class: cstr(&v.vehicle_class),
         is_player: v.is_player != 0,
@@ -182,6 +183,12 @@ fn parse_vehicle(v: &VehicleScoring) -> Vehicle {
 }
 
 /// "Toyota Racing 2026 #7:WEC" -> "7".
+/// Strips any folder and the extension from a `.VEH` file name.
+fn veh_stem(name: &str) -> String {
+    let file = name.rsplit(['\\', '/']).next().unwrap_or(name);
+    file.split('.').next().unwrap_or(file).to_string()
+}
+
 pub fn car_number(name: &str) -> String {
     name.split_once('#')
         .map(|(_, rest)| rest.chars().take_while(|c| c.is_ascii_alphanumeric()).collect())
@@ -234,6 +241,7 @@ fn parse_player(t: &TelemInfo, scoring: Option<&Vehicle>, info: &ScoringInfo) ->
         id: t.id,
         vehicle_name: cstr(&t.vehicle_name),
         vehicle_model: cstr(&t.vehicle_model),
+        veh_file: scoring.map(|s| s.veh_file.clone()).unwrap_or_default(),
         vehicle_class: scoring.map(|s| s.class.clone()).unwrap_or_default(),
         elapsed_time: t.elapsed_time,
         lap_number: t.lap_number,

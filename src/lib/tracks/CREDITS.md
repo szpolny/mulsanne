@@ -1,6 +1,6 @@
 # Track outline credits
 
-Outlines are drawn in a 100-unit box. Those marked OpenStreetMap were traced from the circuit's raceway ways, picking the loop that matches the official layout length. Long Beach has no outline because OSM has no raceway for the street circuit.
+Outlines are drawn in a 100-unit box. Those marked OpenStreetMap were traced from the circuit's raceway ways, picking the loop that matches the official layout length. Long Beach has no outline because OSM has no raceway for the street circuit. Demo mode drives the `le-mans` outline.
 
 | Track | Source |
 | --- | --- |

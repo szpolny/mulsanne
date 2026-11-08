@@ -20,7 +20,7 @@ fn main() {
 
     // Six laps, then 20 s of snapshots at 20 Hz for the live view.
     let dt = 1.0 / 60.0;
-    for _ in 0..(60 * 60 * 7) {
+    for _ in 0..(60 * 60 * 24) {
         let mut s = sim.step(dt);
         rec.update(&mut s);
         for lap in rx.try_iter() {
@@ -51,7 +51,7 @@ fn main() {
         "sessions": sessions,
         "laps": laps,
         "traces": traces,
-        "trackMap": db.track_map("Demo Circuit").unwrap(),
+        "trackMap": db.track_map(lm_overlay_lib::demo::TRACK_NAME).unwrap(),
         "personalBests": db.personal_bests().unwrap(),
         "filters": db.filters().unwrap(),
     });
