@@ -7,7 +7,7 @@
   import { live } from "../../lib/live.svelte";
   import type { LapRecord, LapRecordedEvent, SessionSummary } from "../../lib/types";
   import CarLogo from "../../overlay/CarLogo.svelte";
-  import CarRender from "../../lib/CarRender.svelte";
+  import TrackHero from "../../lib/TrackHero.svelte";
   import LapTable from "../components/LapTable.svelte";
   import Toggle from "../components/Toggle.svelte";
   import { nav } from "../nav.svelte";
@@ -48,41 +48,35 @@
   </div>
 
   <div class="grid gap-4 lg:grid-cols-3">
-    <section class="card p-5 lg:col-span-2">
+    <section class="card overflow-hidden lg:col-span-2">
       {#if !snap || snap.source === "none"}
-        <div class="text-xl font-semibold">Waiting for Le Mans Ultimate</div>
-        <p class="mt-2 max-w-xl text-sm text-muted">
-          Start the game and get on track. Run it in <b class="text-fg">borderless</b> or windowed mode so the overlay can
-          draw on top. No game plugin is needed: Mulsanne reads LMU's built-in shared memory.
-        </p>
-      {:else}
-        <div class="flex items-end justify-between gap-6">
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent-hi">{sessionLabel(snap.session.kind)}</span>
-              {#if snap.source === "demo"}
-                <span class="rounded-full bg-warn/15 px-2.5 py-0.5 text-xs font-semibold text-warn">Demo data</span>
-              {/if}
-            </div>
-            <div class="mt-2 truncate text-2xl font-bold">{snap.session.track || "—"}</div>
-            <div class="mt-1 flex items-center gap-2 text-sm text-muted">
-              {#if p}
-                <CarLogo model={p.vehicleModel} entry={p.vehicleName} size={15} />
-                {p.vehicleModel || p.vehicleName} · {p.vehicleClass}
-              {:else}Not in car{/if}
-            </div>
-          </div>
-          {#if p}
-            <CarRender file={p.vehFile} view="front" alt={p.vehicleModel} class="-my-3 h-[120px] w-[300px] min-w-0 shrink object-contain" />
-            <div class="shrink-0 text-right">
-              <div class="text-xs text-muted">Lap {p.lapNumber + 1}</div>
-              <div class="font-display text-4xl leading-none font-semibold tnum">{lapTime(snap.timing.currentLapTime, 1)}</div>
-            </div>
-          {/if}
+        <div class="p-5">
+          <div class="text-xl font-semibold">Waiting for Le Mans Ultimate</div>
+          <p class="mt-2 max-w-xl text-sm text-muted">
+            Start the game and get on track. Run it in <b class="text-fg">borderless</b> or windowed mode so the overlay can
+            draw on top. No game plugin is needed: Mulsanne reads LMU's built-in shared memory.
+          </p>
         </div>
+      {:else}
+        <TrackHero track={snap.session.track} file={p?.vehFile} alt={p?.vehicleModel}>
+          <div class="flex items-center gap-2">
+            <span class="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent-hi">{sessionLabel(snap.session.kind)}</span>
+            {#if snap.source === "demo"}
+              <span class="rounded-full bg-warn/15 px-2.5 py-0.5 text-xs font-semibold text-warn">Demo data</span>
+            {/if}
+          </div>
+          <div class="mt-2 truncate text-2xl font-bold">{snap.session.track || "—"}</div>
+          <div class="mt-1 flex items-center gap-2 text-sm text-muted">
+            {#if p}
+              <CarLogo model={p.vehicleModel} entry={p.vehicleName} size={15} />
+              {p.vehicleModel || p.vehicleName} · {p.vehicleClass}
+            {:else}Not in car{/if}
+          </div>
+        </TrackHero>
         {#if p}
-          <div class="mt-5 grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-2 tnum">
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-2 border-t border-line p-4 tnum">
             {#each [
+              [`Lap ${p.lapNumber + 1}`, lapTime(snap.timing.currentLapTime, 1), ""],
               ["Speed", `${Math.round(speed(p.speed, units))}`, speedUnit(units)],
               ["Gear", p.gear < 0 ? "R" : p.gear === 0 ? "N" : String(p.gear), ""],
               ["Δ PB", delta(snap.timing.deltaPb), ""],

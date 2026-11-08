@@ -266,7 +266,7 @@ pub struct PreviewSim {
 impl PreviewSim {
     /// Simulated time run up front so lap times, deltas and fuel averages are
     /// already filled in when the preview first appears.
-    const WARMUP_SECS: f64 = 300.0;
+    const WARMUP_SECS: f64 = 450.0;
     const STEP_SECS: f64 = 0.02;
 
     pub fn new(db: Arc<Db>) -> Self {

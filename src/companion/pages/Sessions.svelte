@@ -6,6 +6,7 @@
   import { config } from "../../lib/config.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
   import CarRender from "../../lib/CarRender.svelte";
+  import TrackHero from "../../lib/TrackHero.svelte";
   import LapTable from "../components/LapTable.svelte";
   import { nav } from "../nav.svelte";
 
@@ -110,18 +111,20 @@
 
   <section class="min-w-0 flex-1 overflow-y-auto p-6">
     {#if current}
-      <div class="mb-4 flex items-start justify-between gap-4">
-        <div class="flex min-w-0 items-center gap-4">
-          <CarRender file={current.vehFile} view="front" alt={current.car} class="h-20 w-[200px] shrink-0 object-contain" />
-          <div class="min-w-0">
-            <h1 class="page-title">{current.track}</h1>
-            <div class="text-sm text-muted">
-              {current.car} ({current.carClass}) · {current.sessionType} · {dateTime(current.startedAt)}{current.gameVersion
-                ? ` · game version ${current.gameVersion}`
-                : ""}
-            </div>
+      <div class="card mb-4 overflow-hidden">
+        <TrackHero track={current.track} file={current.vehFile} alt={current.car}>
+          <h1 class="page-title">{current.track}</h1>
+          <div class="text-sm text-muted">
+            {current.car} ({current.carClass}) · {current.sessionType}
           </div>
-        </div>
+          <div class="text-sm text-faint">
+            {dateTime(current.startedAt)}{current.gameVersion ? ` · game version ${current.gameVersion}` : ""}
+          </div>
+        </TrackHero>
+      </div>
+      {#if uploadNote}<p class="mb-2 text-xs text-bad">{uploadNote}</p>{/if}
+      <div class="mb-2 flex items-center justify-between gap-4">
+        <p class="text-xs text-muted">Click laps to select (A, then B) for comparison.</p>
         <div class="flex shrink-0 gap-2">
           <button
             class="btn btn-primary"
@@ -138,8 +141,6 @@
           <button class="btn hover:text-bad" onclick={deleteSession}>Delete session</button>
         </div>
       </div>
-      {#if uploadNote}<p class="mb-2 text-xs text-bad">{uploadNote}</p>{/if}
-      <p class="mb-2 text-xs text-muted">Click laps to select (A, then B) for comparison.</p>
       <LapTable
         {laps}
         {selected}
