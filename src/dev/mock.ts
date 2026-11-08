@@ -2,7 +2,8 @@
 // be developed in a normal browser (`pnpm dev`, then open http://localhost:1420
 // or http://localhost:1420/#overlay; add ?nolive to simulate the game not running,
 // ?nolaps for a fresh install with nothing recorded, ?seen=0.6.0 to show the
-// changelog as if updating from that version).
+// changelog as if updating from that version, ?launches=2 to show the GitHub
+// star popup as if the app had been opened that many times before).
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
@@ -17,7 +18,12 @@ export async function install() {
   }
   const fx = await res.json();
   const params = new URLSearchParams(location.search);
-  let config: unknown = params.has("seen") ? { general: { lastSeenVersion: params.get("seen") } } : null;
+  let config: unknown = {
+    general: {
+      ...(params.has("seen") && { lastSeenVersion: params.get("seen") }),
+      ...(params.has("launches") && { launches: Number(params.get("launches")) }),
+    },
+  };
   let editMode = location.hash.includes("edit");
   const noLive = params.has("nolive");
   if (params.has("nolaps")) Object.assign(fx, { sessions: [], laps: [], traces: {}, personalBests: [], filters: { tracks: [], cars: [] } });

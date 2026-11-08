@@ -3,11 +3,15 @@
   import { config, saveConfig } from "../../lib/config.svelte";
   import type { MonitorInfo } from "../../lib/types";
   import { live } from "../../lib/live.svelte";
+  import { REPO_URL, starOnGitHub } from "../../lib/star.svelte";
   import { checkForUpdate, installUpdate, updater } from "../../lib/updater.svelte";
   import OnlineSettings from "../components/OnlineSettings.svelte";
   import Toggle from "../components/Toggle.svelte";
 
   const g = $derived(config.value.general);
+
+  let starError = $state(false);
+  const star = () => starOnGitHub().catch(() => (starError = true));
 
   let monitors = $state<MonitorInfo[]>([]);
   const refreshMonitors = () => api.listMonitors().then((m) => (monitors = m)).catch(() => {});
@@ -137,4 +141,13 @@
 
   <h2 class="mt-8 mb-3 section-title">Online</h2>
   <OnlineSettings />
+
+  <div class="mt-8 text-center text-sm text-muted">
+    {#if starError}
+      <span class="select-text break-words text-bad" role="alert">Couldn't open your browser. Visit {REPO_URL} to leave a star.</span>
+    {:else}
+      Like Mulsanne?
+      <button class="text-accent underline underline-offset-2 hover:text-fg" onclick={star}>Give it a star on GitHub</button>
+    {/if}
+  </div>
 </div>
