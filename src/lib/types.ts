@@ -52,6 +52,8 @@ export interface Wheel {
   optimalTemp: number;
   pressure: number;
   wear: number;
+  /** Compound name, e.g. "Soft". */
+  compound: string;
   brakeTemp: number;
   rideHeight: number;
   flat: boolean;
@@ -187,7 +189,8 @@ export interface Vehicle {
   /** Race number, e.g. "007". */
   number: string;
   model: string;
-  tyreCompound: string;
+  /** Compound names, FL, FR, RL, RR. */
+  tyreCompounds: [string, string, string, string];
   /** Remaining tread 0..1 (1 = new), null when unknown. */
   tyreWear: number | null;
   /** Laps on the current set. */

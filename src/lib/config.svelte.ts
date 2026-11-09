@@ -233,7 +233,7 @@ export const WIDGETS: WidgetMeta[] = [
           { value: "both", label: "Surface and core" },
         ],
       },
-      { key: "showWearRate", label: "Wear per lap and estimated laps left", type: "boolean" },
+      { key: "showWearRate", label: "Wear per lap and estimated tread at the end of the stint", type: "boolean" },
       { key: "wearLimit", label: "Tyre worn out at (% tread left)", type: "number", min: 0, max: 60, step: 5 },
       { key: "showBrakes", label: "Brakes (temperature next to each tyre)", type: "boolean" },
     ],

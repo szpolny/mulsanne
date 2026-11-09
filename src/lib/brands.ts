@@ -81,12 +81,12 @@ export function brandOf(model: string, entry = ""): Brand | null {
   return brand;
 }
 
-/** Tyre compound colours, Pirelli/Michelin style. */
+/** Tyre compound colours, as marked on the WEC's Michelin sidewalls. */
 export function compoundStyle(name: string): { letter: string; color: string } {
   const n = name.toLowerCase();
-  if (n.startsWith("s")) return { letter: "S", color: "#ef3b3b" };
+  if (n.startsWith("s")) return { letter: "S", color: "#ffffff" };
   if (n.startsWith("m")) return { letter: "M", color: "#f5c518" };
-  if (n.startsWith("h")) return { letter: "H", color: "#e8e8ec" };
+  if (n.startsWith("h")) return { letter: "H", color: "#ef3b3b" };
   if (n.startsWith("w") || n.includes("rain")) return { letter: "W", color: "#3b8cff" };
   if (n.startsWith("i")) return { letter: "I", color: "#2fbf5b" };
   return { letter: name ? name[0].toUpperCase() : "?", color: "#8f8f9b" };

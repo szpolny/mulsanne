@@ -216,6 +216,8 @@ pub struct Wheel {
     pub pressure: f64,
     /// Remaining tread fraction 0..1 (1 = new).
     pub wear: f64,
+    /// Compound name, e.g. "Soft".
+    pub compound: String,
     pub brake_temp: f64,
     pub ride_height: f64,
     pub flat: bool,
@@ -274,8 +276,8 @@ pub struct Vehicle {
     pub number: String,
     /// Car model, e.g. "Porsche 963" (empty when the game does not report it).
     pub model: String,
-    /// Front tyre compound name, e.g. "Soft".
-    pub tyre_compound: String,
+    /// Tyre compound names, FL, FR, RL, RR, e.g. "Soft".
+    pub tyre_compounds: [String; 4],
     /// Average remaining tread 0..1 across the four tyres (1 = new), if known.
     pub tyre_wear: Option<f64>,
     /// Laps completed on the current set (since the last pit stop).

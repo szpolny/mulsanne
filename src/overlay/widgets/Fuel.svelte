@@ -50,7 +50,12 @@
       const target = left / (laps - frac);
       return { laps, target, save: perLap - target, finish: laps === finish };
     });
-    return { cols, last: saverEnergy ? st.veLastLap : st.fuelLastLap };
+    return {
+      cols,
+      last: saverEnergy ? st.veLastLap : st.fuelLastLap,
+      done: snap?.timing.stintLaps ?? 0,
+      fullTank: saverEnergy ? 100 / vePct(perLap) : p.fuelCapacity / perLap,
+    };
   });
   const amount = (v: number, digits = 2) => (saverEnergy ? vePct(v).toFixed(digits) : fuel(v, units).toFixed(digits));
 </script>
@@ -108,10 +113,12 @@
         <span class="text-[11px] text-faint">{saverEnergy ? "%" : fuelUnit(units)} per lap</span>
       </div>
       <div class="mt-1 grid grid-cols-[auto_1fr_1fr_1fr] gap-x-3 gap-y-0.5 text-right">
-        <span class="text-left text-muted">Laps</span>
-        {#each saver.cols as c}
+        <span class="text-left text-muted" title="Laps a full {saverEnergy ? 'energy bar' : 'tank'} lasts at your average usage">Full tank</span>
+        <span class="col-span-3 font-semibold">{n(saver.fullTank)}<span class="ml-0.5 text-[11px] font-normal text-muted">laps</span></span>
+        <span class="text-left text-muted" title="Laps in this stint, done / total at each target">Laps</span>
+        {#each saver.cols as c, i}
           <span class={["font-semibold", c.finish ? "text-good" : "text-muted"]} title={c.finish ? "Reaches the finish" : undefined}
-            >{c.laps}{c.finish ? " fin" : ""}</span
+            >{i === 0 ? `${saver.done}/` : ""}{saver.done + c.laps}{c.finish ? " fin" : ""}</span
           >
         {/each}
         <span class="text-left text-muted">Target</span>

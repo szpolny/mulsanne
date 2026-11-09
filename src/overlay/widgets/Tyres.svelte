@@ -1,6 +1,7 @@
 <script lang="ts">
   import { compoundStyle } from "../../lib/brands";
   import type { Units } from "../../lib/config.svelte";
+  import { stintLapsLeft, wearAtStintEnd } from "../../lib/estimates";
   import { pressure, pressureUnit, temp } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
   import type { Wheel } from "../../lib/types";
@@ -40,14 +41,17 @@
     return `hsl(${hue} 65% 42%)`;
   }
 
-  /** Laps until the tread reaches the worn-out limit at the average rate, null without data. */
-  function lapsLeft(w: Wheel, i: number) {
+  /** Tread left when the stint ends at the average rate, null without data. */
+  function stintEndWear(w: Wheel, i: number) {
     const rate = st?.tyreWearPerLap?.[i] ?? 0;
-    if (!st?.tyreSamples || rate <= 0) return null;
-    return Math.max(0, (w.wear - (opts.wearLimit ?? 0) / 100) / rate);
+    const laps = st ? stintLapsLeft(st) : null;
+    if (!st?.tyreSamples || rate <= 0 || laps == null) return null;
+    return wearAtStintEnd(w.wear, rate, laps);
   }
 
-  const compound = $derived(compoundStyle(p?.frontCompound ?? ""));
+  const compounds = $derived(p?.wheels.map((w) => w.compound) ?? []);
+  const mixed = $derived(new Set(compounds).size > 1);
+  const compound = $derived(compoundStyle(compounds[0] ?? ""));
 </script>
 
 {#snippet pressureLabel(w: Wheel)}
@@ -85,14 +89,14 @@
 
 {#snippet info(w: Wheel, i: number)}
   {@const rate = st?.tyreSamples ? st.tyreWearPerLap[i] : 0}
-  {@const left = lapsLeft(w, i)}
-  {@const short = left != null && !!st && st.lapsRemaining > 0 && left < st.lapsRemaining}
+  {@const end = stintEndWear(w, i)}
+  {@const worn = end != null && end * 100 <= (opts.wearLimit ?? 0)}
   <div class={["flex h-full flex-col justify-center leading-tight whitespace-nowrap", i % 2 === 0 ? "items-end text-right" : "items-start"]}>
     <span class="text-[17px] font-semibold" title="Tread left">{Math.round(w.wear * 100)}<span class="text-[11px] font-normal text-muted">%</span></span>
     {#if opts.showWearRate}
-      <span class="text-[12px] text-muted" title="Tread used per lap (average on this set)">{rate > 0 ? `−${(rate * 100).toFixed(1)}` : "–"}<span class="text-[9px]">/lap</span></span>
-      <span class={["text-[12px]", short ? "text-warn" : "text-muted"]} title="Estimated laps left on this tyre"
-        >{left == null ? "–" : left >= 100 ? "99+" : Math.floor(left)}<span class="ml-0.5 text-[9px]">laps</span></span
+      <span class="text-[12px] text-muted" title="Tread used per lap (average on this set)">{rate > 0 ? `−${(rate * 100).toFixed(2)}` : "–"}<span class="text-[9px]">/lap</span></span>
+      <span class={["text-[12px]", worn ? "text-warn" : "text-muted"]} title="Estimated tread left at the end of this stint"
+        >{end == null ? "–" : Math.round(end * 100)}<span class="text-[9px]">% end</span></span
       >
     {/if}
   </div>
@@ -119,10 +123,20 @@
 <div class="hud w-[288px] p-3">
   <div class="mb-2 flex items-center justify-between">
     <span class="hud-title">Tyres{layer === "core" ? " · core" : ""}</span>
-    {#if p?.frontCompound}
+    {#if compounds.some(Boolean)}
       <span class="flex items-center gap-1.5 text-[12px] text-muted">
-        <span class="h-2 w-2 rounded-full" style:background={compound.color}></span>
-        {p.frontCompound}{me ? ` · ${me.tyreLaps} laps` : ""}
+        {#if mixed}
+          <!-- One dot per corner, laid out like the car seen from above. -->
+          <span class="grid grid-cols-2 gap-px">
+            {#each compounds as c}
+              <span class="h-1.5 w-1.5 rounded-full" style:background={compoundStyle(c).color}></span>
+            {/each}
+          </span>
+          {[...new Set(compounds)].join("/")}{me ? ` · ${me.tyreLaps} laps` : ""}
+        {:else}
+          <span class="h-2 w-2 rounded-full" style:background={compound.color}></span>
+          {compounds[0]}{me ? ` · ${me.tyreLaps} laps` : ""}
+        {/if}
       </span>
     {/if}
   </div>
