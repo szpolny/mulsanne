@@ -12,6 +12,10 @@ fn main() {
     let info: ScoringInfo = read_at(&buf, layout::OFF_SCORING_INFO);
     let (tl_pen, tl_pt) = (info.track_limits_steps_per_penalty, info.track_limits_steps_per_point);
     println!("track={} session={} steps/penalty={} steps/point={}", cstr(&info.track_name), info.session, tl_pen, tl_pt);
+    let parsed = lm_overlay_lib::lmu::parse(&buf);
+    if let Some(p) = &parsed.player {
+        println!("parsed player compounds={:?}", p.wheels.each_ref().map(|w| w.compound.as_str()));
+    }
     let active: u8 = read_at(&buf, layout::OFF_TELEMETRY_ACTIVE_VEHICLES);
     let player: u8 = read_at(&buf, layout::OFF_TELEMETRY_PLAYER_IDX);
     println!("active telemetry vehicles={active} playerIdx={player} scoring vehicles={}", info.num_vehicles);

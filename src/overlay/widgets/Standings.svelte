@@ -85,13 +85,16 @@
     });
   });
 
+  // Four badges and their gaps need more room, so only widen the column when a shown car is mixed.
+  const anyMixedTyres = $derived(groups.some((g) => g.rows.some((r) => new Set(r.v.tyreCompounds).size > 1)));
+
   const columns = $derived(
     [
       "22px", // position
       "36px", // number
       opts.showLogo ? "18px" : "",
       "minmax(130px,1fr)", // driver
-      opts.showTyres ? "18px" : "",
+      opts.showTyres ? (anyMixedTyres ? "81px" : "18px") : "",
       opts.showEnergy ? "40px" : "",
       opts.showPits ? "36px" : "",
       opts.showLast ? "70px" : "",

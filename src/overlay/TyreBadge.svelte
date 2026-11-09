@@ -6,29 +6,26 @@
 
   const CORNERS = ["FL", "FR", "RL", "RR"];
   const mixed = $derived(new Set(compounds).size > 1);
-  const style = $derived(compoundStyle(compounds[0] ?? ""));
   const name = $derived(mixed ? compounds.map((c, i) => `${CORNERS[i]} ${c || "?"}`).join(", ") : compounds[0] || "Unknown");
   /** Tread used, in percent. */
   const used = $derived(wear == null ? null : Math.round((1 - wear) * 100));
 </script>
 
+{#snippet badge(compound: string)}
+  {@const style = compoundStyle(compound)}
+  <span
+    class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-black/85 text-[10px] leading-none font-bold"
+    style:border="2.5px solid {style.color}"
+    style:color={style.color}>{style.letter}</span
+  >
+{/snippet}
+
 <span class="inline-flex items-center" title="{name} · {used ?? '?'}% used · {laps} laps">
   {#if mixed}
-    <!-- One cell per corner, laid out like the car seen from above. The backing keeps red cells visible on the red player row. -->
-    <span class="grid h-[18px] w-[18px] grid-cols-2 gap-px rounded-[3px] bg-black p-px">
-      {#each compounds as compound}
-        {@const corner = compoundStyle(compound)}
-        <span
-          class="flex items-center justify-center rounded-[2px] text-[8px] leading-none font-bold text-black"
-          style:background={corner.color}>{corner.letter}</span
-        >
-      {/each}
-    </span>
+    <!-- One badge per corner: the front axle, a wider gap, then the rear axle. -->
+    <span class="flex gap-[2px]">{@render badge(compounds[0])}{@render badge(compounds[1])}</span>
+    <span class="ml-[5px] flex gap-[2px]">{@render badge(compounds[2])}{@render badge(compounds[3])}</span>
   {:else if compounds[0]}
-    <span
-      class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-black/85 text-[10px] leading-none font-bold"
-      style:border="2.5px solid {style.color}"
-      style:color={style.color}>{style.letter}</span
-    >
+    {@render badge(compounds[0])}
   {/if}
 </span>

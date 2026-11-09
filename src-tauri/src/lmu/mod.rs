@@ -211,22 +211,21 @@ fn telem_compounds(t: &TelemInfo) -> [String; 4] {
     let wheels = t.wheels;
     corner_compounds(
         [cstr(&t.front_tire_compound_name), cstr(&t.rear_tire_compound_name)],
-        [t.front_tire_compound_index, t.rear_tire_compound_index],
-        wheels.map(|w| w.compound_index),
+        wheels.map(|w| w.compound_type),
     )
 }
 
-/// The game names one compound per axle, so each corner gets the name whose index it reports.
-/// Per-wheel indices are only trusted when they agree with both axles; otherwise each corner
-/// takes its axle's name.
-fn corner_compounds(names: [String; 2], axle_index: [u8; 2], wheel_index: [u8; 4]) -> [String; 4] {
-    let trusted = (wheel_index[0] == axle_index[0] || wheel_index[1] == axle_index[0])
-        && (wheel_index[2] == axle_index[1] || wheel_index[3] == axle_index[1]);
-    std::array::from_fn(|i| {
-        let axle = usize::from(i >= 2);
-        let other = 1 - axle;
-        let swapped = trusted && wheel_index[i] != axle_index[axle] && wheel_index[i] == axle_index[other];
-        names[if swapped { other } else { axle }].clone()
+/// `mCompoundType` values, indexed by the value.
+const COMPOUND_TYPES: [&str; 4] = ["Soft", "Medium", "Hard", "Wet"];
+
+/// The game names one compound per axle, which cannot describe a set that differs across an axle,
+/// so each corner uses its own type. All zeros means either four softs or no per-wheel data;
+/// the axle names are right in both cases.
+fn corner_compounds(axle_names: [String; 2], wheel_types: [u8; 4]) -> [String; 4] {
+    let reported = wheel_types.iter().any(|&t| t != 0);
+    std::array::from_fn(|i| match COMPOUND_TYPES.get(usize::from(wheel_types[i])) {
+        Some(name) if reported => (*name).to_string(),
+        _ => axle_names[usize::from(i >= 2)].clone(),
     })
 }
 
@@ -356,23 +355,24 @@ mod tests {
         assert_eq!(super::car_number("No number"), "");
     }
 
-    fn compounds(axle: [u8; 2], wheel: [u8; 4]) -> [String; 4] {
-        super::corner_compounds(["Hard".into(), "Medium".into()], axle, wheel)
+    fn compounds(wheel_types: [u8; 4]) -> [String; 4] {
+        super::corner_compounds(["Hard".into(), "Medium".into()], wheel_types)
     }
 
     #[test]
-    fn names_each_axle() {
-        assert_eq!(compounds([2, 1], [2, 2, 1, 1]), ["Hard", "Hard", "Medium", "Medium"]);
+    fn names_each_corner_from_its_own_type() {
+        // A diagonal split, as the game reports it while naming both axles "Medium".
+        assert_eq!(compounds([1, 3, 3, 1]), ["Medium", "Wet", "Wet", "Medium"]);
+        assert_eq!(compounds([2, 2, 0, 1]), ["Hard", "Hard", "Soft", "Medium"]);
     }
 
     #[test]
-    fn names_a_corner_that_differs_across_the_axle() {
-        assert_eq!(compounds([2, 1], [2, 1, 1, 1]), ["Hard", "Medium", "Medium", "Medium"]);
+    fn falls_back_to_axle_names_without_wheel_data() {
+        assert_eq!(compounds([0, 0, 0, 0]), ["Hard", "Hard", "Medium", "Medium"]);
     }
 
     #[test]
-    fn falls_back_to_axle_names_when_wheel_indices_disagree() {
-        // Unset wheel indices must not turn the rear tyres into the front compound.
-        assert_eq!(compounds([0, 1], [0, 0, 0, 0]), ["Hard", "Hard", "Medium", "Medium"]);
+    fn falls_back_to_the_axle_name_for_an_unknown_type() {
+        assert_eq!(compounds([9, 1, 1, 1]), ["Hard", "Medium", "Medium", "Medium"]);
     }
 }
