@@ -11,20 +11,25 @@
   const used = $derived(wear == null ? null : Math.round((1 - wear) * 100));
 </script>
 
-{#snippet badge(compound: string)}
+{#snippet badge(compound: string, small = false)}
   {@const style = compoundStyle(compound)}
   <span
-    class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-black/85 text-[10px] leading-none font-bold"
-    style:border="2.5px solid {style.color}"
+    class={[
+      "inline-flex items-center justify-center rounded-full bg-black/85 leading-none font-bold",
+      small ? "h-2 w-2 text-[6px]" : "h-[18px] w-[18px] text-[10px]",
+    ]}
+    style:border="{small ? 1 : 2.5}px solid {style.color}"
     style:color={style.color}>{style.letter}</span
   >
 {/snippet}
 
-<span class="inline-flex items-center" title="{name} · {used ?? '?'}% used · {laps} laps">
+<!-- Always one badge wide, so the column keeps its width and every car's badges share a centre line. -->
+<span class="flex h-[18px] w-[18px] items-center justify-center" title="{name} · {used ?? '?'}% used · {laps} laps">
   {#if mixed}
-    <!-- One badge per corner: the front axle, a wider gap, then the rear axle. -->
-    <span class="flex gap-[2px]">{@render badge(compounds[0])}{@render badge(compounds[1])}</span>
-    <span class="ml-[5px] flex gap-[2px]">{@render badge(compounds[2])}{@render badge(compounds[3])}</span>
+    <!-- One badge per corner, laid out like the car seen from above: 8 + 2 + 8 fills the single badge's 18px. -->
+    <span class="grid grid-cols-2 gap-[2px]">
+      {#each compounds as compound}{@render badge(compound, true)}{/each}
+    </span>
   {:else if compounds[0]}
     {@render badge(compounds[0])}
   {/if}

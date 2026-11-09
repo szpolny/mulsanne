@@ -5,7 +5,6 @@
   import { pressure, pressureUnit, temp } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
   import type { Wheel } from "../../lib/types";
-  import TyreBadge from "../TyreBadge.svelte";
 
   const live = useLive();
 
@@ -127,8 +126,13 @@
     {#if compounds.some(Boolean)}
       <span class="flex items-center gap-1.5 text-[12px] text-muted">
         {#if mixed}
-          <TyreBadge {compounds} wear={me?.tyreWear ?? null} laps={me?.tyreLaps ?? 0} />
-          Mixed{me ? ` · ${me.tyreLaps} laps` : ""}
+          <!-- One dot per corner, laid out like the car seen from above. -->
+          <span class="grid grid-cols-2 gap-px">
+            {#each compounds as c}
+              <span class="h-1.5 w-1.5 rounded-full" style:background={compoundStyle(c).color}></span>
+            {/each}
+          </span>
+          {[...new Set(compounds)].join("/")}{me ? ` · ${me.tyreLaps} laps` : ""}
         {:else}
           <span class="h-2 w-2 rounded-full" style:background={compound.color}></span>
           {compounds[0]}{me ? ` · ${me.tyreLaps} laps` : ""}
