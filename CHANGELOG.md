@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/szpolny/mulsanne/compare/v0.10.0...v0.11.0) (2026-11-09)
+
+
+### Features
+
+* improve tyre, fuel saver and relative estimates ([#29](https://github.com/szpolny/mulsanne/issues/29)) ([ea40968](https://github.com/szpolny/mulsanne/commit/ea4096830ae5d22b89f6b01c2e75eb79ea55ca3f)), closes [#28](https://github.com/szpolny/mulsanne/issues/28)
+
 ## [0.10.0](https://github.com/szpolny/mulsanne/compare/v0.9.0...v0.10.0) (2026-11-08)
 
 
