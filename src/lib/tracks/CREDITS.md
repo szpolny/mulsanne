@@ -23,6 +23,7 @@ Outlines are drawn in a 100-unit box. Those marked OpenStreetMap were traced fro
 | `silverstone` | [f1-circuits](https://github.com/bacinger/f1-circuits) by Tomislav Bacinger, MIT License, via [Outlap](https://github.com/szpolny/outlap) |
 | `barcelona` | [f1-circuits](https://github.com/bacinger/f1-circuits) by Tomislav Bacinger, MIT License, via [Outlap](https://github.com/szpolny/outlap) |
 | `laguna-seca` | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL, via [Outlap](https://github.com/szpolny/outlap) |
+| `road-america` | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL |
 
 ## f1-circuits licence
 

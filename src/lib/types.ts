@@ -415,6 +415,8 @@ export interface LeaderboardEntry {
   driver: string | null;
   car: string;
   vehicleName: string;
+  /** The livery's `.VEH` file name, keying the game's car renders; empty for laps uploaded without it. */
+  vehFile: string;
   sessionType: string;
   /** LMU build number, when known. */
   gameVersion: number | null;

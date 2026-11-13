@@ -19,6 +19,17 @@ fn err<E: std::fmt::Display>(e: E) -> String {
     e.to_string()
 }
 
+/// A `.VEH` name the server accepts as a livery key; anything else goes up as unknown
+/// rather than getting the lap rejected.
+fn livery_key(veh_file: String) -> String {
+    let ok = veh_file.len() <= 64 && veh_file.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+    if ok {
+        veh_file
+    } else {
+        String::new()
+    }
+}
+
 /// Per-lap telemetry, one entry per sample in every column.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -551,7 +562,7 @@ impl Db {
             .query_row(
                 &format!(
                     "SELECT u.lap_id, u.anonymous, s.track, s.track_length, s.car, s.vehicle_name, s.car_class, s.session_type, s.game_version,
-                            l.lap_time, l.s1, l.s2, l.s3, l.fuel_used, l.ve_used, l.max_speed, l.recorded_at
+                            l.lap_time, l.s1, l.s2, l.s3, l.fuel_used, l.ve_used, l.max_speed, l.recorded_at, s.veh_file
                      FROM lap_uploads u JOIN laps l ON l.id = u.lap_id JOIN sessions s ON s.id = l.session_id
                      WHERE {UPLOADABLE} AND (u.status = 'queued'
                         OR (u.status = 'failed' AND u.attempts < ?2 AND u.updated_at + 60 * (1 << (u.attempts - 1)) <= ?1))
@@ -579,6 +590,7 @@ impl Db {
                             max_speed: r.get(15)?,
                             recorded_at: r.get(16)?,
                             app_version: app_version.to_owned(),
+                            veh_file: livery_key(r.get(17)?),
                         },
                     })
                 },
@@ -707,6 +719,13 @@ pub fn track_map_from_trace(track: &str, length: f64, trace: &LapTrace, spacing:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_safe_veh_names_go_up_as_livery_keys() {
+        assert_eq!(livery_key("83_26_AFCO45368276".into()), "83_26_AFCO45368276");
+        assert_eq!(livery_key("../UI".into()), "");
+        assert_eq!(livery_key("x".repeat(65)), "");
+    }
 
     fn session(id: i64) -> SessionRecord {
         SessionRecord {

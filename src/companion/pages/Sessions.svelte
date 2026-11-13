@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
-  import { dateTime, lapTime } from "../../lib/format";
+  import { classLabel, dateTime, lapTime } from "../../lib/format";
   import type { Filters, LapRecord, SessionSummary } from "../../lib/types";
   import { config } from "../../lib/config.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
@@ -115,7 +115,7 @@
         <TrackHero track={current.track} file={current.vehFile} alt={current.car}>
           <h1 class="page-title">{current.track}</h1>
           <div class="text-sm text-muted">
-            {current.car} ({current.carClass}) · {current.sessionType}
+            {current.car} ({classLabel(current.carClass)}) · {current.sessionType}
           </div>
           <div class="text-sm text-faint">
             {dateTime(current.startedAt)}{current.gameVersion ? ` · game version ${current.gameVersion}` : ""}
