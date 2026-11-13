@@ -3,7 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { api } from "../../lib/api";
   import { config } from "../../lib/config.svelte";
-  import { delta, fuel, fuelUnit, lapTime, sessionLabel, speed, speedUnit } from "../../lib/format";
+  import { classLabel, delta, fuel, fuelUnit, lapTime, sessionLabel, speed, speedUnit } from "../../lib/format";
   import { live } from "../../lib/live.svelte";
   import type { LapRecord, LapRecordedEvent, SessionSummary } from "../../lib/types";
   import CarLogo from "../../overlay/CarLogo.svelte";
@@ -69,7 +69,7 @@
           <div class="mt-1 flex items-center gap-2 text-sm text-muted">
             {#if p}
               <CarLogo model={p.vehicleModel} entry={p.vehicleName} size={15} />
-              {p.vehicleModel || p.vehicleName} · {p.vehicleClass}
+              {p.vehicleModel || p.vehicleName} · {classLabel(p.vehicleClass)}
             {:else}Not in car{/if}
           </div>
         </TrackHero>

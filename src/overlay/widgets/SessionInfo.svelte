@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Units } from "../../lib/config.svelte";
-  import { classColor, clock, sessionLabel, timeOfDay } from "../../lib/format";
+  import { classColor, classLabel, clock, sessionLabel, timeOfDay } from "../../lib/format";
   import { useLive } from "../../lib/live.svelte";
 
   const live = useLive();
@@ -29,7 +29,7 @@
   {#if me}
     <div>
       <div class="hud-label flex items-center gap-1.5">
-        <span class="h-2 w-2 rounded-full" style:background={classColor(me.class)}></span>{me.class}
+        <span class="h-2 w-2 rounded-full" style:background={classColor(me.class)}></span>{classLabel(me.class)}
       </div>
       <div class="hud-value mt-1 text-[22px]">P{me.classPlace}<span class="text-[14px] text-muted"> / {classSize}</span></div>
     </div>

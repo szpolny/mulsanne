@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
-  import { classColor, dateTime, lapTime, sectorTime } from "../../lib/format";
+  import { classColor, classLabel, dateTime, lapTime, sectorTime } from "../../lib/format";
   import type { PersonalBest } from "../../lib/types";
   import { config } from "../../lib/config.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
@@ -65,7 +65,7 @@
               <td class="w-2 py-2 pl-4"><span class="block h-4 w-1 rounded-full" style:background={classColor(b.carClass)}></span></td>
               <td class="px-3 py-2">
                 <div>{b.car}</div>
-                <div class="text-xs text-muted">{b.carClass} · {b.lapCount} clean laps</div>
+                <div class="text-xs text-muted">{classLabel(b.carClass)} · {b.lapCount} clean laps</div>
               </td>
               <td class="px-3 py-2 text-lg font-semibold text-best">{lapTime(b.lapTime)}</td>
               <td class="px-3 py-2 text-muted">{sectorTime(b.s1)} · {sectorTime(b.s2)} · {sectorTime(b.s3)}</td>

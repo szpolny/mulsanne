@@ -22,6 +22,7 @@ const MATCHERS: [RegExp, string][] = [
   [/barcelona|catalunya/, "barcelona"],
   [/laguna/, "laguna-seca"],
   [/long ?beach/, "long-beach"],
+  [/road ?america|elkhart/, "road-america"],
 ];
 
 /** Finds the outline for a track name as LMU or RaceControl writes it. */

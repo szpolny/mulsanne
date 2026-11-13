@@ -127,6 +127,22 @@ export function classColor(cls: string): string {
   return "#8b8d98";
 }
 
+/** Class name for display: LMU's series-spec variants ("LMP2_ELMS") read as the class itself ("LMP2"). */
+export function classLabel(cls: string): string {
+  return cls.replace(/_ELMS$/i, "").replace(/_/g, " ");
+}
+
+/** Sort key for classes, fastest first. */
+export function classOrder(cls: string): number {
+  const c = cls.toLowerCase();
+  if (c.includes("hyper") || c.includes("lmh") || c.includes("lmdh")) return 0;
+  if (c.includes("lmp2")) return c.includes("elms") ? 2 : 1;
+  if (c.includes("lmp3")) return 3;
+  if (c.includes("gte")) return 4;
+  if (c.includes("gt3")) return 5;
+  return 6;
+}
+
 /** Short badge text for a car's next penalty: "S/G 10s", "DT", "PEN"; "+1" when more are waiting. */
 export function penaltyBadge(v: Vehicle): string {
   const p = v.penalties[0];

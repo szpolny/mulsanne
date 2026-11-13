@@ -134,7 +134,17 @@ export async function install() {
           return;
         case "leaderboard_boards": {
           const pbs: any[] = fx.personalBests;
-          return pbs.map((b) => ({ track: b.track, carClass: b.carClass, drivers: 12, bestLap: b.lapTime - 1.234, gameVersions: [1124, 1123] }));
+          const own = pbs.map((b) => ({ track: b.track, carClass: b.carClass, drivers: 12, bestLap: b.lapTime - 1.234, gameVersions: [1124, 1123] }));
+          // The server sends one board per track and class, in no particular order.
+          const extra = [
+            ["Road America", "GT3", 128.4],
+            ["Road America", "LMP2_ELMS", 114.9],
+            ["Road America", "Hypercar", 110.2],
+            ["Autodromo Nazionale Monza", "LMP2", 99.8],
+            ["Autodromo Nazionale Monza", "LMP2_ELMS", 98.9],
+            ["Autodromo Nazionale Monza", "GT3", 106.1],
+          ].map(([track, carClass, bestLap]) => ({ track, carClass, drivers: 4, bestLap, gameVersions: [1124] }));
+          return [...extra.slice(3), ...own, ...extra.slice(0, 3)];
         }
         case "leaderboard": {
           const q = args.query;
@@ -143,7 +153,9 @@ export async function install() {
           const entries = names.map((driver, i) => {
             const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
             return {
-              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car", vehicleName: "", sessionType: i % 2 ? "Race" : "Practice",
+              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car", vehicleName: "",
+              // Older uploads carry no livery.
+              vehFile: i % 3 === 2 ? "" : ["83_26_AFCO45368276", "51_25_AFCO7A98A690"][i % 3], sessionType: i % 2 ? "Race" : "Practice",
               gameVersion: i < 5 ? 1124 : 1123,
               hasTrace: i !== 2,
               lapTime: t, s1: t * 0.3, s2: t * 0.4, s3: t * 0.3, recordedAt: Math.floor(Date.now() / 1000) - i * 86400,
