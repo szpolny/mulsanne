@@ -6,6 +6,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap, UploadState};
 use crate::engine::PreviewSim;
+use crate::live_share::ShareStatus;
 use crate::model::Snapshot;
 use crate::online::{BoardSummary, Leaderboard, LeaderboardQuery, Me};
 use crate::schedule::Schedule;
@@ -264,10 +265,37 @@ pub async fn online_set_display_name(state: State<'_, AppState>, display_name: O
 
 #[tauri::command]
 pub async fn online_delete_data(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    crate::live_share::stop(&app).await;
     crate::online::delete_data(&state.data_dir).await?;
     state.db.clear_uploads()?;
     let _ = app.emit("lap-uploads-changed", ());
     Ok(())
+}
+
+/// Starts sharing live timing; returns the viewer link.
+#[tauri::command]
+pub async fn live_share_start(app: AppHandle) -> CmdResult<ShareStatus> {
+    crate::live_share::start(&app).await
+}
+
+#[tauri::command]
+pub async fn live_share_stop(app: AppHandle) -> CmdResult<()> {
+    crate::live_share::stop(&app).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn live_share_status(state: State<AppState>) -> Option<ShareStatus> {
+    state.live.status()
+}
+
+/// Opens the open share's viewer page in the default browser. The URL comes
+/// from Rust, so the webview needs no opener permission for it.
+#[tauri::command]
+pub fn live_share_open(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
+    use tauri_plugin_opener::OpenerExt;
+    let status = state.live.status().ok_or("Not sharing")?;
+    app.opener().open_url(status.url, None::<&str>).map_err(|e| e.to_string())
 }
 
 /// Queues laps for the online rankings. Returns how many qualified.

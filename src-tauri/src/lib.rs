@@ -4,6 +4,7 @@ mod damage;
 pub mod db;
 pub mod demo;
 mod engine;
+mod live_share;
 #[cfg(target_os = "linux")]
 mod viewport;
 pub mod lmu;
@@ -30,6 +31,8 @@ pub struct AppState {
     pub preview: Mutex<Option<engine::PreviewSim>>,
     /// Wakes the lap uploader after laps are queued.
     pub uploads: Arc<tokio::sync::Notify>,
+    /// The open live timing share, if any.
+    pub live: live_share::LiveShare,
     /// Monitor the overlay currently covers, as stored in `general.monitor` ("" = primary).
     pub overlay_monitor: Mutex<String>,
 }
@@ -194,6 +197,7 @@ pub fn run() {
                 overlay_visible: AtomicBool::new(true),
                 preview: Mutex::new(None),
                 uploads: uploads.clone(),
+                live: Default::default(),
                 overlay_monitor: Mutex::new(String::new()),
             });
 
@@ -249,6 +253,10 @@ pub fn run() {
             commands::leaderboard,
             commands::leaderboard_boards,
             commands::ranked_lap_trace,
+            commands::live_share_start,
+            commands::live_share_stop,
+            commands::live_share_status,
+            commands::live_share_open,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
