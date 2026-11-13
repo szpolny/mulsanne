@@ -5,8 +5,8 @@
 //! Sharing is part of the online features: it needs them turned on and uses
 //! the same signed identity. It sends the session, the whole field's timing
 //! and positions, the player's car status, and the track outline, as
-//! [`frame`] and [`map`] build them. The viewer page in `mulsanne-web` reads
-//! the same shape (`src/lib/live.ts` there); bump [`FRAME_VERSION`] when
+//! [`frame`] and [`map`] build them. The viewer page on mulsanne.xyz reads
+//! the same shape; bump [`FRAME_VERSION`] when
 //! changing it incompatibly.
 
 use std::sync::{Arc, Mutex};
