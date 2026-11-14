@@ -20,8 +20,10 @@ permissions:
 
 jobs:
   nix:
+    # Release PRs only bump version numbers, which can't break the Nix build.
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
-      - run: nix build .#mulsanne
+      - run: nix build --print-build-logs .#mulsanne
