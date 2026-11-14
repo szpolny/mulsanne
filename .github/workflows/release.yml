@@ -86,18 +86,23 @@ jobs:
           releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
           includeUpdaterJson: true
 
-      - name: Build the Wine bridge
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
+  # The Linux packages only need the Wine bridge, so building it on its own lets
+  # the Linux job start without waiting for the whole Windows installer.
+  bridge:
+    needs: [release-please, check-api]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
       - uses: actions/upload-artifact@v4
         with:
           name: lmu-bridge
           path: lmu-bridge/target/release/lmu-bridge.exe
 
   linux:
-    needs: [release-please, build]
+    needs: [release-please, bridge]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-22.04
     steps:
