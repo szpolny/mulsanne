@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/szpolny/mulsanne/compare/v0.11.0...v0.12.0) (2026-11-14)
+
+
+### Features
+
+* redesign rankings with a podium and car liveries ([#31](https://github.com/szpolny/mulsanne/issues/31)) ([3c28b60](https://github.com/szpolny/mulsanne/commit/3c28b601c1bd72ad2a8f7b721cfb65207ca723ae))
+
+
+### Bug Fixes
+
+* confirm deletes in an in-app dialog ([#35](https://github.com/szpolny/mulsanne/issues/35)) ([f46cd6b](https://github.com/szpolny/mulsanne/commit/f46cd6ba04f79799314274f9fb9b3aca58441206))
+* open the privacy notice from online settings ([#34](https://github.com/szpolny/mulsanne/issues/34)) ([348f58f](https://github.com/szpolny/mulsanne/commit/348f58f1a7c16c29ff168cea87200a32f122e626))
+
 ## [0.11.0](https://github.com/szpolny/mulsanne/compare/v0.10.0...v0.11.0) (2026-11-09)
 
 
