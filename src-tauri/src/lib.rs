@@ -172,7 +172,8 @@ pub fn run() {
 
             let db = Arc::new(db::Db::open(&data_dir.join("laps.db")).map_err(|e| format!("database: {e}"))?);
             let shared = Arc::new(engine::Shared::new());
-            *shared.game_dir.write().unwrap_or_else(|e| e.into_inner()) = car_render::load_game_dir(&data_dir);
+            *shared.game_dir.write().unwrap_or_else(|e| e.into_inner()) =
+                car_render::load_game_dir(&data_dir).or_else(car_render::find_steam_install);
             let config_path = config_dir.join("config.json");
             let uploads = Arc::new(tokio::sync::Notify::new());
 
