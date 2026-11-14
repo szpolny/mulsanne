@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1](https://github.com/szpolny/mulsanne/compare/v0.12.0...v0.12.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* find the game in Steam to show car renders ([#37](https://github.com/szpolny/mulsanne/issues/37)) ([9267d28](https://github.com/szpolny/mulsanne/commit/9267d282b4ea3c9da60686a399100b3906944323))
+* show team liveries for ranked laps uploaded without one ([#39](https://github.com/szpolny/mulsanne/issues/39)) ([7a70c04](https://github.com/szpolny/mulsanne/commit/7a70c0434d400a3ddc866bc5f33d919a4fa83a43))
+
 ## [0.12.0](https://github.com/szpolny/mulsanne/compare/v0.11.0...v0.12.0) (2026-11-14)
 
 
