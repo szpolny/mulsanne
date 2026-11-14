@@ -213,6 +213,16 @@ pub fn get_lap_trace(state: State<AppState>, lap_id: i64) -> CmdResult<LapTrace>
     state.db.lap_trace(lap_id)
 }
 
+/// Liveries the game has renders for; empty while the game folder is unknown.
+#[tauri::command]
+pub async fn car_liveries(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
+    let dir = state.shared.game_dir.read().unwrap_or_else(|e| e.into_inner()).clone();
+    let Some(dir) = dir else { return Ok(Vec::new()) };
+    tauri::async_runtime::spawn_blocking(move || crate::car_render::livery_names(&dir))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn personal_bests(state: State<AppState>) -> CmdResult<Vec<PersonalBest>> {
     state.db.personal_bests()

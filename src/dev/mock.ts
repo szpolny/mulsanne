@@ -132,6 +132,8 @@ export async function install() {
           uploadStates.delete(args.lapId);
           emit("lap-uploads-changed", null);
           return;
+        case "car_liveries":
+          return ["36_26_ALPI20490502", "51_25_AFCO7A98A690", "83_26_AFCO45368276"];
         case "leaderboard_boards": {
           const pbs: any[] = fx.personalBests;
           const own = pbs.map((b) => ({ track: b.track, carClass: b.carClass, drivers: 12, bestLap: b.lapTime - 1.234, gameVersions: [1124, 1123] }));
@@ -153,8 +155,9 @@ export async function install() {
           const entries = names.map((driver, i) => {
             const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
             return {
-              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car", vehicleName: "",
-              // Older uploads carry no livery.
+              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car",
+              // Older uploads carry no livery file, only the vehicle name.
+              vehicleName: i % 3 === 2 ? "AF Corse 2026 #83:LM" : "",
               vehFile: i % 3 === 2 ? "" : ["83_26_AFCO45368276", "51_25_AFCO7A98A690"][i % 3], sessionType: i % 2 ? "Race" : "Practice",
               gameVersion: i < 5 ? 1124 : 1123,
               hasTrace: i !== 2,

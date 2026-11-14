@@ -250,6 +250,7 @@ pub fn run() {
             commands::leaderboard,
             commands::leaderboard_boards,
             commands::ranked_lap_trace,
+            commands::car_liveries,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

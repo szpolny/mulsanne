@@ -112,6 +112,26 @@ fn entry_name(path: &str) -> Option<String> {
     Some(format!("start\\images\\cars\\{folder}\\{veh}_{suffix}.webp"))
 }
 
+/// Every livery the game has a render for, e.g. `36_26_ALPI20490502`.
+pub fn livery_names(game_dir: &Path) -> Vec<String> {
+    list_liveries(&game_dir.join("Bin").join("UI.zip")).unwrap_or_default()
+}
+
+fn list_liveries(archive_path: &Path) -> Option<Vec<String>> {
+    let archive = zip::ZipArchive::new(BufReader::new(File::open(archive_path).ok()?)).ok()?;
+    let mut names: Vec<String> = archive
+        .file_names()
+        .filter_map(|name| {
+            let veh = name
+                .strip_prefix("start\\images\\cars\\FrontThumbnail\\")?
+                .strip_suffix("_frontAngle.webp")?;
+            Some(veh.to_owned())
+        })
+        .collect();
+    names.sort();
+    Some(names)
+}
+
 fn read_entry(archive_path: &Path, entry: &str) -> Option<Vec<u8>> {
     // Opened per request: keeping it open would stop Steam replacing the file in a game update.
     let file = File::open(archive_path).ok()?;
@@ -214,24 +234,22 @@ mod tests {
     }
 
     #[test]
+    fn lists_liveries_that_have_a_thumbnail() {
+        let path = std::env::temp_dir().join(format!("mulsanne-liveries-{}.zip", std::process::id()));
+        let mut zip = zip::ZipWriter::new(File::create(&path).unwrap());
+        for view in ["/thumb.36_26_ALPI20490502", "/thumb.12_26_JOTA50003117", "/top.7_26_TOYOT18793560"] {
+            zip.start_file(entry_name(view).unwrap().as_str(), zip::write::SimpleFileOptions::default()).unwrap();
+        }
+        zip.finish().unwrap();
+
+        assert_eq!(list_liveries(&path), Some(vec!["12_26_JOTA50003117".to_owned(), "36_26_ALPI20490502".to_owned()]));
+        assert_eq!(list_liveries(Path::new("/nonexistent/UI.zip")), None);
+        std::fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
     fn missing_game_dir_file_means_unknown() {
         assert_eq!(load_game_dir(Path::new("/nonexistent/mulsanne")), None);
     }
 }
 
-#[cfg(test)]
-mod probe {
-    #[test]
-    #[ignore]
-    fn probe_real_install() {
-        let dir = super::find_steam_install();
-        eprintln!("dir {dir:?}");
-        let dir = dir.unwrap();
-        for p in ["/front.397_26_ALPINE", "/thumb.397_26_VLMDH"] {
-            let e = super::entry_name(p).unwrap();
-            let t = std::time::Instant::now();
-            let r = super::read_entry(&dir.join("Bin").join("UI.zip"), &e);
-            eprintln!("{p} -> {:?} in {:?}", r.map(|b| b.len()), t.elapsed());
-        }
-    }
-}
