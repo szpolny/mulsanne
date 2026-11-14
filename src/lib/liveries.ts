@@ -66,7 +66,66 @@ export function plainLiveries(car: string, carClass = "", vehicleName = ""): str
   return seasons.map((s) => `397_${s}_${code}`);
 }
 
-/** The lap's own livery first, then plain ones of the same model. */
-export function liveryCandidates(vehFile: string | null | undefined, car: string, carClass = "", vehicleName = ""): string[] {
-  return [...(vehFile ? [vehFile] : []), ...plainLiveries(car, carClass, vehicleName)];
+/**
+ * The lap's own livery first, then the one its vehicle name points to (laps
+ * uploaded before liveries were sent have only the name), then plain ones of
+ * the same model. `names` are the renders the game has.
+ */
+export function liveryCandidates(
+  vehFile: string | null | undefined,
+  car: string,
+  carClass = "",
+  vehicleName = "",
+  names: readonly string[] = [],
+): string[] {
+  const named = liveryForVehicle(vehicleName, names);
+  return [...new Set([...(vehFile ? [vehFile] : []), ...(named ? [named] : []), ...plainLiveries(car, carClass, vehicleName)])];
+}
+
+/**
+ * The game's render of a livery from its vehicle name, for laps uploaded
+ * without the livery file. `names` are the renders the game has, e.g.
+ * `36_26_ALPI20490502` for "Alpine Endurance Team 2026 #36:WEC": the car
+ * number, the season and a team code, then a hash. 2023 liveries carry no
+ * season (`83_AFCORSE7FBCECA5`).
+ */
+export function liveryForVehicle(vehicleName: string | null | undefined, names: readonly string[]): string | null {
+  const m = /^(.+?)\s+(?:20(\d\d)\s+)?#(\d+)\b/.exec(vehicleName ?? "");
+  if (!m) return null;
+  const [, team, season, number] = m;
+  const words = team
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  const pick = (prefix: string, rest: RegExp) =>
+    names.find((n) => n.startsWith(prefix) && rest.test(n.slice(prefix.length)) && teamMatches(teamCode(n.slice(prefix.length)), words)) ?? null;
+  return (
+    (season ? pick(`${number}_${season}_`, /^[A-Z]/) : null) ??
+    (!season || season === "23" ? pick(`${number}_`, /^[A-Z]/) : null)
+  );
+}
+
+/** "JOTAA5525C5E" -> "jota", "UNITED_18140FB8" -> "united". */
+function teamCode(rest: string): string {
+  const code = /^(.*?)_?[0-9A-F]{8}$/.exec(rest)?.[1] || /^[A-Z]+/.exec(rest)?.[0] || "";
+  return code.replace(/_+$/, "").toLowerCase();
+}
+
+/** Whether a team code abbreviates the team: "rsl" for Racing Spirit of Léman, "thor" for (The) Heart of Racing. */
+function teamMatches(code: string, words: readonly string[]): boolean {
+  if (!code) return false;
+  return abbreviates(code, words, 0) || (code.length > 3 && code.startsWith("t") && abbreviates(code.slice(1), words, 0));
+}
+
+/** Each piece of `code` is the start of a word, in order; words may be skipped. */
+function abbreviates(code: string, words: readonly string[], from: number): boolean {
+  if (!code) return true;
+  for (let i = from; i < words.length; i++) {
+    for (let n = Math.min(code.length, words[i].length); n > 0; n--) {
+      if (words[i].startsWith(code.slice(0, n)) && abbreviates(code.slice(n), words, i + 1)) return true;
+    }
+  }
+  return false;
 }
