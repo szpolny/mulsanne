@@ -56,5 +56,13 @@ fn main() {
         "filters": db.filters().unwrap(),
     });
     std::fs::write(out.join("fixtures.json"), serde_json::to_string(&fixtures).unwrap()).unwrap();
+
+    // One shared live timing frame and map, for previewing mulsanne.xyz/live
+    let track_map = db.track_map(lm_overlay_lib::demo::TRACK_NAME).unwrap().expect("demo track map");
+    let live = json!({
+        "frame": lm_overlay_lib::live_share::frame(frames.last().unwrap()),
+        "map": lm_overlay_lib::live_share::map(&track_map),
+    });
+    std::fs::write(out.join("live.json"), serde_json::to_string(&live).unwrap()).unwrap();
     println!("{} frames, {} laps", frames.len(), laps.len());
 }

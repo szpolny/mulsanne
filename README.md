@@ -22,7 +22,7 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 
 ## Screenshots
 
-<img alt="Mulsanne overlay with standings, relative gaps, fuel, tyres and a track map" src="docs/screenshots/overlay.png">
+<img alt="Mulsanne overlay with standings, relative gaps, fuel, tyres and a track map" src="docs/screenshots/overlay.jpg">
 
 <details>
 <summary><strong>More screenshots</strong></summary>
@@ -35,7 +35,7 @@ Website: [mulsanne.xyz](https://mulsanne.xyz)
 
 </details>
 
-Screenshots use the built-in demo data.
+Screenshots use the built-in demo data, shown as a session at Le Mans (`?screenshot` in the browser preview), with car renders from a Le Mans Ultimate install.
 
 ## Use
 

@@ -4,7 +4,7 @@ mod damage;
 pub mod db;
 pub mod demo;
 mod engine;
-mod live_share;
+pub mod live_share;
 #[cfg(target_os = "linux")]
 mod viewport;
 pub mod lmu;

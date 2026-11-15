@@ -177,30 +177,43 @@ pub struct DemoSim {
 impl DemoSim {
     pub fn new() -> Self {
         let classes = [("Hypercar", 1.0), ("LMP2", 0.93), ("LMP3", 0.88), ("LMGT3", 0.85)];
-        let names = [
-            "A. Laurent", "M. Rossi", "K. Tanaka", "J. Smith", "L. Novak", "P. Silva", "D. Müller", "S. Kowalski",
-            "R. Jensen", "T. Dubois", "E. García", "N. Ivanov", "C. Brown", "F. Moreau", "H. Schmidt", "Y. Sato",
-            "O. Nilsen", "G. Ricci", "B. Wilson", "V. Petrov",
-        ];
-        let cars = [
-            ["Toyota GR010", "Porsche 963", "Ferrari 499P", "Cadillac V-Series.R", "BMW M Hybrid V8", "Alpine A424"],
-            ["Oreca 07", "Oreca 07", "Oreca 07", "Oreca 07", "Oreca 07", "Oreca 07"],
-            ["Ligier JS P325", "Duqueine D09", "Ginetta G61-LT-P3 Evo", "ADESS AD25", "Ligier JS P325", "Duqueine D09"],
-            ["Porsche 911 GT3 R", "Ferrari 296 GT3", "BMW M4 GT3", "Corvette Z06 GT3.R", "Aston Martin Vantage", "Lexus RC F GT3"],
+        // A Le Mans grid: WEC regulars in their own cars, and Le Mans legends
+        // having a go in LMP3. The player is Kubica in the #83 Ferrari.
+        let roster = [
+            ("K. Kobayashi", 7, "Toyota GR010"),
+            ("K. Estre", 6, "Porsche 963"),
+            ("A. Pier Guidi", 51, "Ferrari 499P"),
+            ("E. Bamber", 38, "Cadillac V-Series.R"),
+            ("S. van der Linde", 20, "BMW M Hybrid V8"),
+            ("O. Jarvis", 22, "Oreca 07"),
+            ("P. Fittipaldi", 28, "Oreca 07"),
+            ("F. Albuquerque", 23, "Oreca 07"),
+            ("B. Hanley", 10, "Oreca 07"),
+            ("D. Heinemeier Hansson", 34, "Oreca 07"),
+            ("J. Ickx", 11, "Ligier JS P325"),
+            ("T. Kristensen", 15, "Duqueine D09"),
+            ("D. Bell", 17, "Ginetta G61-LT-P3 Evo"),
+            ("H. Pescarolo", 9, "ADESS AD25"),
+            ("E. Pirro", 5, "Ligier JS P325"),
+            ("V. Rossi", 46, "BMW M4 GT3"),
+            ("R. Lietz", 92, "Porsche 911 GT3 R"),
+            ("A. Rovera", 21, "Ferrari 296 GT3"),
+            ("B. Keating", 33, "Corvette Z06 GT3.R"),
+            ("I. James", 27, "Aston Martin Vantage"),
         ];
         let track = Track::generate();
         let mut opponents = Vec::new();
-        for (i, name) in names.iter().enumerate() {
-            let class_idx = i * classes.len() / names.len();
+        for (i, &(name, number, car)) in roster.iter().enumerate() {
+            let class_idx = i * classes.len() / roster.len();
             let (class, pace) = classes[class_idx];
             let pace = pace * (0.985 + (i as f64 * 0.37).sin().abs() * 0.025);
             opponents.push(Opponent {
                 id: i as i32 + 2,
                 driver: name.to_string(),
-                vehicle: format!("#{} {}", 10 + i * 3, cars[class_idx][i % 6]),
+                vehicle: format!("#{number} {car}"),
                 class,
                 pace,
-                progress: track.length * (1.0 - i as f64 / names.len() as f64) * 0.97,
+                progress: track.length * (1.0 - i as f64 / roster.len() as f64) * 0.97,
                 laps: 0,
                 best: 0.0,
                 last: 0.0,
@@ -503,7 +516,7 @@ impl DemoSim {
                 end_et: SESSION_LENGTH,
                 time_remaining: remaining,
                 max_laps: i32::MAX,
-                time_of_day: 14.0 * 3600.0 + self.time,
+                time_of_day: 16.0 * 3600.0 + self.time, // the Le Mans start time
                 yellow_flag_state: 0,
                 sector_yellow: [false; 3],
                 sector_flags_raw: [11; 3],
