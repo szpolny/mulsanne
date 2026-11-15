@@ -3,6 +3,9 @@ import { api } from "./api";
 
 export type Units = "metric" | "imperial";
 
+/** Must match the defaults in src-tauri/src/shortcuts.rs. */
+export const DEFAULT_SHORTCUTS = { edit: "Ctrl+Shift+F9", visibility: "Ctrl+Shift+F10" } as const;
+
 export type OptionDef =
   | { key: string; label: string; type: "number"; min: number; max: number; step: number }
   | { key: string; label: string; type: "boolean" }
@@ -53,6 +56,10 @@ export interface AppConfig {
     opacity: number;
     /** Name of the monitor the overlay covers; "" for the primary monitor. */
     monitor: string;
+    /** Global shortcut that toggles the layout editor, e.g. "Ctrl+Shift+F9". */
+    editShortcut: string;
+    /** Global shortcut that shows or hides the overlay. */
+    visibilityShortcut: string;
   };
   /** Lap rankings and car setup sharing. Off until the user opts in. */
   online: {
@@ -307,7 +314,7 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", launches: 0, starPromptDone: false, snap: 4, scale: 1, opacity: 0.92, monitor: "" },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", launches: 0, starPromptDone: false, snap: 4, scale: 1, opacity: 0.92, monitor: "", editShortcut: DEFAULT_SHORTCUTS.edit, visibilityShortcut: DEFAULT_SHORTCUTS.visibility },
     online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",

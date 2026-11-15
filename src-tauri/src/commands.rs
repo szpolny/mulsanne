@@ -136,6 +136,13 @@ pub fn set_overlay_visible(app: AppHandle, visible: bool) {
     apply_overlay_visible(&app, visible);
 }
 
+/// Binds the "edit" or "visibility" action to a new global shortcut.
+#[tauri::command]
+pub fn set_shortcut(app: AppHandle, action: String, accelerator: String) -> CmdResult<()> {
+    let action = crate::shortcuts::Action::parse(&action).ok_or("unknown shortcut action")?;
+    crate::shortcuts::set(&app, action, &accelerator)
+}
+
 #[tauri::command]
 pub fn set_demo_mode(app: AppHandle, state: State<AppState>, enabled: bool) {
     state.shared.demo.store(enabled, Ordering::Release);
