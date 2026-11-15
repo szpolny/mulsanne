@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/szpolny/mulsanne/compare/v0.13.0...v0.14.0) (2026-11-15)
+
+
+### Features
+
+* send every corner's tyre compound in live timing ([#42](https://github.com/szpolny/mulsanne/issues/42)) ([fd5b0da](https://github.com/szpolny/mulsanne/commit/fd5b0daae9ee171e14af6eef255a33cd266dd48a))
+
 ## [0.13.0](https://github.com/szpolny/mulsanne/compare/v0.12.1...v0.13.0) (2026-11-15)
 
 
