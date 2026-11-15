@@ -256,6 +256,8 @@ fn vehicle(v: &Vehicle) -> Value {
         "x": r(v.pos[0], 1),
         "z": r(v.pos[2], 1),
         "tyre": v.tyre_compounds[0],
+        // FL, FR, RL, RR; `tyre` (front left) stays for viewers that predate this.
+        "tyreCompounds": v.tyre_compounds,
         "tyreWear": opt(v.tyre_wear, 3),
         "tyreLaps": v.tyre_laps,
         "energy": opt(v.virtual_energy, 3),
@@ -420,6 +422,15 @@ mod tests {
         assert!(bytes < 48 * 1024, "frame is {bytes} bytes");
         assert!(snap.player.is_some());
         assert_eq!(frame(&snap)["v"], FRAME_VERSION);
+    }
+
+    #[test]
+    fn every_corner_compound_is_sent() {
+        let mut snap = DemoSim::new().step(0.1);
+        snap.vehicles[0].tyre_compounds = ["Soft".into(), "Medium".into(), "Medium".into(), "Medium".into()];
+        let v = &frame(&snap)["vehicles"][0];
+        assert_eq!(v["tyreCompounds"], json!(["Soft", "Medium", "Medium", "Medium"]));
+        assert_eq!(v["tyre"], "Soft");
     }
 
     #[test]
