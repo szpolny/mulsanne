@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/szpolny/mulsanne/compare/v0.12.1...v0.13.0) (2026-11-15)
+
+
+### Features
+
+* share live timing with a link ([#33](https://github.com/szpolny/mulsanne/issues/33)) ([b44abc3](https://github.com/szpolny/mulsanne/commit/b44abc399cca0e99b2dd9cad47e2b7e8bdddb8f5))
+
 ## [0.12.1](https://github.com/szpolny/mulsanne/compare/v0.12.0...v0.12.1) (2026-11-14)
 
 
