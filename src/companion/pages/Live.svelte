@@ -112,8 +112,8 @@
           {live.status.editMode ? "Finish editing layout" : "Edit overlay layout"}
         </button>
         <div class="text-xs leading-relaxed text-muted">
-          <kbd class="kbd">Ctrl+Shift+F9</kbd> edit layout<br />
-          <kbd class="kbd">Ctrl+Shift+F10</kbd> show / hide
+          <kbd class="kbd">{config.value.general.editShortcut}</kbd> edit layout<br />
+          <kbd class="kbd">{config.value.general.visibilityShortcut}</kbd> show / hide
         </div>
       </section>
       <LiveShare />

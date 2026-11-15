@@ -12,13 +12,13 @@ pub mod model;
 pub mod online;
 pub mod recorder;
 pub mod schedule;
+mod shortcuts;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder, WindowEvent};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 pub struct AppState {
     pub shared: Arc<engine::Shared>,
@@ -35,6 +35,8 @@ pub struct AppState {
     pub live: live_share::LiveShare,
     /// Monitor the overlay currently covers, as stored in `general.monitor` ("" = primary).
     pub overlay_monitor: Mutex<String>,
+    /// Global shortcuts bound to the layout editor and overlay visibility.
+    pub shortcuts: shortcuts::Shortcuts,
 }
 
 /// Detect the non-composited GTK path before constructing the overlay. Keep
@@ -129,31 +131,12 @@ pub fn run() {
         std::env::set_var("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1");
     }
 
-    let edit_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F9);
-    let visibility_shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F10);
-
     tauri::Builder::default()
         .register_asynchronous_uri_scheme_protocol(car_render::SCHEME, car_render::handle)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(move |app, shortcut, event| {
-                    if event.state() != ShortcutState::Pressed {
-                        return;
-                    }
-                    let state = app.state::<AppState>();
-                    if shortcut == &edit_shortcut {
-                        let enabled = !state.edit_mode.load(Ordering::Acquire);
-                        commands::apply_edit_mode(app, enabled);
-                    } else if shortcut == &visibility_shortcut {
-                        let visible = !state.overlay_visible.load(Ordering::Acquire);
-                        commands::apply_overlay_visible(app, visible);
-                    }
-                })
-                .build(),
-        )
+        .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(shortcuts::handle).build())
         .setup(move |app| {
             // Dev builds keep their own laps, identity key and config so they never touch the installed app's.
             let (mut data_dir, mut config_dir) = (app.path().app_data_dir()?, app.path().app_config_dir()?);
@@ -200,16 +183,17 @@ pub fn run() {
                 uploads: uploads.clone(),
                 live: Default::default(),
                 overlay_monitor: Mutex::new(String::new()),
+                shortcuts: Default::default(),
             });
 
             create_overlay(app, &monitor)?;
 
-            let shortcuts = app.global_shortcut();
-            for sc in [edit_shortcut, visibility_shortcut] {
-                if let Err(e) = shortcuts.register(sc) {
-                    eprintln!("could not register shortcut {sc:?}: {e}");
-                }
-            }
+            let shortcut = |key| general(key).and_then(|v| v.as_str().map(str::to_owned));
+            shortcuts::register_initial(
+                app.handle(),
+                shortcut("editShortcut").as_deref(),
+                shortcut("visibilityShortcut").as_deref(),
+            );
 
             engine::spawn(app.handle().clone(), shared, db);
             online::spawn_uploader(app.handle().clone(), uploads);
@@ -232,6 +216,7 @@ pub fn run() {
             commands::set_edit_mode,
             commands::set_overlay_visible,
             commands::set_demo_mode,
+            commands::set_shortcut,
             commands::list_monitors,
             commands::get_preview_snapshot,
             commands::list_sessions,

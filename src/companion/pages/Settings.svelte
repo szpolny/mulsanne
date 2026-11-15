@@ -1,14 +1,21 @@
 <script lang="ts">
   import { api } from "../../lib/api";
-  import { config, saveConfig } from "../../lib/config.svelte";
+  import { config, DEFAULT_SHORTCUTS, saveConfig } from "../../lib/config.svelte";
   import type { MonitorInfo } from "../../lib/types";
   import { live } from "../../lib/live.svelte";
   import { REPO_URL, starOnGitHub } from "../../lib/star.svelte";
   import { checkForUpdate, installUpdate, updater } from "../../lib/updater.svelte";
   import OnlineSettings from "../components/OnlineSettings.svelte";
+  import ShortcutInput from "../components/ShortcutInput.svelte";
   import Toggle from "../components/Toggle.svelte";
 
   const g = $derived(config.value.general);
+
+  async function setShortcut(action: "edit" | "visibility", accelerator: string) {
+    await api.setShortcut(action, accelerator);
+    g[action === "edit" ? "editShortcut" : "visibilityShortcut"] = accelerator;
+    saveConfig();
+  }
 
   let starError = $state(false);
   const star = () => starOnGitHub().catch(() => (starError = true));
@@ -82,6 +89,20 @@
         <input type="range" min="10" max="60" step="5" bind:value={g.updateHz} oninput={saveConfig} class="accent-accent" />
         <span class="w-12 text-right tnum">{g.updateHz} Hz</span>
       </div>
+    </div>
+    <div class="flex items-center justify-between gap-6 p-4">
+      <div>
+        <div class="font-medium">Edit layout shortcut</div>
+        <div class="text-muted">Turns the layout editor on and off. Works while the game is focused.</div>
+      </div>
+      <ShortcutInput value={g.editShortcut} fallback={DEFAULT_SHORTCUTS.edit} label="Edit layout shortcut" onchange={(v) => setShortcut("edit", v)} />
+    </div>
+    <div class="flex items-center justify-between gap-6 p-4">
+      <div>
+        <div class="font-medium">Show / hide overlay shortcut</div>
+        <div class="text-muted">Shows or hides all widgets.</div>
+      </div>
+      <ShortcutInput value={g.visibilityShortcut} fallback={DEFAULT_SHORTCUTS.visibility} label="Show / hide overlay shortcut" onchange={(v) => setShortcut("visibility", v)} />
     </div>
     <div class="flex items-center justify-between gap-6 p-4">
       <div>

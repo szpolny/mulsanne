@@ -54,6 +54,8 @@ hides when switching away from the game on its monitor.
 
 - **Ctrl+Shift+F9**: edit the layout.
 - **Ctrl+Shift+F10**: hide/show the HUD.
+
+Both shortcuts can be changed in Settings.
 - Widgets are hidden off track by default; enter a session or open the editor.
 
 Logs are in `${XDG_STATE_HOME:-$HOME/.local/state}/mulsanne/`. Settings and laps

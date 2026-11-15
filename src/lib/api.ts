@@ -26,6 +26,8 @@ export const api = {
   setEditMode: (enabled: boolean) => invoke<void>("set_edit_mode", { enabled }),
   setOverlayVisible: (visible: boolean) => invoke<void>("set_overlay_visible", { visible }),
   setDemoMode: (enabled: boolean) => invoke<void>("set_demo_mode", { enabled }),
+  setShortcut: (action: "edit" | "visibility", accelerator: string) =>
+    invoke<void>("set_shortcut", { action, accelerator }),
   listMonitors: () => invoke<MonitorInfo[]>("list_monitors"),
   getPreviewSnapshot: () => invoke<Snapshot>("get_preview_snapshot"),
   listSessions: (opts: { track?: string | null; car?: string | null; limit?: number; offset?: number } = {}) =>
