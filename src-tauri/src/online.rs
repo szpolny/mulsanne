@@ -299,7 +299,7 @@ async fn send(
 }
 
 /// Sends a JSON request. Returns `None` for an empty (204) response.
-async fn request<T: DeserializeOwned>(
+pub(crate) async fn request<T: DeserializeOwned>(
     key: Option<&SigningKey>,
     method: Method,
     path_and_query: &str,
@@ -315,7 +315,7 @@ async fn request<T: DeserializeOwned>(
         .map_err(|e| RequestError::Other(format!("Unexpected server response: {e}")))
 }
 
-async fn request_some<T: DeserializeOwned>(
+pub(crate) async fn request_some<T: DeserializeOwned>(
     key: Option<&SigningKey>,
     method: Method,
     path_and_query: &str,
@@ -334,7 +334,7 @@ pub async fn register(data_dir: &Path, display_name: Option<String>) -> Result<M
     Ok(request_some(Some(&key), Method::POST, "/v1/users", Some(&body)).await?)
 }
 
-fn require_key(data_dir: &Path) -> Result<SigningKey, String> {
+pub(crate) fn require_key(data_dir: &Path) -> Result<SigningKey, String> {
     load_key(data_dir)?.ok_or_else(|| "Online features are not set up on this PC".into())
 }
 

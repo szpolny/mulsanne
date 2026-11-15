@@ -10,6 +10,7 @@ import type {
   OnlineMe,
   PersonalBest,
   SessionSummary,
+  ShareStatus,
   Snapshot,
   Status,
   TrackMap,
@@ -46,6 +47,10 @@ export const api = {
   uploadLaps: (lapIds: number[]) => invoke<number>("upload_laps", { lapIds }),
   lapUploadStates: () => invoke<UploadState[]>("lap_upload_states"),
   removeLapUpload: (lapId: number) => invoke<void>("remove_lap_upload", { lapId }),
+  liveShareStart: () => invoke<ShareStatus>("live_share_start"),
+  liveShareStop: () => invoke<void>("live_share_stop"),
+  liveShareStatus: () => invoke<ShareStatus | null>("live_share_status"),
+  liveShareOpen: () => invoke<void>("live_share_open"),
   leaderboard: (query: {
     track: string;
     carClass: string;

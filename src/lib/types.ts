@@ -443,3 +443,17 @@ export interface BoardSummary {
   /** Game versions with ranked laps, newest first. */
   gameVersions: number[];
 }
+
+/** An open live timing share (`live_share_*` commands, `live-share-changed` event). */
+export interface ShareStatus {
+  id: string;
+  /** Viewer page, e.g. `https://mulsanne.xyz/live#…`. */
+  url: string;
+  /** Unix seconds. */
+  expiresAt: number;
+  viewers: number;
+  /** The last push failed; cleared when one succeeds. */
+  error: string | null;
+  /** The server ended the share; nothing more is sent. */
+  ended: boolean;
+}

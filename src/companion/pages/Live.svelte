@@ -9,6 +9,7 @@
   import CarLogo from "../../overlay/CarLogo.svelte";
   import TrackHero from "../../lib/TrackHero.svelte";
   import LapTable from "../components/LapTable.svelte";
+  import LiveShare from "../components/LiveShare.svelte";
   import Toggle from "../components/Toggle.svelte";
   import { nav } from "../nav.svelte";
 
@@ -93,27 +94,30 @@
       {/if}
     </section>
 
-    <section class="flex flex-col gap-3 card p-4 text-sm">
-      <div class="section-title text-sm text-muted">Overlay</div>
-      <div class="flex items-center justify-between">
-        <span>Show overlay</span>
-        <Toggle checked={live.status.overlayVisible} onchange={(v) => api.setOverlayVisible(v)} label="Show overlay" />
-      </div>
-      <div class="flex items-center justify-between">
-        <span>Demo data</span>
-        <Toggle checked={live.status.demo} onchange={(v) => api.setDemoMode(v)} label="Demo data" />
-      </div>
-      <button
-        class={["btn mt-1", live.status.editMode ? "bg-warn! text-black" : "btn-primary"]}
-        onclick={() => api.setEditMode(!live.status.editMode)}
-      >
-        {live.status.editMode ? "Finish editing layout" : "Edit overlay layout"}
-      </button>
-      <div class="text-xs leading-relaxed text-muted">
-        <kbd class="kbd">Ctrl+Shift+F9</kbd> edit layout<br />
-        <kbd class="kbd">Ctrl+Shift+F10</kbd> show / hide
-      </div>
-    </section>
+    <div class="flex flex-col gap-4">
+      <section class="flex flex-col gap-3 card p-4 text-sm">
+        <div class="section-title text-sm text-muted">Overlay</div>
+        <div class="flex items-center justify-between">
+          <span>Show overlay</span>
+          <Toggle checked={live.status.overlayVisible} onchange={(v) => api.setOverlayVisible(v)} label="Show overlay" />
+        </div>
+        <div class="flex items-center justify-between">
+          <span>Demo data</span>
+          <Toggle checked={live.status.demo} onchange={(v) => api.setDemoMode(v)} label="Demo data" />
+        </div>
+        <button
+          class={["btn mt-1", live.status.editMode ? "bg-warn! text-black" : "btn-primary"]}
+          onclick={() => api.setEditMode(!live.status.editMode)}
+        >
+          {live.status.editMode ? "Finish editing layout" : "Edit overlay layout"}
+        </button>
+        <div class="text-xs leading-relaxed text-muted">
+          <kbd class="kbd">Ctrl+Shift+F9</kbd> edit layout<br />
+          <kbd class="kbd">Ctrl+Shift+F10</kbd> show / hide
+        </div>
+      </section>
+      <LiveShare />
+    </div>
   </div>
 
   <div class="mt-6 mb-2 flex items-baseline justify-between">

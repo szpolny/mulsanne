@@ -2,7 +2,8 @@
 // be developed in a normal browser (`pnpm dev`, then open http://localhost:1420
 // or http://localhost:1420/#overlay; add ?nolive to simulate the game not running,
 // ?nolaps for a fresh install with nothing recorded, ?seen=0.6.0 to show the
-// changelog as if updating from that version, ?launches=2 to show the GitHub
+// changelog as if updating from that version, ?sharing to start with online features
+// on and live timing being shared, ?launches=2 to show the GitHub
 // star popup as if the app had been opened that many times before).
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
@@ -18,7 +19,9 @@ export async function install() {
   }
   const fx = await res.json();
   const params = new URLSearchParams(location.search);
+  const sharing = params.has("sharing");
   let config: unknown = {
+    ...(sharing && { online: { enabled: true } }),
     general: {
       ...(params.has("seen") && { lastSeenVersion: params.get("seen") }),
       ...(params.has("launches") && { launches: Number(params.get("launches")) }),
@@ -28,7 +31,18 @@ export async function install() {
   const noLive = params.has("nolive");
   if (params.has("nolaps")) Object.assign(fx, { sessions: [], laps: [], traces: {}, personalBests: [], filters: { tracks: [], cars: [] } });
   let previewFrame = 0;
-  let onlineMe: { id: string; displayName: string | null; createdAt: number } | null = null;
+  let onlineMe: { id: string; displayName: string | null; createdAt: number } | null = sharing
+    ? { id: "mock-user", displayName: "Late_Apex_4821", createdAt: Math.floor(Date.now() / 1000) }
+    : null;
+  const newShare = () => ({
+    id: "3f2a9c4e1b7d4f0a8e6c2d1b9a7f5e3c",
+    url: "https://mulsanne.xyz/live#3f2a9c4e1b7d4f0a8e6c2d1b9a7f5e3c",
+    expiresAt: Math.floor(Date.now() / 1000) + 26 * 3600,
+    viewers: 3,
+    error: null,
+    ended: false,
+  });
+  let share: ReturnType<typeof newShare> | null = sharing ? newShare() : null;
   const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null; trace: string | null }>();
 
   mockWindows("main");
@@ -126,6 +140,18 @@ export async function install() {
           const t = Object.values(fx.traces)[1] as any;
           return { ...t, t: t.t.map((x: number) => x * 0.98), speed: t.speed.map((x: number) => x * 1.02) };
         }
+        case "live_share_start":
+          share = newShare();
+          return share;
+        case "live_share_stop":
+          share = null;
+          emit("live-share-changed", null);
+          return;
+        case "live_share_status":
+          return share;
+        case "live_share_open":
+          if (share) window.open(share.url, "_blank", "noopener,noreferrer");
+          return;
         case "lap_upload_states":
           return [...uploadStates.values()];
         case "remove_lap_upload":
