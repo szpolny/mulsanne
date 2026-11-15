@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.12.1](https://github.com/szpolny/mulsanne/compare/v0.12.0...v0.12.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* find the game in Steam to show car renders ([#37](https://github.com/szpolny/mulsanne/issues/37)) ([9267d28](https://github.com/szpolny/mulsanne/commit/9267d282b4ea3c9da60686a399100b3906944323))
+* show team liveries for ranked laps uploaded without one ([#39](https://github.com/szpolny/mulsanne/issues/39)) ([7a70c04](https://github.com/szpolny/mulsanne/commit/7a70c0434d400a3ddc866bc5f33d919a4fa83a43))
+
+## [0.12.0](https://github.com/szpolny/mulsanne/compare/v0.11.0...v0.12.0) (2026-11-14)
+
+
+### Features
+
+* redesign rankings with a podium and car liveries ([#31](https://github.com/szpolny/mulsanne/issues/31)) ([3c28b60](https://github.com/szpolny/mulsanne/commit/3c28b601c1bd72ad2a8f7b721cfb65207ca723ae))
+
+
+### Bug Fixes
+
+* confirm deletes in an in-app dialog ([#35](https://github.com/szpolny/mulsanne/issues/35)) ([f46cd6b](https://github.com/szpolny/mulsanne/commit/f46cd6ba04f79799314274f9fb9b3aca58441206))
+* open the privacy notice from online settings ([#34](https://github.com/szpolny/mulsanne/issues/34)) ([348f58f](https://github.com/szpolny/mulsanne/commit/348f58f1a7c16c29ff168cea87200a32f122e626))
+
 ## [0.11.0](https://github.com/szpolny/mulsanne/compare/v0.10.0...v0.11.0) (2026-11-09)
 
 

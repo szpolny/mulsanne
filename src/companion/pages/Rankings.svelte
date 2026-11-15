@@ -61,7 +61,15 @@
   const podium = $derived(entries.filter((e) => e.rank <= 3).slice(0, 3));
 
   /** The lap's livery, then plain ones of its model for laps without one or with a livery this install lacks. */
-  const liveries = (e: LeaderboardEntry) => liveryCandidates(e.vehFile, e.car, board?.carClass, e.vehicleName);
+  const liveries = (e: LeaderboardEntry) => liveryCandidates(e.vehFile, e.car, board?.carClass, e.vehicleName, liveryNames);
+  /** Renders the game has, to find the livery of laps uploaded with only a vehicle name. */
+  let liveryNames = $state<string[]>([]);
+  $effect(() => {
+    api
+      .carLiveries()
+      .then((names) => (liveryNames = names))
+      .catch(() => {});
+  });
 
   /** "AF Corse 2026 #83:LM" -> "AF Corse 2026 #83"; nothing when it only repeats the car. */
   function teamName(e: LeaderboardEntry): string {

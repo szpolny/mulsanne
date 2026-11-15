@@ -4,6 +4,7 @@
   import { classLabel, dateTime, lapTime } from "../../lib/format";
   import type { Filters, LapRecord, SessionSummary } from "../../lib/types";
   import { config } from "../../lib/config.svelte";
+  import { confirm } from "../../lib/confirm.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
   import CarRender from "../../lib/CarRender.svelte";
   import TrackHero from "../../lib/TrackHero.svelte";
@@ -44,7 +45,14 @@
   }
 
   async function deleteSession() {
-    if (!current || !confirm(`Delete this session and its ${current.lapCount} laps?`)) return;
+    if (!current) return;
+    const ok = await confirm({
+      title: "Delete this session?",
+      message: `${current.track} · ${current.car}. All ${current.lapCount} laps and their telemetry will be removed from this PC. This can't be undone.`,
+      confirmLabel: "Delete session",
+      danger: true,
+    });
+    if (!ok) return;
     await api.deleteSession(current.id);
     nav.sessionId = null;
     await loadSessions();
@@ -65,8 +73,14 @@
   }
 
   async function deleteLap(l: LapRecord) {
-    const online = uploads.byLap[l.id]?.remoteId ? "\nIt stays on the online rankings; remove it there first if you want it gone." : "";
-    if (!confirm(`Delete lap ${l.lapNumber} (${lapTime(l.lapTime)})?${online}`)) return;
+    const ok = await confirm({
+      title: `Delete lap ${l.lapNumber}?`,
+      message: `The ${lapTime(l.lapTime)} lap and its telemetry will be removed from this PC. This can't be undone.`,
+      note: uploads.byLap[l.id]?.remoteId ? "It stays on the online rankings; remove it there first if you want it gone." : undefined,
+      confirmLabel: "Delete lap",
+      danger: true,
+    });
+    if (!ok) return;
     await api.deleteLap(l.id);
     await loadLaps(nav.sessionId);
     await loadSessions();

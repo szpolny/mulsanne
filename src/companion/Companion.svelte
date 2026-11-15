@@ -10,6 +10,7 @@
   import { initUpdater, installUpdate, updater } from "../lib/updater.svelte";
   import { nav, type Page } from "./nav.svelte";
   import ChangelogDialog from "./components/ChangelogDialog.svelte";
+  import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import StarPrompt from "./components/StarPrompt.svelte";
   import Analysis from "./pages/Analysis.svelte";
   import Live from "./pages/Live.svelte";
@@ -219,4 +220,5 @@
 </div>
 
 <ChangelogDialog />
+<ConfirmDialog />
 <StarPrompt />

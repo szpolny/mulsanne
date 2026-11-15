@@ -5,10 +5,21 @@ on:
     paths-ignore:
       - "**.md"
       - "docs/**"
+  # A pull request can only restore caches saved on its own branch or on
+  # master. Building master keeps a warm Rust cache that every PR starts from.
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   bridge:
@@ -19,6 +30,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: lmu-bridge -> target
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - run: cargo test --locked --manifest-path lmu-bridge/Cargo.toml
       - run: cargo build --locked --release --manifest-path lmu-bridge/Cargo.toml
       - uses: actions/upload-artifact@v4
@@ -29,6 +41,9 @@ jobs:
   linux:
     needs: bridge
     runs-on: ubuntu-22.04
+    env:
+      # Debug info slows the test build and roughly doubles the cache size.
+      CARGO_PROFILE_DEV_DEBUG: 0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -49,6 +64,12 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          # Kept apart from the release workflow's linux job, which builds only
+          # the release profile and would otherwise claim the same cache key.
+          shared-key: check-linux
+          # Each Linux cache is about 1 GB. PR saves can't help other PRs and
+          # only push the master cache out of the repository's 10 GB limit.
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm test

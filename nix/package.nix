@@ -75,6 +75,9 @@ let
     buildAndTestSubdir = "src-tauri";
     cargoLock.lockFile = ../src-tauri/Cargo.lock;
     buildFeatures = [ "tauri/custom-protocol" ];
+    # The Check workflow runs these tests. Here they would only recompile the
+    # crate in test mode after the release build.
+    doCheck = false;
     nativeBuildInputs = [
       pkg-config
       wrapGAppsHook3
