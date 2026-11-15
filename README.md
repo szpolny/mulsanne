@@ -1,6 +1,9 @@
-![Mulsanne logo](src-tauri/icons/128x128.png)
-
-# Mulsanne
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.png">
+    <img alt="Mulsanne" src="docs/brand/logo-light.png" width="316">
+  </picture>
+</h1>
 
 <p>
   <a href="https://github.com/szpolny/mulsanne/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/szpolny/mulsanne?style=for-the-badge&labelColor=131317&color=e3101f&label=Latest&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjQgMTAgNTggNDQiPjxwYXRoIGQ9Ik02IDUyIDIyIDEyaDEwTDE2IDUyeiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0yMCA1MiAzNiAxMmgxMEwzMCA1MnoiIGZpbGw9IiNlMzEwMWYiLz48cGF0aCBkPSJNMzQgNTIgNTAgMTJoMTBMNDQgNTJ6IiBmaWxsPSIjZTMxMDFmIiBvcGFjaXR5PSIuNTUiLz48L3N2Zz4%3D"></a>
