@@ -85,7 +85,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "dashboard",
     name: "Dashboard",
     description: "Speed, gear, RPM bar, status lights, hybrid battery and car settings at a glance.",
-    defaults: { enabled: true, x: 760, y: 830 },
+    defaults: { enabled: true, x: 800, y: 841 },
     options: [
       { key: "showIndicators", label: "Status lights (headlights, limiter, TC, ABS, wipers, engine)", type: "boolean" },
       { key: "showBattery", label: "Hybrid battery bar", type: "boolean" },
@@ -98,7 +98,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "inputs",
     name: "Input trace",
     description: "Rolling throttle, brake and steering graph with live pedal bars.",
-    defaults: { enabled: true, x: 1110, y: 960 },
+    defaults: { enabled: true, x: 1140, y: 740 },
     options: [
       { key: "seconds", label: "History (s)", type: "number", min: 2, max: 20, step: 1 },
       { key: "showSteering", label: "Steering line", type: "boolean" },
@@ -112,7 +112,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "delta",
     name: "Delta",
     description: "Live delta bar against your personal best or the session best.",
-    defaults: { enabled: true, x: 810, y: 80 },
+    defaults: { enabled: true, x: 820, y: 80 },
     options: [
       {
         key: "reference",
@@ -131,7 +131,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "laptiming",
     name: "Lap timing",
     description: "Current, last, best and predicted lap with sector splits.",
-    defaults: { enabled: true, x: 1590, y: 20 },
+    defaults: { enabled: true, x: 1620, y: 20 },
     options: [{ key: "showSectors", label: "Sectors", type: "boolean" }],
     optionDefaults: { showSectors: true },
   },
@@ -139,7 +139,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "standings",
     name: "Standings",
     description: "Multi-class timing tower with optional session header.",
-    defaults: { enabled: true, x: 20, y: 110 },
+    defaults: { enabled: true, x: 20, y: 105 },
     options: [
       { key: "showSession", label: "Session info header", type: "boolean" },
       { key: "maxRows", label: "Rows for my class", type: "number", min: 3, max: 40, step: 1 },
@@ -185,7 +185,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "relative",
     name: "Relative",
     description: "Cars physically around you on track with time gaps, virtual energy left and optional lap times.",
-    defaults: { enabled: true, x: 1220, y: 600 },
+    defaults: { enabled: true, x: 1140, y: 864 },
     options: [
       { key: "ahead", label: "Cars ahead", type: "number", min: 1, max: 8, step: 1 },
       { key: "behind", label: "Cars behind", type: "number", min: 1, max: 8, step: 1 },
@@ -200,7 +200,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "fuel",
     name: "Fuel & energy",
     description: "Fuel and virtual energy per lap, laps left, amount needed to finish and per-lap targets for stretching a stint.",
-    defaults: { enabled: true, x: 1590, y: 300 },
+    defaults: { enabled: true, x: 1620, y: 298 },
     options: [
       { key: "showLast", label: "Last lap usage", type: "boolean" },
       { key: "showSaver", label: "Saver: per-lap target to make the stint one or two laps longer", type: "boolean" },
@@ -221,7 +221,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "tyres",
     name: "Tyres",
     description: "Car view of tyre temperatures (surface or core), pressures, tread wear per lap and brake temperatures.",
-    defaults: { enabled: true, x: 20, y: 820 },
+    defaults: { enabled: true, x: 20, y: 850 },
     options: [
       {
         key: "tempLayer",
@@ -259,7 +259,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "trackmap",
     name: "Track map",
     description: "Track outline with live car positions.",
-    defaults: { enabled: true, x: 1640, y: 790 },
+    defaults: { enabled: true, x: 1650, y: 810 },
     options: [
       { key: "size", label: "Size (px)", type: "number", min: 120, max: 500, step: 10 },
       { key: "classColors", label: "Colour by class", type: "boolean" },
@@ -270,7 +270,7 @@ export const WIDGETS: WidgetMeta[] = [
     id: "weather",
     name: "Weather",
     description: "Air/track temperature, rain, wetness and wind.",
-    defaults: { enabled: false, x: 1590, y: 190 },
+    defaults: { enabled: false, x: 1620, y: 190 },
     options: [],
     optionDefaults: {},
   },

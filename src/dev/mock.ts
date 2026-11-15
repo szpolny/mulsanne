@@ -2,7 +2,8 @@
 // be developed in a normal browser (`pnpm dev`, then open http://localhost:1420
 // or http://localhost:1420/#overlay; add ?nolive to simulate the game not running,
 // ?nolaps for a fresh install with nothing recorded, ?seen=0.6.0 to show the
-// changelog as if updating from that version, ?sharing to start with online features
+// changelog as if updating from that version, ?screenshot for website screenshots
+// (no demo labels), ?sharing to start with online features
 // on and live timing being shared, ?launches=2 to show the GitHub
 // star popup as if the app had been opened that many times before).
 // Generate fixtures first:
@@ -17,8 +18,13 @@ export async function install() {
     console.warn("dev mock: fixtures missing, run the export_fixtures example");
     return;
   }
-  const fx = await res.json();
   const params = new URLSearchParams(location.search);
+  // ?screenshot presents the demo as a real session at Le Mans, for website and
+  // README screenshots: no "Demo data" labels and the game's own track name.
+  let text = await res.text();
+  if (params.has("screenshot"))
+    text = text.replaceAll('"source":"demo"', '"source":"lmu"').replaceAll("Le Mans (Demo)", "Circuit de la Sarthe");
+  const fx = JSON.parse(text);
   const sharing = params.has("sharing");
   let config: unknown = {
     ...(sharing && { online: { enabled: true } }),
@@ -60,7 +66,7 @@ export async function install() {
         case "get_preview_snapshot":
           return fx.frames[previewFrame++ % fx.frames.length];
         case "get_status":
-          return { demo: true, editMode, overlayVisible: true, gameFocused: false, experimentalLinux: false, dataDir: "C:\\mock" };
+          return { demo: !params.has("screenshot"), editMode, overlayVisible: true, gameFocused: false, experimentalLinux: false, dataDir: "C:\\mock" };
         case "list_monitors":
           return [
             { name: "\\\\.\\DISPLAY1", width: 2560, height: 1440, x: 0, y: 0, primary: true },
@@ -98,8 +104,8 @@ export async function install() {
             starts: [0, 1, 2, 3].map((i) => at(first + i * every)).filter((t) => t < at(0) + 4 * 3_600_000),
           });
           const races = [
-            race("Logitech McLaren G Challenge Winter - Q2", "beginner", "Monza", "30 minutes", 5, 45),
-            race("LMP3 Fixed", "beginner", "Le Mans", "32 minutes", 15, 45),
+            race("Logitech McLaren G Challenge Winter - Q2", "beginner", "Monza", "30 minutes", 15, 45),
+            race("Hypercar Fixed", "beginner", "Le Mans", "32 minutes", 5, 45),
             race("LMGT3 Fixed", "beginner", "Fuji Wec 2023", "32 minutes", 25, 45),
             race("ELMS Sprint Trophy", "intermediate", "Spa Francorchamps", "44 minutes", 10, 60),
             race("LMGT3 Sprint Cup", "intermediate", "Laguna Seca", "44 minutes", 30, 60),
@@ -177,7 +183,7 @@ export async function install() {
         case "leaderboard": {
           const q = args.query;
           const pb = (fx.personalBests as any[]).find((b) => b.track === q.track && b.carClass === q.carClass);
-          const names = ["A. Laurent", null, "K. Tanaka", "J. Smith", null, "L. Novak", "P. Silva", "D. Müller"];
+          const names = ["T. Kristensen", null, "J. Ickx", "F. Alonso", null, "A. McNish", "S. Buemi", "D. Bell"];
           const entries = names.map((driver, i) => {
             const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
             return {
