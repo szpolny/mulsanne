@@ -27,13 +27,13 @@
     });
   const remove = () => act(() => api.removeLapUpload(lapId));
 
-  const btn = "rounded px-2 py-0.5 text-xs hover:bg-surface-3 disabled:opacity-50";
+  const btn = "btn-link";
 </script>
 
 <span class="inline-flex items-center gap-1 text-xs whitespace-nowrap" title={error || current?.error || undefined}>
   {#if !current}
     {#if eligible}
-      <button class={[btn, "text-accent"]} disabled={busy} onclick={(e) => { e.stopPropagation(); upload(); }}>Upload</button>
+      <button class={[btn, "text-accent-hi"]} disabled={busy} onclick={(e) => { e.stopPropagation(); upload(); }}>Upload</button>
     {/if}
   {:else if current.status === "queued"}
     <span class="px-2 text-muted">Uploading…</span>
@@ -54,7 +54,7 @@
     >
   {:else}
     <span class="px-2 text-bad">{current.status === "failed" ? "Upload failed" : "Rejected"}</span>
-    <button class={[btn, "text-accent"]} disabled={busy} onclick={(e) => { e.stopPropagation(); upload(); }}>Retry</button>
+    <button class={[btn, "text-accent-hi"]} disabled={busy} onclick={(e) => { e.stopPropagation(); upload(); }}>Retry</button>
   {/if}
   {#if error}
     <span class="text-bad">!</span>

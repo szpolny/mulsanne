@@ -65,27 +65,24 @@
     if (min < 60) return `in ${min} min`;
     return `in ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")} min`;
   }
+  import PageHeader from "../components/PageHeader.svelte";
 </script>
 
-<div class="mx-auto max-w-5xl p-6">
-  <div class="mb-5 flex items-start justify-between gap-4">
-    <div>
-      <h1 class="mb-1 page-title">Daily races</h1>
-      <p class="text-sm text-muted">
-        Upcoming Le Mans Ultimate daily races from RaceControl, in your local time. No game needed.
-      </p>
-    </div>
-    <button class="btn shrink-0" disabled={loading} onclick={() => load(true)}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={loading ? "animate-spin" : ""}><path d="M20 12a8 8 0 1 1-2.34-5.66 M20 4v4h-4" /></svg>
-      {loading ? "Loading" : "Refresh"}
-    </button>
-  </div>
+<div class="page">
+  <PageHeader title="Daily races" description="Upcoming Le Mans Ultimate daily races from RaceControl, in your local time. No game needed.">
+    {#snippet actions()}
+      <button class="btn" disabled={loading} onclick={() => load(true)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={loading ? "animate-spin" : ""}><path d="M20 12a8 8 0 1 1-2.34-5.66 M20 4v4h-4" /></svg>
+        {loading ? "Loading" : "Refresh"}
+      </button>
+    {/snippet}
+  </PageHeader>
 
   <div class="mb-4 flex flex-wrap gap-1.5">
     {#each [null, ...TIERS] as t}
       <button
         class={[
-          "rounded-full border px-3 py-1 text-xs font-semibold capitalize transition-colors",
+          "rounded-full border px-3 py-1 font-display text-[13px] font-semibold tracking-[0.08em] uppercase transition-colors",
           tier === t ? "border-accent bg-surface-3 text-fg" : "border-line text-muted hover:text-fg",
         ]}
         onclick={() => (tier = t)}
@@ -111,16 +108,16 @@
         <div class="min-w-0 flex-1 p-4">
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
-              <div class="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase" style:color={TIER_COLOR[race.tier] ?? "var(--color-muted)"}>
+              <div class="mb-1 flex items-center gap-2 font-display text-xs font-semibold tracking-[0.18em] uppercase" style:color={TIER_COLOR[race.tier] ?? "var(--color-muted)"}>
                 <span class="h-1.5 w-1.5 rounded-full" style:background="currentColor"></span>
                 {race.tier}
               </div>
-              <div class="truncate font-display text-xl font-semibold">{race.name}</div>
+              <div class="truncate font-display text-[22px] leading-tight font-bold uppercase">{race.name}</div>
               <div class="mt-0.5 text-sm text-muted">{race.track} · {race.duration}</div>
             </div>
             <div class="shrink-0 text-right tnum">
-              <div class="text-xs text-muted">Next start</div>
-              <div class="text-2xl font-semibold">{startLabel(race.starts[0])}</div>
+              <div class="eyebrow text-[11px] tracking-[0.14em]">Next start</div>
+              <div class="font-display text-[28px] leading-tight font-semibold">{startLabel(race.starts[0])}</div>
               <div class="text-xs text-accent-hi">{untilLabel(race.starts[0])}</div>
             </div>
           </div>
@@ -135,7 +132,7 @@
       </div>
     {:else}
       {#if !loading && !error}
-        <div class="card p-10 text-center text-muted">
+        <div class="card empty-state">
           No more daily races listed for today. RaceControl publishes the next day's slots after midnight UTC.
         </div>
       {/if}

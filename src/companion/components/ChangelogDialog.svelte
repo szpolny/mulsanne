@@ -20,7 +20,7 @@
   <div class="flex max-h-[calc(100vh-3rem-2px)] flex-col">
     <header class="flex shrink-0 items-start justify-between gap-4 border-b border-line p-6">
       <div>
-        <div class="mb-1 text-xs font-semibold tracking-wider text-accent uppercase">Mulsanne · Version {updater.version}</div>
+        <div class="mb-1.5 eyebrow text-accent-hi">Mulsanne · Version {updater.version}</div>
         <h2 id="changelog-title" class="page-title">What's new</h2>
       </div>
       <button class="btn" aria-label="Close changelog" onclick={() => (updater.changelogOpen = false)}>

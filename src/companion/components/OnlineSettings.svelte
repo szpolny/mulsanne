@@ -73,7 +73,7 @@
       <div class="font-medium">Online features</div>
       <div class="text-muted">
         Lap rankings and telemetry comparison. While off, Mulsanne doesn't contact its server.
-        <button class="text-accent underline underline-offset-2 hover:text-fg" onclick={() => openUrl(PRIVACY_URL)}>Privacy notice</button>
+        <button class="text-accent-hi underline underline-offset-2 hover:text-fg" onclick={() => openUrl(PRIVACY_URL)}>Privacy notice</button>
       </div>
     </div>
     <Toggle checked={online.enabled} label="Online features" onchange={setEnabled} />

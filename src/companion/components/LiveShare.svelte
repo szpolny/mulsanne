@@ -48,7 +48,7 @@
 
 <section class="flex flex-col gap-3 card p-4 text-sm">
   <div class="flex items-center justify-between">
-    <div class="section-title text-sm text-muted">Share live timing</div>
+    <div class="eyebrow">Share live timing</div>
     {#if share && !share.ended}
       <span class="flex items-center gap-1.5 text-xs font-semibold text-bad">
         <span class="size-2 animate-pulse rounded-full bg-bad"></span>LIVE
@@ -71,8 +71,8 @@
   {:else}
     <div class="flex items-center gap-1 rounded-lg bg-surface-2 py-1 pr-1 pl-3">
       <span class="min-w-0 flex-1 truncate font-mono text-xs" title={share.url}>{share.url.replace("https://", "")}</span>
-      <button class="rounded px-2 py-1 text-xs text-accent hover:bg-surface-3" onclick={copy}>{copied ? "Copied" : "Copy"}</button>
-      <button class="rounded px-2 py-1 text-xs text-accent hover:bg-surface-3" onclick={() => act(api.liveShareOpen)}>Open</button>
+      <button class="btn-link text-accent-hi" onclick={copy}>{copied ? "Copied" : "Copy"}</button>
+      <button class="btn-link text-accent-hi" onclick={() => act(api.liveShareOpen)}>Open</button>
     </div>
     {#if share.ended || share.error}
       <p class="text-xs text-bad">{share.error}</p>

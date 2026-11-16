@@ -88,16 +88,19 @@
 </script>
 
 <div class="flex h-full">
-  <aside class="flex w-[340px] shrink-0 flex-col border-r border-line">
-    <div class="flex gap-2 border-b border-line p-3">
-      <select class="min-w-0 flex-1 field text-sm" bind:value={track} onchange={loadSessions}>
-        <option value="">All tracks</option>
-        {#each filters.tracks as t}<option value={t}>{t}</option>{/each}
-      </select>
-      <select class="min-w-0 flex-1 field text-sm" bind:value={car} onchange={loadSessions}>
-        <option value="">All cars</option>
-        {#each filters.cars as c}<option value={c}>{c}</option>{/each}
-      </select>
+  <aside class="flex w-[320px] shrink-0 flex-col border-r border-line bg-surface/40">
+    <div class="flex flex-col gap-3 border-b border-line p-4">
+      <div class="eyebrow">Sessions <span class="text-faint">{sessions.length || ""}</span></div>
+      <div class="flex gap-2">
+        <select class="min-w-0 flex-1 field text-sm" bind:value={track} onchange={loadSessions}>
+          <option value="">All tracks</option>
+          {#each filters.tracks as t}<option value={t}>{t}</option>{/each}
+        </select>
+        <select class="min-w-0 flex-1 field text-sm" bind:value={car} onchange={loadSessions}>
+          <option value="">All cars</option>
+          {#each filters.cars as c}<option value={c}>{c}</option>{/each}
+        </select>
+      </div>
     </div>
     <div class="flex-1 overflow-y-auto">
       {#each sessions as s (s.id)}
@@ -106,7 +109,7 @@
           onclick={() => (nav.sessionId = s.id)}
         >
           <div class="flex items-baseline justify-between gap-2">
-            <span class="truncate font-medium">{s.track}</span>
+            <span class="truncate font-display text-[17px] font-semibold tracking-[0.02em] uppercase">{s.track}</span>
             <span class="shrink-0 text-sm font-semibold text-best tnum">{lapTime(s.bestLap)}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -118,17 +121,17 @@
           </div>
         </button>
       {:else}
-        <div class="p-6 text-center text-sm text-muted">No sessions yet. Drive some laps!</div>
+        <div class="empty-state text-sm">No sessions yet. Drive some laps!</div>
       {/each}
     </div>
   </aside>
 
-  <section class="min-w-0 flex-1 overflow-y-auto p-6">
+  <section class="pane min-w-0 flex-1 overflow-y-auto">
     {#if current}
-      <div class="card mb-4 overflow-hidden">
+      <div class="card mb-6 overflow-hidden">
         <TrackHero track={current.track} file={current.vehFile} alt={current.car}>
-          <h1 class="page-title">{current.track}</h1>
-          <div class="text-sm text-muted">
+          <h1 class="truncate font-display text-[24px] leading-tight font-bold uppercase">{current.track}</h1>
+          <div class="mt-1 text-sm text-soft">
             {current.car} ({classLabel(current.carClass)}) · {current.sessionType}
           </div>
           <div class="text-sm text-faint">
@@ -137,8 +140,8 @@
         </TrackHero>
       </div>
       {#if uploadNote}<p class="mb-2 text-xs text-bad">{uploadNote}</p>{/if}
-      <div class="mb-2 flex items-center justify-between gap-4">
-        <p class="text-xs text-muted">Click laps to select (A, then B) for comparison.</p>
+      <div class="mb-3 flex items-center justify-between gap-4">
+        <p class="text-sm text-muted">Click laps to select (A, then B) for comparison.</p>
         <div class="flex shrink-0 gap-2">
           <button
             class="btn btn-primary"
@@ -164,7 +167,7 @@
         {fromGame}
       />
     {:else}
-      <div class="p-10 text-center text-muted">Select a session.</div>
+      <div class="card empty-state">Select a session.</div>
     {/if}
   </section>
 </div>

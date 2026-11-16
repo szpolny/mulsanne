@@ -49,7 +49,7 @@
     }}
   >
     <header class="shrink-0 border-b border-line p-6">
-      <div class="mb-1 text-xs font-semibold tracking-wider text-accent uppercase">Online features</div>
+      <div class="mb-1.5 eyebrow text-accent-hi">Online features</div>
       <h2 id="online-title" class="page-title">Before you turn this on</h2>
     </header>
 

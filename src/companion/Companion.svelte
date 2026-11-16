@@ -139,11 +139,11 @@
 
   <div class="flex min-h-0 flex-1">
     <nav class="flex w-[220px] shrink-0 flex-col border-r border-line bg-surface">
-      <div class="flex flex-col gap-0.5 px-2 pt-4">
+      <div class="flex flex-col gap-0.5 px-2 pt-3">
         {#each PAGES as p}
           <button
             class={[
-              "relative flex items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] font-medium transition-colors",
+              "relative flex items-center gap-3 rounded-md px-3 py-2 text-left font-display text-[15px] font-semibold tracking-[0.08em] uppercase transition-colors",
               nav.page === p.id
                 ? "bg-surface-3 text-fg before:absolute before:top-2 before:bottom-2 before:left-0 before:w-[3px] before:rounded-full before:bg-accent"
                 : "text-muted hover:bg-surface-2 hover:text-fg",
@@ -157,7 +157,7 @@
       </div>
       <div class="mt-auto">
         <a
-          class="mx-2 mb-2 flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+          class="mx-2 mb-2 flex items-center gap-3 rounded-md px-3 py-2 font-display text-[15px] font-semibold tracking-[0.08em] text-muted uppercase transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
           href={ISSUE_URL}
           target="_blank"
           rel="noopener noreferrer"
@@ -174,18 +174,18 @@
           </p>
         {/if}
         {#if updater.phase === "available" || updater.phase === "downloading"}
-          <div class="mx-2 mb-2 rounded-lg border border-line bg-surface-2 p-3 text-xs">
-            <div class="font-medium text-fg">Update available</div>
-            <div class="mt-0.5 text-muted">Version {updater.available} is ready to install.</div>
+          <div class="mx-2 mb-2 rounded-md border border-line border-t-accent border-t-2 bg-surface-2 p-3 text-xs">
+            <div class="eyebrow text-[11px] tracking-[0.16em] text-fg">Update available</div>
+            <div class="mt-1 text-muted">Version {updater.available} is ready to install.</div>
             <button class="btn btn-primary mt-2 w-full" disabled={updater.phase === "downloading"} onclick={installUpdate}>
               {updater.phase === "downloading" ? `Downloading ${Math.round(updater.progress * 100)}%` : "Install and restart"}
             </button>
           </div>
         {/if}
         {#if updater.phase === "outdated"}
-          <div class="mx-2 mb-2 rounded-lg border border-line bg-surface-2 p-3 text-xs">
-            <div class="font-medium text-fg">Update available</div>
-            <div class="mt-0.5 text-muted">Version {updater.available} is out. Update Mulsanne with your package manager.</div>
+          <div class="mx-2 mb-2 rounded-md border border-line border-t-accent border-t-2 bg-surface-2 p-3 text-xs">
+            <div class="eyebrow text-[11px] tracking-[0.16em] text-fg">Update available</div>
+            <div class="mt-1 text-muted">Version {updater.available} is out. Update Mulsanne with your package manager.</div>
           </div>
         {/if}
         <div class="border-t border-line px-4 py-3 text-xs">
@@ -197,7 +197,9 @@
       </div>
     </nav>
 
-    <main class="min-w-0 flex-1 overflow-y-auto">
+    <main
+      class="min-w-0 flex-1 overflow-y-auto bg-[radial-gradient(900px_360px_at_50%_0%,rgb(227_16_31/0.08),transparent_70%)]"
+    >
       {#if nav.page === "live"}
         <Live />
       {:else if nav.page === "overlays"}

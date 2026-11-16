@@ -2,6 +2,7 @@
   import { api } from "../../lib/api";
   import { config, resetLayout, saveConfig, WIDGETS } from "../../lib/config.svelte";
   import { live } from "../../lib/live.svelte";
+  import PageHeader from "../components/PageHeader.svelte";
   import ProfileBar from "../components/ProfileBar.svelte";
   import Toggle from "../components/Toggle.svelte";
   import WidgetPreview from "../components/WidgetPreview.svelte";
@@ -12,13 +13,9 @@
   const g = $derived(config.value.general);
 </script>
 
-<div class="mx-auto max-w-6xl p-6">
-  <div class="mb-5 flex items-center justify-between">
-    <div>
-      <h1 class="page-title">Overlays</h1>
-      <p class="text-sm text-muted">Choose widgets and tune them. Position them on screen with the layout editor.</p>
-    </div>
-    <div class="flex gap-2">
+<div class="page">
+  <PageHeader title="Overlays" description="Choose widgets and tune them. Position them on screen with the layout editor.">
+    {#snippet actions()}
       <button class="btn" onclick={resetLayout}>Reset positions</button>
       <button
         class={["btn", live.status.editMode ? "bg-warn! text-black" : "btn-primary"]}
@@ -26,13 +23,13 @@
       >
         {live.status.editMode ? "Finish editing" : "Edit layout on screen"}
       </button>
-    </div>
-  </div>
+    {/snippet}
+  </PageHeader>
 
   <ProfileBar />
 
   <div class="mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 card px-5 py-3 text-sm">
-    <span class="text-xs font-semibold tracking-wider text-muted uppercase">All widgets</span>
+    <span class="eyebrow">All widgets</span>
     <label class="flex items-center gap-3">
       <span class="text-muted">Scale</span>
       <input type="range" min="0.4" max="3" step="0.05" bind:value={g.scale} oninput={saveConfig} class="w-40 accent-accent" />
@@ -71,11 +68,11 @@
       {/each}
     </div>
 
-    <div class="min-w-0 card p-5">
+    <div class="min-w-0 card-accent p-5">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="section-title text-lg">{meta.name}</h2>
-          <p class="text-sm text-muted">{meta.description}</p>
+          <h2 class="section-title">{meta.name}</h2>
+          <p class="mt-0.5 text-sm text-soft">{meta.description}</p>
         </div>
         <Toggle
           checked={cfg.enabled}

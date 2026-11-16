@@ -36,43 +36,42 @@
       uploadError = String(e);
     }
   }
+  import PageHeader from "../components/PageHeader.svelte";
 </script>
 
-<div class="mx-auto max-w-5xl p-6">
-  <div class="mb-5 flex items-start justify-between gap-4">
-    <div>
-      <h1 class="mb-1 page-title">Personal records</h1>
-      <p class="text-sm text-muted">Your best clean lap (valid, not an out/in lap) for every track and car.</p>
-      {#if uploadError}<p class="mt-1 text-xs text-bad">{uploadError}</p>{/if}
-    </div>
-    {#if online}
-      <button class="btn shrink-0" disabled={toUpload.length === 0} onclick={uploadAll}>
-        {toUpload.length ? `Upload ${toUpload.length} personal best${toUpload.length === 1 ? "" : "s"}` : "Nothing to upload"}
-      </button>
-    {/if}
-  </div>
+<div class="page">
+  <PageHeader title="Personal records" description="Your best clean lap (valid, not an out/in lap) for every track and car.">
+    {#if uploadError}<p class="mt-1 text-xs text-bad">{uploadError}</p>{/if}
+    {#snippet actions()}
+      {#if online}
+        <button class="btn" disabled={toUpload.length === 0} onclick={uploadAll}>
+          {toUpload.length ? `Upload ${toUpload.length} personal best${toUpload.length === 1 ? "" : "s"}` : "Nothing to upload"}
+        </button>
+      {/if}
+    {/snippet}
+  </PageHeader>
 
   {#each byTrack as [track, rows] (track)}
-    <div class="card mb-5 overflow-hidden">
-      <div class="section-title flex items-center gap-2.5 bg-surface-2 px-4 py-2.5">
+    <div class="card mb-4 overflow-hidden">
+      <div class="flex items-center gap-2.5 bg-surface-2 px-4 py-2.5 font-display text-[17px] font-semibold tracking-[0.04em] uppercase">
         <TrackOutline {track} hideMissing class="h-7 w-7 shrink-0 text-fg/80" />
         {track}
       </div>
-      <table class="w-full text-sm tnum">
+      <table class="data-table">
         <tbody>
           {#each rows as b (b.lapId)}
-            <tr class="border-t border-line hover:bg-surface-2">
+            <tr class="hover:bg-surface-2">
               <td class="w-2 py-2 pl-4"><span class="block h-4 w-1 rounded-full" style:background={classColor(b.carClass)}></span></td>
               <td class="px-3 py-2">
                 <div>{b.car}</div>
                 <div class="text-xs text-muted">{classLabel(b.carClass)} · {b.lapCount} clean laps</div>
               </td>
-              <td class="px-3 py-2 text-lg font-semibold text-best">{lapTime(b.lapTime)}</td>
+              <td class="px-3 py-2 font-display text-xl font-semibold text-best">{lapTime(b.lapTime)}</td>
               <td class="px-3 py-2 text-muted">{sectorTime(b.s1)} · {sectorTime(b.s2)} · {sectorTime(b.s3)}</td>
               <td class="px-3 py-2 text-xs text-muted">{dateTime(b.recordedAt)}</td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 {#if online}<UploadStatus lapId={b.lapId} eligible={eligible(b)} />{/if}
-                <button class="rounded px-2 py-1 text-xs text-accent hover:bg-surface-3" onclick={() => nav.openAnalysis(b.track, b.lapId)}>Analyse</button>
+                <button class="btn-link text-accent-hi" onclick={() => nav.openAnalysis(b.track, b.lapId)}>Analyse</button>
               </td>
             </tr>
           {/each}
@@ -80,6 +79,6 @@
       </table>
     </div>
   {:else}
-    <div class="card p-10 text-center text-muted">No clean laps recorded yet.</div>
+    <div class="card empty-state">No clean laps recorded yet.</div>
   {/each}
 </div>

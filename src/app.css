@@ -21,6 +21,7 @@
   --color-surface-3: #24242b;
   --color-line: #2a2a31;
   --color-fg: #f4f4f6;
+  --color-soft: #c4c4cc;
   --color-muted: #9a9aa6;
   --color-faint: #63636e;
 
@@ -66,6 +67,10 @@
   }
   #app {
     height: 100%;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-hi);
+    outline-offset: 2px;
   }
   ::selection {
     background: var(--color-accent);
@@ -142,23 +147,63 @@
 }
 
 /* ---------- Companion ---------- */
+/* Shares its type and accents with mulsanne.xyz: condensed uppercase headings,
+   tracked eyebrow labels and display-font buttons. */
+
+/* Scrolling page body. Every page uses the same width and margins. */
+@utility page {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: 28px 32px 40px;
+}
+
+/* Padding for the content pane of a list + detail page, matching `page`. */
+@utility pane {
+  padding: 28px 32px 40px;
+}
 
 @utility page-title {
-  font-size: 26px;
-  line-height: 1.15;
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.05;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 @utility section-title {
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.15;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Small tracked caption above a title or a group of controls. */
+@utility eyebrow {
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 @utility card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
-  border-radius: 12px;
+  border-radius: 10px;
+}
+
+/* Card with the red top edge used for feature blocks on the website. Use instead of `card`. */
+@utility card-accent {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-top: 3px solid var(--color-accent);
+  border-radius: 10px;
 }
 
 @utility btn {
@@ -167,9 +212,14 @@
   justify-content: center;
   gap: 6px;
   padding: 7px 14px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.2;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
   background: var(--color-surface-3);
   color: var(--color-fg);
   transition:
@@ -192,10 +242,30 @@
   }
 }
 
+/* Small inline text action, e.g. "Analyse" in a table row. Set the colour with a text-* class. */
+@utility btn-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  &:hover {
+    background: var(--color-surface-3);
+  }
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+
 @utility field {
   background: var(--color-surface-2);
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 6px 10px;
   font-size: 14px;
   color: var(--color-fg);
@@ -205,11 +275,42 @@
   }
 }
 
+/* Tables of laps and results: tracked header row, even cell padding. */
+@utility data-table {
+  width: 100%;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  & thead {
+    background: var(--color-surface-2);
+    text-align: left;
+  }
+  /* Cell padding stays on the cells, so columns can differ. */
+  & th {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  & tbody tr {
+    border-top: 1px solid var(--color-line);
+  }
+}
+
+/* Centred message inside an empty list or page. */
+@utility empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
 @utility kbd {
   font-family: var(--font-mono);
   font-size: 11px;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 4px;
-  background: var(--color-surface-3);
+  background: var(--color-surface-2);
   border: 1px solid var(--color-line);
+  border-bottom-width: 2px;
 }

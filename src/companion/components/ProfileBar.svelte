@@ -33,7 +33,7 @@
 </script>
 
 <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 card px-5 py-3 text-sm">
-  <span class="text-xs font-semibold tracking-wider text-muted uppercase">Profile</span>
+  <span class="eyebrow">Profile</span>
 
   {#if mode.kind === "rename" || mode.kind === "new"}
     <input

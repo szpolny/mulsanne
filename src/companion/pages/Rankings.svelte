@@ -141,29 +141,30 @@
   $effect(() => {
     if (gameVersion && !board?.gameVersions.includes(Number(gameVersion))) gameVersion = "";
   });
+  import PageHeader from "../components/PageHeader.svelte";
 </script>
 
 {#if !enabled}
-  <div class="mx-auto max-w-3xl p-6">
-    <h1 class="mb-5 page-title">Rankings</h1>
-    <div class="card p-10 text-center">
-      <p class="mb-4 text-muted">Compare your lap times with other drivers. Turn on online features to see the rankings.</p>
+  <div class="page">
+    <PageHeader title="Rankings" description="Best laps per track and car class from other Mulsanne drivers." />
+    <div class="card empty-state">
+      <p class="mb-4">Compare your lap times with other drivers. Turn on online features to see the rankings.</p>
       <button class="btn btn-primary" onclick={() => (nav.page = "settings")}>Open Settings</button>
     </div>
   </div>
 {:else}
   <div class="flex h-full">
-    <aside class="flex w-[280px] shrink-0 flex-col border-r border-line">
-      <div class="flex items-center justify-between px-4 pt-4 pb-2">
-        <span class="section-title">Tracks <span class="font-normal text-faint">{tracks.length || ""}</span></span>
-        <button class="rounded px-2 py-0.5 text-xs text-accent hover:bg-surface-3" onclick={loadBoards}>Refresh</button>
-      </div>
-      {#if tracks.length > 6}
-        <div class="px-3 pb-2">
-          <input class="field w-full text-sm" type="search" placeholder="Find a track" bind:value={search} aria-label="Find a track" />
+    <aside class="flex w-[320px] shrink-0 flex-col border-r border-line bg-surface/40">
+      <div class="flex flex-col gap-3 border-b border-line p-4">
+        <div class="flex items-center justify-between">
+          <span class="eyebrow">Tracks <span class="text-faint">{tracks.length || ""}</span></span>
+          <button class="-my-1 btn-link text-accent-hi" onclick={loadBoards}>Refresh</button>
         </div>
-      {/if}
-      <div class="flex-1 overflow-y-auto px-2 pb-2">
+        {#if tracks.length > 6}
+          <input class="field w-full text-sm" type="search" placeholder="Find a track" bind:value={search} aria-label="Find a track" />
+        {/if}
+      </div>
+      <div class="flex-1 overflow-y-auto p-2">
         {#each shown as g (g.track)}
           {@const active = board?.track === g.track}
           <button
@@ -174,7 +175,7 @@
               <TrackOutline track={g.track} hideMissing class="h-8 w-8 {active ? 'text-accent' : 'text-fg/70'}" />
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-medium">{g.track}</span>
+              <span class="block truncate font-display text-[17px] font-semibold tracking-[0.02em] uppercase">{g.track}</span>
               <span class="mt-1 flex items-center gap-1">
                 {#each g.boards as b (b.carClass)}
                   <span class="h-1.5 w-4 rounded-full" style:background={classColor(b.carClass)} title={tabLabel(b, g.boards)}></span>
@@ -184,7 +185,7 @@
             </span>
           </button>
         {:else}
-          <div class="p-6 text-center text-sm text-muted">
+          <div class="empty-state text-sm">
             {#if error}{:else if search}No track matches “{search}”.{:else}No ranked laps yet. Upload yours from Records.{/if}
           </div>
         {/each}
@@ -193,11 +194,12 @@
 
     <section class="min-w-0 flex-1 overflow-y-auto">
       {#if board && group}
-        <div class="relative overflow-hidden border-b border-line bg-gradient-to-r from-surface-2 to-transparent px-6 pt-5">
-          <TrackOutline track={board.track} hideMissing class="pointer-events-none absolute top-3 right-6 h-[calc(100%-1.5rem)] w-40 text-fg/15" />
+        <div class="relative overflow-hidden border-b border-line bg-gradient-to-r from-surface-2 to-transparent px-8 pt-7">
+          <TrackOutline track={board.track} hideMissing class="pointer-events-none absolute top-4 right-8 h-[calc(100%-2rem)] w-40 text-fg/15" />
           <div class="relative">
+            <p class="mb-1.5 eyebrow">Rankings</p>
             <h1 class="page-title">{board.track}</h1>
-            <p class="mt-0.5 text-sm text-muted">Best lap per driver</p>
+            <p class="mt-1.5 text-sm text-soft">Best lap per driver</p>
           </div>
           <div class="relative mt-4 flex flex-wrap gap-1" role="tablist" aria-label="Car class">
             {#each group.boards as b (b.carClass)}
@@ -205,19 +207,19 @@
               <button
                 role="tab"
                 aria-selected={active}
-                class={["flex items-center gap-2 rounded-t-md border-x border-t px-3.5 py-2 text-sm", active ? "border-line bg-surface font-semibold" : "border-transparent text-muted hover:text-fg"]}
+                class={["flex items-center gap-2 rounded-t-md border-x border-t px-3.5 py-2 font-display text-[15px] font-semibold tracking-[0.04em] uppercase", active ? "border-line bg-bg" : "border-transparent text-muted hover:text-fg"]}
                 style:box-shadow={active ? `inset 0 3px 0 ${classColor(b.carClass)}` : undefined}
                 onclick={() => (board = b)}
               >
                 <span class="h-2 w-2 rounded-full" style:background={classColor(b.carClass)}></span>
                 {tabLabel(b, group.boards)}
-                <span class="text-xs font-normal text-muted tnum">{lapTime(b.bestLap)}</span>
+                <span class="font-sans text-xs font-normal tracking-normal text-muted normal-case tnum">{lapTime(b.bestLap)}</span>
               </button>
             {/each}
           </div>
         </div>
 
-        <div class="p-6">
+        <div class="px-8 pt-6 pb-10">
           {#if error}
             <p class="mb-4 text-sm text-bad">{error}</p>
           {/if}
@@ -281,8 +283,8 @@
           {/if}
 
           <div class="card overflow-x-auto">
-            <table class="w-full text-sm whitespace-nowrap tnum">
-              <thead class="bg-surface-2 text-left text-xs text-muted">
+            <table class="data-table whitespace-nowrap">
+              <thead>
                 <tr>
                   <th class="w-14 px-3 py-2 font-medium">#</th>
                   <th class="px-3 py-2 font-medium">Driver</th>
@@ -297,7 +299,7 @@
               <tbody>
                 {#each entries as e (e.lapId)}
                   {@const you = mine.has(e.lapId)}
-                  <tr class={["border-t border-line", you ? "bg-accent/15" : "hover:bg-surface-2"]}>
+                  <tr class={[you ? "bg-accent/15" : "hover:bg-surface-2"]}>
                     <td class="px-3 py-2">
                       {#if e.rank <= 3}
                         <span
@@ -336,7 +338,7 @@
                     <td class="px-2 py-2 text-right">
                       {#if e.hasTrace && !you}
                         <button
-                          class="rounded px-2 py-0.5 text-xs text-accent hover:bg-surface-3"
+                          class="btn-link text-accent-hi"
                           title="Compare your best lap on this track with this one"
                           onclick={() =>
                             nav.compareWithRanked(board!.track, {
@@ -364,7 +366,7 @@
           {/if}
         </div>
       {:else if error}
-        <p class="p-6 text-sm text-bad">{error}</p>
+        <p class="pane text-sm text-bad">{error}</p>
       {/if}
     </section>
   </div>

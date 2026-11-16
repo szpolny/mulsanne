@@ -28,147 +28,167 @@
     const n = m.name.match(/DISPLAY(\d+)$/i)?.[1];
     return `${n ? `Display ${n}` : m.name} · ${m.width}×${m.height}${m.primary ? " (primary)" : ""}`;
   };
+  import PageHeader from "../components/PageHeader.svelte";
 </script>
 
-<div class="mx-auto max-w-3xl p-6">
-  <h1 class="mb-5 page-title">Settings</h1>
+<div class="page">
+  <PageHeader title="Settings" description="Units, the overlay window, shortcuts, updates and online features." />
 
-  {#if live.status.experimentalLinux}
-    <div class="card mb-5 p-4 text-sm">
-      <div class="font-medium">Experimental Linux support</div>
-      <p class="mt-1 text-muted">Linux support is experimental. Fullscreen HUD integration has been tested on Hyprland with XWayland; other desktops may need additional setup.</p>
-    </div>
-  {/if}
+  <div class="flex max-w-3xl flex-col gap-8">
+    {#if live.status.experimentalLinux}
+      <div class="card border-warn/40 p-4 text-sm">
+        <div class="font-medium text-warn">Experimental Linux support</div>
+        <p class="mt-1 text-muted">Linux support is experimental. Fullscreen HUD integration has been tested on Hyprland with XWayland; other desktops may need additional setup.</p>
+      </div>
+    {/if}
 
-  <div class="divide-y divide-line card text-sm">
-    <div class="flex items-center justify-between p-4">
-      <div>
-        <div class="font-medium">Units</div>
-        <div class="text-muted">Speed, temperature, pressure and fuel.</div>
-      </div>
-      <select class="field" bind:value={g.units} onchange={saveConfig}>
-        <option value="metric">Metric (km/h, °C, kPa, L)</option>
-        <option value="imperial">Imperial (mph, °F, psi, gal)</option>
-      </select>
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Overlay monitor</div>
-        <div class="text-muted">Screen the widgets are shown on. Pick the one Le Mans Ultimate runs on.</div>
-      </div>
-      <select class="field" bind:value={g.monitor} onchange={saveConfig} onfocus={refreshMonitors}>
-        <option value="">Primary monitor</option>
-        {#each monitors as m (m.name)}
-          <option value={m.name}>{monitorLabel(m)}</option>
-        {/each}
-        {#if g.monitor && !monitors.some((m) => m.name === g.monitor)}
-          <option value={g.monitor}>{g.monitor} (not connected, using primary)</option>
-        {/if}
-      </select>
-    </div>
-    <div class="flex items-center justify-between p-4">
-      <div>
-        <div class="font-medium">Hide overlay off track</div>
-        <div class="text-muted">Only show widgets while driving (always shown in the layout editor).</div>
-      </div>
-      <Toggle checked={g.onlyOnTrack} label="Hide off track" onchange={(v) => { g.onlyOnTrack = v; saveConfig(); }} />
-    </div>
-    <div class="flex items-center justify-between p-4">
-      <div>
-        <div class="font-medium">Hide overlay when game is not focused</div>
-        <div class="text-muted">Hide widgets while you alt-tab to another window (always shown in the layout editor and demo mode).</div>
-      </div>
-      <Toggle checked={g.hideUnfocused} label="Hide when unfocused" onchange={(v) => { g.hideUnfocused = v; saveConfig(); }} />
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Overlay refresh rate</div>
-        <div class="text-muted">Updates per second sent to the widgets. Lower values use less CPU.</div>
-      </div>
-      <div class="flex items-center gap-3">
-        <input type="range" min="10" max="60" step="5" bind:value={g.updateHz} oninput={saveConfig} class="accent-accent" />
-        <span class="w-12 text-right tnum">{g.updateHz} Hz</span>
-      </div>
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Edit layout shortcut</div>
-        <div class="text-muted">Turns the layout editor on and off. Works while the game is focused.</div>
-      </div>
-      <ShortcutInput value={g.editShortcut} fallback={DEFAULT_SHORTCUTS.edit} label="Edit layout shortcut" onchange={(v) => setShortcut("edit", v)} />
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Show / hide overlay shortcut</div>
-        <div class="text-muted">Shows or hides all widgets.</div>
-      </div>
-      <ShortcutInput value={g.visibilityShortcut} fallback={DEFAULT_SHORTCUTS.visibility} label="Show / hide overlay shortcut" onchange={(v) => setShortcut("visibility", v)} />
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Layout grid snap</div>
-        <div class="text-muted">Pixel step when dragging widgets.</div>
-      </div>
-      <div class="flex items-center gap-3">
-        <input type="range" min="1" max="20" step="1" bind:value={g.snap} oninput={saveConfig} class="accent-accent" />
-        <span class="w-12 text-right tnum">{g.snap} px</span>
-      </div>
-    </div>
-    <div class="p-4">
-      <div class="font-medium">Data folder</div>
-      <div class="mt-1 font-mono text-xs break-all text-muted">{live.status.dataDir}</div>
-      <div class="mt-1 text-muted">Laps are stored in <code>laps.db</code> (SQLite) in this folder.</div>
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Show changelog after updates</div>
-        <div class="text-muted">See what's new when you first open a new version.</div>
-      </div>
-      <Toggle checked={g.showChangelog} label="Show changelog after updates" onchange={(v) => { g.showChangelog = v; saveConfig(); }} />
-    </div>
-    <div class="flex items-center justify-between gap-6 p-4">
-      <div>
-        <div class="font-medium">Version {updater.version}</div>
-        <div class="text-muted">
-          {#if updater.phase === "outdated"}
-            Version {updater.available} is available. Update with your package manager.
-          {:else if updater.phase === "checking"}
-            Checking for updates…
-          {:else if updater.phase === "available"}
-            Version {updater.available} is available.
-          {:else if updater.phase === "downloading"}
-            Downloading update… {Math.round(updater.progress * 100)}%
-          {:else if updater.phase === "upToDate"}
-            You're on the latest version.
-          {:else if updater.phase === "error"}
-            <span title={updater.error}>Couldn't check for updates.</span>
-          {:else}
-            Updates are checked when the app starts.
-          {/if}
+    <section>
+      <h2 class="mb-3 section-title">Overlay</h2>
+      <div class="divide-y divide-line card text-sm">
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Overlay monitor</div>
+            <div class="text-muted">Screen the widgets are shown on. Pick the one Le Mans Ultimate runs on.</div>
+          </div>
+          <select class="field" bind:value={g.monitor} onchange={saveConfig} onfocus={refreshMonitors}>
+            <option value="">Primary monitor</option>
+            {#each monitors as m (m.name)}
+              <option value={m.name}>{monitorLabel(m)}</option>
+            {/each}
+            {#if g.monitor && !monitors.some((m) => m.name === g.monitor)}
+              <option value={g.monitor}>{g.monitor} (not connected, using primary)</option>
+            {/if}
+          </select>
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Hide overlay off track</div>
+            <div class="text-muted">Only show widgets while driving (always shown in the layout editor).</div>
+          </div>
+          <Toggle checked={g.onlyOnTrack} label="Hide off track" onchange={(v) => { g.onlyOnTrack = v; saveConfig(); }} />
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Hide overlay when game is not focused</div>
+            <div class="text-muted">Hide widgets while you alt-tab to another window (always shown in the layout editor and demo mode).</div>
+          </div>
+          <Toggle checked={g.hideUnfocused} label="Hide when unfocused" onchange={(v) => { g.hideUnfocused = v; saveConfig(); }} />
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Overlay refresh rate</div>
+            <div class="text-muted">Updates per second sent to the widgets. Lower values use less CPU.</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="range" min="10" max="60" step="5" bind:value={g.updateHz} oninput={saveConfig} class="accent-accent" />
+            <span class="w-12 text-right tnum">{g.updateHz} Hz</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Layout grid snap</div>
+            <div class="text-muted">Pixel step when dragging widgets.</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="range" min="1" max="20" step="1" bind:value={g.snap} oninput={saveConfig} class="accent-accent" />
+            <span class="w-12 text-right tnum">{g.snap} px</span>
+          </div>
         </div>
       </div>
-      <div class="flex shrink-0 flex-wrap justify-end gap-2">
-        <button class="btn" disabled={!updater.version} onclick={() => (updater.changelogOpen = true)}>View changelog</button>
-        {#if updater.phase === "available"}
-          <button class="btn btn-primary" onclick={installUpdate}>Install and restart</button>
-        {:else}
-          <button class="btn" disabled={updater.phase === "checking" || updater.phase === "downloading"} onclick={checkForUpdate}>
-            Check for updates
-          </button>
-        {/if}
+    </section>
+
+    <section>
+      <h2 class="mb-3 section-title">Shortcuts</h2>
+      <div class="divide-y divide-line card text-sm">
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Edit layout shortcut</div>
+            <div class="text-muted">Turns the layout editor on and off. Works while the game is focused.</div>
+          </div>
+          <ShortcutInput value={g.editShortcut} fallback={DEFAULT_SHORTCUTS.edit} label="Edit layout shortcut" onchange={(v) => setShortcut("edit", v)} />
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Show / hide overlay shortcut</div>
+            <div class="text-muted">Shows or hides all widgets.</div>
+          </div>
+          <ShortcutInput value={g.visibilityShortcut} fallback={DEFAULT_SHORTCUTS.visibility} label="Show / hide overlay shortcut" onchange={(v) => setShortcut("visibility", v)} />
+        </div>
       </div>
-    </div>
+    </section>
+
+    <section>
+      <h2 class="mb-3 section-title">General</h2>
+      <div class="divide-y divide-line card text-sm">
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Units</div>
+            <div class="text-muted">Speed, temperature, pressure and fuel.</div>
+          </div>
+          <select class="field" bind:value={g.units} onchange={saveConfig}>
+            <option value="metric">Metric (km/h, °C, kPa, L)</option>
+            <option value="imperial">Imperial (mph, °F, psi, gal)</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Show changelog after updates</div>
+            <div class="text-muted">See what's new when you first open a new version.</div>
+          </div>
+          <Toggle checked={g.showChangelog} label="Show changelog after updates" onchange={(v) => { g.showChangelog = v; saveConfig(); }} />
+        </div>
+        <div class="flex items-center justify-between gap-6 p-4">
+          <div>
+            <div class="font-medium">Version {updater.version}</div>
+            <div class="text-muted">
+              {#if updater.phase === "outdated"}
+                Version {updater.available} is available. Update with your package manager.
+              {:else if updater.phase === "checking"}
+                Checking for updates…
+              {:else if updater.phase === "available"}
+                Version {updater.available} is available.
+              {:else if updater.phase === "downloading"}
+                Downloading update… {Math.round(updater.progress * 100)}%
+              {:else if updater.phase === "upToDate"}
+                You're on the latest version.
+              {:else if updater.phase === "error"}
+                <span title={updater.error}>Couldn't check for updates.</span>
+              {:else}
+                Updates are checked when the app starts.
+              {/if}
+            </div>
+          </div>
+          <div class="flex shrink-0 flex-wrap justify-end gap-2">
+            <button class="btn" disabled={!updater.version} onclick={() => (updater.changelogOpen = true)}>View changelog</button>
+            {#if updater.phase === "available"}
+              <button class="btn btn-primary" onclick={installUpdate}>Install and restart</button>
+            {:else}
+              <button class="btn" disabled={updater.phase === "checking" || updater.phase === "downloading"} onclick={checkForUpdate}>
+                Check for updates
+              </button>
+            {/if}
+          </div>
+        </div>
+        <div class="p-4">
+          <div class="font-medium">Data folder</div>
+          <div class="mt-1 font-mono text-xs break-all text-muted">{live.status.dataDir}</div>
+          <div class="mt-1 text-muted">Laps are stored in <code>laps.db</code> (SQLite) in this folder.</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="mb-3 section-title">Online</h2>
+      <OnlineSettings />
+    </section>
   </div>
 
-  <h2 class="mt-8 mb-3 section-title">Online</h2>
-  <OnlineSettings />
-
-  <div class="mt-8 text-center text-sm text-muted">
+  <div class="mt-10 max-w-3xl text-center text-sm text-muted">
     {#if starError}
       <span class="select-text break-words text-bad" role="alert">Couldn't open your browser. Visit {REPO_URL} to leave a star.</span>
     {:else}
       Like Mulsanne?
-      <button class="text-accent underline underline-offset-2 hover:text-fg" onclick={star}>Give it a star on GitHub</button>
+      <button class="text-accent-hi underline underline-offset-2 hover:text-fg" onclick={star}>Give it a star on GitHub</button>
     {/if}
   </div>
 </div>
