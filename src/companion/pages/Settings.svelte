@@ -125,6 +125,24 @@
     <section>
       <h2 class="mb-3 section-title">General</h2>
       <div class="divide-y divide-line card text-sm">
+        {#if live.status.experimentalLinux}
+          <div class="flex items-center justify-between gap-6 p-4">
+            <div>
+              <div class="font-medium">Title bar</div>
+              <div class="text-muted">GTK uses your desktop’s button theme and layout. Choose None to use a bar drawn by your desktop. Changes apply after restarting Mulsanne.</div>
+            </div>
+            <Select
+              bind:value={g.titleBar}
+              onchange={saveConfig}
+              label="Title bar"
+              options={[
+                { value: "system", label: "GTK" },
+                { value: "app", label: "Mulsanne" },
+                { value: "none", label: "None" },
+              ]}
+            />
+          </div>
+        {/if}
         <div class="flex items-center justify-between gap-6 p-4">
           <div>
             <div class="font-medium">Units</div>

@@ -71,7 +71,7 @@ export async function install(inApp = false) {
         case "get_preview_snapshot":
           return fx.frames[previewFrame++ % fx.frames.length];
         case "get_status":
-          return { demo: !params.has("screenshot"), editMode, overlayVisible: true, gameFocused: false, experimentalLinux: false, waylandOverlay: false, dataDir: "C:\\mock" };
+          return { demo: !params.has("screenshot"), editMode, overlayVisible: true, gameFocused: false, experimentalLinux: false, waylandOverlay: false, titleBar: "app", decorationLayout: null, dataDir: "C:\\mock" };
         case "list_monitors":
           return [
             { name: "\\\\.\\DISPLAY1", width: 2560, height: 1440, x: 0, y: 0, primary: true },

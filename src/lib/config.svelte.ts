@@ -3,6 +3,8 @@ import { api } from "./api";
 
 export type Units = "metric" | "imperial";
 
+export type TitleBar = "app" | "system" | "none";
+
 /** Must match the defaults in src-tauri/src/shortcuts.rs. */
 export const DEFAULT_SHORTCUTS = { edit: "Ctrl+Shift+F9", visibility: "Ctrl+Shift+F10" } as const;
 
@@ -60,6 +62,11 @@ export interface AppConfig {
     editShortcut: string;
     /** Global shortcut that shows or hides the overlay. */
     visibilityShortcut: string;
+    /**
+     * Linux window title bar, applied at launch: Mulsanne's own ("app"), GTK's
+     * ("system"), or none for desktops that draw their own ("none").
+     */
+    titleBar: TitleBar;
   };
   /** Lap rankings and car setup sharing. Off until the user opts in. */
   online: {
@@ -314,7 +321,7 @@ function defaults(): AppConfig {
   const widgets = defaultWidgets();
   return {
     version: 1,
-    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", starPromptUsageMs: 0, starPromptDone: false, snap: 4, scale: 1, opacity: 0.92, monitor: "", editShortcut: DEFAULT_SHORTCUTS.edit, visibilityShortcut: DEFAULT_SHORTCUTS.visibility },
+    general: { units: "metric", updateHz: 30, onlyOnTrack: true, hideUnfocused: false, showChangelog: true, lastSeenVersion: "", starPromptUsageMs: 0, starPromptDone: false, snap: 4, scale: 1, opacity: 0.92, monitor: "", editShortcut: DEFAULT_SHORTCUTS.edit, visibilityShortcut: DEFAULT_SHORTCUTS.visibility, titleBar: "system" },
     online: { enabled: false, lapUpload: "manual", anonymous: false, uploadTraces: true },
     widgets,
     activeProfile: "default",
@@ -338,6 +345,9 @@ function merge(stored: any): AppConfig {
   const base = defaults();
   if (!stored || typeof stored !== "object") return base;
   const general = { ...base.general, ...(stored.general ?? {}) };
+  if (general.titleBar !== "app" && general.titleBar !== "none") {
+    general.titleBar = base.general.titleBar;
+  }
   const online = { ...base.online, ...(stored.online ?? {}) };
   const widgets = mergeWidgets(stored.widgets);
   const profiles: Record<string, Profile> = {};

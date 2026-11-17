@@ -80,15 +80,15 @@ pub fn place(window: &gtk::ApplicationWindow, monitor: &str) {
     set_margins(window, [0; 4]);
 }
 
-/// Covers the game's rectangle, given in XWayland coordinates. XWayland shares
-/// the compositor's logical layout, so a fullscreen game covers its monitor.
+/// Covers the game's rectangle, given in the compositor's logical layout (see
+/// [`output_layout`]).
 pub fn follow(window: &gtk::ApplicationWindow, x: i32, y: i32, width: i32, height: i32) {
     let display = WidgetExt::display(window);
     let Some(monitor) = display.monitor_at_point(x + width / 2, y + height / 2) else { return };
     let area = monitor.geometry();
     window.set_monitor(&monitor);
-    // Negative insets (a game larger than the monitor's logical size, as with
-    // unscaled XWayland on a scaled monitor) mean it fills the monitor.
+    // Rounding can leave a fullscreen game a pixel past the monitor's edges;
+    // negative insets clamp to zero.
     set_margins(window, [
         x - area.x(),
         area.x() + area.width() - (x + width),
@@ -108,4 +108,77 @@ fn set_margins(window: &gtk::ApplicationWindow, margins: [i32; 4]) {
 pub fn set_keyboard(window: &gtk::ApplicationWindow, editing: bool) {
     let mode = if editing { KeyboardMode::OnDemand } else { KeyboardMode::None };
     window.set_keyboard_mode(mode);
+}
+
+/// An output's connector name (e.g. "DP-1") and its rectangle in the
+/// compositor's logical layout.
+pub struct Output {
+    pub name: String,
+    pub rect: [i32; 4],
+}
+
+/// Outputs as the compositor lays them out, from xdg-output. XWayland names its
+/// RandR monitors after the same connectors but may place them elsewhere (Hyprland
+/// packs them from the origin), so game coordinates are mapped through these.
+pub fn output_layout() -> Vec<Output> {
+    use wayland_client::globals::registry_queue_init;
+    use wayland_client::protocol::wl_output::WlOutput;
+    use wayland_client::Connection;
+    use wayland_protocols::xdg::xdg_output::zv1::client::zxdg_output_manager_v1::ZxdgOutputManagerV1;
+
+    let Ok(conn) = Connection::connect_to_env() else { return Vec::new() };
+    let Ok((globals, mut queue)) = registry_queue_init::<Layout>(&conn) else { return Vec::new() };
+    let qh = queue.handle();
+    // xdg-output sends output names from version 2.
+    let Ok(manager) = globals.bind::<ZxdgOutputManagerV1, _, _>(&qh, 2..=3, ()) else { return Vec::new() };
+    let mut layout = Layout::default();
+    for global in globals.contents().clone_list() {
+        if global.interface == "wl_output" {
+            let output: WlOutput = globals.registry().bind(global.name, 1, &qh, ());
+            manager.get_xdg_output(&output, &qh, layout.0.len());
+            layout.0.push((None, [0; 4]));
+        }
+    }
+    if queue.roundtrip(&mut layout).is_err() {
+        return Vec::new();
+    }
+    layout.0.into_iter().filter_map(|(name, rect)| Some(Output { name: name?, rect })).collect()
+}
+
+#[derive(Default)]
+struct Layout(Vec<(Option<String>, [i32; 4])>);
+
+wayland_client::delegate_noop!(Layout: ignore wayland_client::protocol::wl_output::WlOutput);
+wayland_client::delegate_noop!(Layout: wayland_protocols::xdg::xdg_output::zv1::client::zxdg_output_manager_v1::ZxdgOutputManagerV1);
+
+impl wayland_client::Dispatch<wayland_client::protocol::wl_registry::WlRegistry, wayland_client::globals::GlobalListContents> for Layout {
+    fn event(
+        _: &mut Self,
+        _: &wayland_client::protocol::wl_registry::WlRegistry,
+        _: wayland_client::protocol::wl_registry::Event,
+        _: &wayland_client::globals::GlobalListContents,
+        _: &wayland_client::Connection,
+        _: &wayland_client::QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl wayland_client::Dispatch<wayland_protocols::xdg::xdg_output::zv1::client::zxdg_output_v1::ZxdgOutputV1, usize> for Layout {
+    fn event(
+        layout: &mut Self,
+        _: &wayland_protocols::xdg::xdg_output::zv1::client::zxdg_output_v1::ZxdgOutputV1,
+        event: wayland_protocols::xdg::xdg_output::zv1::client::zxdg_output_v1::Event,
+        index: &usize,
+        _: &wayland_client::Connection,
+        _: &wayland_client::QueueHandle<Self>,
+    ) {
+        use wayland_protocols::xdg::xdg_output::zv1::client::zxdg_output_v1::Event;
+        let Some((name, rect)) = layout.0.get_mut(*index) else { return };
+        match event {
+            Event::Name { name: value } => *name = Some(value),
+            Event::LogicalPosition { x, y } => (rect[0], rect[1]) = (x, y),
+            Event::LogicalSize { width, height } => (rect[2], rect[3]) = (width, height),
+            _ => {}
+        }
+    }
 }

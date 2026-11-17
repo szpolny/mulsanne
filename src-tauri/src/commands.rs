@@ -27,6 +27,8 @@ pub struct Status {
     /// The HUD is a Wayland layer surface. Global shortcuts reach the app only
     /// through XWayland, so its own windows handle them while focused.
     wayland_overlay: bool,
+    title_bar: String,
+    decoration_layout: Option<String>,
 }
 
 #[tauri::command]
@@ -47,6 +49,8 @@ pub fn get_status(state: State<AppState>) -> Status {
         wayland_overlay: crate::wayland::active(),
         #[cfg(not(target_os = "linux"))]
         wayland_overlay: false,
+        title_bar: state.title_bar.clone(),
+        decoration_layout: state.decoration_layout.clone(),
     }
 }
 

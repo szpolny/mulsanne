@@ -259,6 +259,10 @@ export interface Status {
   experimentalLinux: boolean;
   /** The Linux HUD is a Wayland layer surface. */
   waylandOverlay: boolean;
+  /** Title bar the companion window was opened with. */
+  titleBar: "app" | "system" | "none";
+  /** GTK's window button layout on Linux, e.g. "close,minimize,maximize:"; null elsewhere. */
+  decorationLayout: string | null;
 }
 
 /** A connected display the overlay can cover. */

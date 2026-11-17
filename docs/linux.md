@@ -62,6 +62,11 @@ Both shortcuts can be changed in Settings. They work while the game or a
 Mulsanne window is focused, not in other apps.
 - Widgets are hidden off track by default; enter a session or open the editor.
 
+The companion uses a GTK title bar by default and follows your GTK button theme
+and layout. If a compositor plugin such as hyprbars adds its own bar, choose
+**None** under **Settings → Title bar**, or exclude the `lm-overlay` window from
+the plugin to keep the GTK bar. Title bar changes take effect on restart.
+
 Logs are in `${XDG_STATE_HOME:-$HOME/.local/state}/mulsanne/`. Settings and laps
 remain in the standard XDG config/data directories under `xyz.mulsanne` when the
 package is removed. To include penalty descriptions from the trace log, set

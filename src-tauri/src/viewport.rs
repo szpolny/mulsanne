@@ -95,6 +95,49 @@ impl Tracker {
             .max_by_key(|b| u64::from(b.width) * u64::from(b.height));
         bounds
     }
+    /// The game's rectangle in the compositor's logical layout. XWayland's
+    /// RandR monitors carry the compositor's output names but not always its
+    /// positions or scale, so the rectangle is mapped through the monitor it's on.
+    fn logical(&self, b: Bounds) -> [i32; 4] {
+        let size = |v: u32| i32::try_from(v).unwrap_or(i32::MAX);
+        let raw = [b.x, b.y, size(b.width), size(b.height)];
+        let (cx, cy) = (b.x + raw[2] / 2, b.y + raw[3] / 2);
+        let Some((name, monitor)) = self.monitors().into_iter().find(|(_, [x, y, w, h])| {
+            (*x..x + w).contains(&cx) && (*y..y + h).contains(&cy)
+        }) else {
+            return raw;
+        };
+        let Some(output) = crate::wayland::output_layout().into_iter().find(|o| o.name == name) else {
+            return raw;
+        };
+        let scale = |v: i32, from: i32, to: i32| (i64::from(v) * i64::from(to) / i64::from(from.max(1))) as i32;
+        let [ox, oy, ow, oh] = output.rect;
+        let [mx, my, mw, mh] = monitor;
+        [
+            ox + scale(b.x - mx, mw, ow),
+            oy + scale(b.y - my, mh, oh),
+            scale(raw[2], mw, ow),
+            scale(raw[3], mh, oh),
+        ]
+    }
+
+    /// XWayland's RandR monitors: connector name and rectangle.
+    fn monitors(&self) -> Vec<(String, [i32; 4])> {
+        use x11rb::protocol::randr::ConnectionExt as _;
+        let Some(reply) = self.connection.randr_get_monitors(self.root, true).ok().and_then(|c| c.reply().ok()) else {
+            return Vec::new();
+        };
+        reply
+            .monitors
+            .iter()
+            .filter_map(|m| {
+                let name = self.connection.get_atom_name(m.name).ok()?.reply().ok()?.name;
+                let rect = [m.x.into(), m.y.into(), m.width.into(), m.height.into()];
+                Some((String::from_utf8_lossy(&name).into_owned(), rect))
+            })
+            .collect()
+    }
+
     pub fn update(&mut self, app: &AppHandle) {
         let Some(bounds) = self.bounds() else {
             return;
@@ -103,11 +146,11 @@ impl Tracker {
             return;
         }
         if crate::wayland::active() {
+            let [x, y, width, height] = self.logical(bounds);
             let app_ = app.clone();
             let _ = app.run_on_main_thread(move || {
                 if let Some(window) = app_.get_webview_window("overlay").and_then(|w| w.gtk_window().ok()) {
-                    let size = |v: u32| i32::try_from(v).unwrap_or(i32::MAX);
-                    crate::wayland::follow(&window, bounds.x, bounds.y, size(bounds.width), size(bounds.height));
+                    crate::wayland::follow(&window, x, y, width, height);
                 }
                 if let Some(window) = app_.get_webview_window("overlay") {
                     let editing = app_.state::<crate::AppState>().edit_mode
