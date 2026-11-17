@@ -189,13 +189,33 @@ export async function install(inApp = false) {
           const q = args.query;
           const pb = (fx.personalBests as any[]).find((b) => b.track === q.track && b.carClass === q.carClass);
           const names = ["T. Kristensen", null, "J. Ickx", "F. Alonso", null, "A. McNish", "S. Buemi", "D. Bell"];
+          // A different car and livery per driver, from the game's 2026 renders.
+          const oreca = "Oreca 07 Gibson";
+          const cars: Record<string, [string, string][]> = {
+            Hypercar: [
+              ["50_26_FERR45066807", "Ferrari 499P"], ["7_26_TOYOT18793560", "Toyota TR010 Hybrid"], ["", "Ferrari 499P"],
+              ["12_26_JOTA50003117", "Cadillac V-Series.R"], ["36_26_ALPI20490502", "Alpine A424"], ["20_26_WRT_40613364", "BMW M Hybrid V8"],
+              ["007_26_THO22699059", "Aston Martin Valkyrie"], ["93_26_PEUG26011673", "Peugeot 9X8"],
+            ],
+            LMP2: [
+              ["24_26_NIEL37A85D27", oreca], ["43_26_INTEBFEF5F1A", oreca], ["22_26_UNIT48490510", oreca], ["30_26_DUQU13852371", oreca],
+              ["28_26_IDEC52704256", oreca], ["25_26_APR_14077374", oreca], ["37_26_CLX_55395349", oreca], ["47_26_CLX_33830875", oreca],
+            ],
+            GT3: [
+              ["92_26_MANT22466058", "Porsche 911 GT3 R"], ["33_26_TFSP74306766", "Corvette Z06 GT3.R"], ["21_26_AFCO31910023", "Ferrari 296 GT3"],
+              ["87_26_AKKO35783817", "Lexus RC F GT3"], ["88_26_PROT11517799", "Ford Mustang GT3"], ["69_26_WRT_29233637", "BMW M4 GT3"],
+              ["27_26_THOR22130173", "Aston Martin Vantage AMR GT3"], ["61_26_IRON17109319", "Mercedes-AMG GT3"],
+            ],
+          };
+          const pool = cars[q.carClass === "LMP2_ELMS" ? "LMP2" : q.carClass] ?? cars.Hypercar;
           const entries = names.map((driver, i) => {
             const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
+            const [vehFile, car] = pool[i];
             return {
-              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car",
+              rank: i + 1, lapId: `other-${i}`, driver, car,
               // Older uploads carry no livery file, only the vehicle name.
-              vehicleName: i % 3 === 2 ? "AF Corse 2026 #83:LM" : "",
-              vehFile: i % 3 === 2 ? "" : ["83_26_AFCO45368276", "51_25_AFCO7A98A690"][i % 3], sessionType: i % 2 ? "Race" : "Practice",
+              vehicleName: vehFile ? "" : "AF Corse 2026 #83:LM",
+              vehFile, sessionType: i % 2 ? "Race" : "Practice",
               gameVersion: i < 5 ? 1124 : 1123,
               hasTrace: i !== 2,
               lapTime: t, s1: t * 0.3, s2: t * 0.4, s3: t * 0.3, recordedAt: Math.floor(Date.now() / 1000) - i * 86400,
