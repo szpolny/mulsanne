@@ -1,9 +1,9 @@
-<h1>
+<p>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.png">
     <img alt="Mulsanne" src="docs/brand/logo-light.png" width="316">
   </picture>
-</h1>
+</p>
 
 <p>
   <a href="https://github.com/szpolny/mulsanne/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/szpolny/mulsanne?style=for-the-badge&labelColor=131317&color=e3101f&label=Latest&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjQgMTAgNTggNDQiPjxwYXRoIGQ9Ik02IDUyIDIyIDEyaDEwTDE2IDUyeiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0yMCA1MiAzNiAxMmgxMEwzMCA1MnoiIGZpbGw9IiNlMzEwMWYiLz48cGF0aCBkPSJNMzQgNTIgNTAgMTJoMTBMNDQgNTJ6IiBmaWxsPSIjZTMxMDFmIiBvcGFjaXR5PSIuNTUiLz48L3N2Zz4%3D"></a>
@@ -11,9 +11,16 @@
   <a href="docs/linux.md"><img alt="Linux: deb, rpm and Nix packages (experimental)" src="https://img.shields.io/badge/Linux-deb%20%C2%B7%20rpm%20%C2%B7%20nix-24242b?style=for-the-badge&labelColor=131317&logo=linux&logoColor=f4f4f6"></a>
 </p>
 
-Mulsanne is a customizable in-game overlay and telemetry companion for **Le Mans Ultimate**. It reads the game's built-in shared memory, so no game plugin is needed.
+# Mulsanne — Free Le Mans Ultimate Overlay & Telemetry
 
-Website: [mulsanne.xyz](https://mulsanne.xyz)
+Mulsanne is a free, open-source in-game overlay and telemetry app for **Le Mans Ultimate (LMU)**. Customize your HUD, record laps, compare telemetry, and share live timing with your team. It reads the game's built-in shared memory, so no game plugin is needed.
+
+**[Download for Windows](https://github.com/szpolny/mulsanne/releases/latest)** · **[Website](https://mulsanne.xyz)** · **[Linux installation](docs/linux.md)** · **[Report an issue](https://github.com/szpolny/mulsanne/issues/new/choose)**
+
+## Guides
+
+- [Le Mans Ultimate overlay setup](https://mulsanne.xyz/guides/le-mans-ultimate-overlay-setup): install Mulsanne, arrange widgets, save profiles, and troubleshoot the HUD.
+- [Le Mans Ultimate telemetry and lap comparison](https://mulsanne.xyz/guides/le-mans-ultimate-telemetry): record laps and compare braking, throttle, speed, and time gain.
 
 ## Features
 
@@ -70,7 +77,7 @@ Run checks with `pnpm check` and `cargo test --manifest-path src-tauri/Cargo.tom
 
 ## Releases
 
-Download the installer from [GitHub Releases](https://github.com/szpolny/lm-overlay/releases). The app checks for updates on launch and offers to install them.
+Download the installer from [GitHub Releases](https://github.com/szpolny/mulsanne/releases/latest). On Windows, the app checks for updates on launch and offers to install them. On Linux, update through your package manager.
 
 Releases are automated with [release-please](https://github.com/googleapis/release-please). Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `feat!:`) on `master`. release-please keeps a release PR open with the next version and changelog, and merging that PR tags the release and builds the signed installer. The version lives in `package.json`; release-please also updates the copy in `src-tauri/Cargo.toml`.
 
