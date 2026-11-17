@@ -5,7 +5,10 @@
   import PageHeader from "../components/PageHeader.svelte";
   import ProfileBar from "../components/ProfileBar.svelte";
   import Toggle from "../components/Toggle.svelte";
+  import WidgetIcon from "../components/WidgetIcon.svelte";
   import WidgetPreview from "../components/WidgetPreview.svelte";
+  import WidgetSettings from "../components/WidgetSettings.svelte";
+  import { WIDGET_GROUPS } from "../widgetGroups";
 
   let selectedId = $state(WIDGETS[0].id);
   const meta = $derived(WIDGETS.find((w) => w.id === selectedId)!);
@@ -26,115 +29,83 @@
     {/snippet}
   </PageHeader>
 
-  <ProfileBar />
-
-  <div class="mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 card px-5 py-3 text-sm">
-    <span class="eyebrow">All widgets</span>
-    <label class="flex items-center gap-3">
-      <span class="text-muted">Scale</span>
-      <input type="range" min="0.4" max="3" step="0.05" bind:value={g.scale} oninput={saveConfig} class="w-40 accent-accent" />
-      <span class="w-10 text-right tnum">{Math.round(g.scale * 100)}%</span>
-    </label>
-    <label class="flex items-center gap-3">
-      <span class="text-muted">Opacity</span>
-      <input type="range" min="0.2" max="1" step="0.01" bind:value={g.opacity} oninput={saveConfig} class="w-40 accent-accent" />
-      <span class="w-10 text-right tnum">{Math.round(g.opacity * 100)}%</span>
-    </label>
+  <!-- Profile and the settings that apply to every widget in it. -->
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-line pb-4 text-sm">
+    <div class="flex items-center gap-3">
+      <span class="eyebrow">Profile</span>
+      <ProfileBar />
+    </div>
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <label class="flex items-center gap-2" title="Scale of every widget">
+        <span class="text-muted">Scale</span>
+        <input type="range" min="0.4" max="3" step="0.05" bind:value={g.scale} oninput={saveConfig} class="w-24 accent-accent" />
+        <span class="w-9 text-right tnum">{Math.round(g.scale * 100)}%</span>
+      </label>
+      <label class="flex items-center gap-2" title="Opacity of every widget">
+        <span class="text-muted">Opacity</span>
+        <input type="range" min="0.2" max="1" step="0.01" bind:value={g.opacity} oninput={saveConfig} class="w-24 accent-accent" />
+        <span class="w-9 text-right tnum">{Math.round(g.opacity * 100)}%</span>
+      </label>
+    </div>
   </div>
 
-  <div class="grid grid-cols-[320px_1fr] gap-4">
-    <div class="flex flex-col gap-1 card p-2">
-      {#each WIDGETS as w (w.id)}
-        {@const wc = config.value.widgets[w.id]}
-        <div
+  <div class="grid grid-cols-[230px_minmax(0,1fr)] items-start gap-6">
+    <nav class="flex flex-col gap-4" aria-label="Widgets">
+      {#each WIDGET_GROUPS as group (group.name)}
+        <div>
+          <h3 class="mb-1 px-2.5 eyebrow">{group.name}</h3>
+          {#each group.widgets as w (w.id)}
+            {@const on = config.value.widgets[w.id].enabled}
+            {@const selected = selectedId === w.id}
+            <button
+              class={[
+                "flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                selected ? "bg-surface-3 text-fg" : "text-soft hover:bg-surface-2 hover:text-fg",
+              ]}
+              aria-current={selected}
+              onclick={() => (selectedId = w.id)}
+            >
+              <WidgetIcon id={w.id} class={["h-4 w-4 shrink-0", on ? "text-accent-hi" : "text-faint"].join(" ")} />
+              <span class="min-w-0 flex-1 truncate">{w.name}</span>
+              <span class={["h-1.5 w-1.5 shrink-0 rounded-full", on ? "bg-good" : "bg-surface-3"]} title={on ? "Shown" : "Hidden"}></span>
+            </button>
+          {/each}
+        </div>
+      {/each}
+    </nav>
+
+    <section class="min-w-0 card">
+      <header class="flex items-center gap-4 border-b border-line px-6 py-4">
+        <span
           class={[
-            "flex items-center gap-3 rounded-md px-3 py-2",
-            selectedId === w.id ? "bg-surface-3 shadow-[inset_3px_0_0_var(--color-accent)]" : "hover:bg-surface-2",
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg",
+            cfg.enabled ? "bg-accent/15 text-accent-hi" : "bg-surface-3 text-faint",
           ]}
         >
-          <button class="min-w-0 flex-1 text-left" onclick={() => (selectedId = w.id)}>
-            <div class="text-sm font-medium">{w.name}</div>
-            <div class="truncate text-xs text-muted">{w.description}</div>
-          </button>
+          <WidgetIcon id={meta.id} class="h-5 w-5" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <h2 class="section-title">{meta.name}</h2>
+          <p class="truncate text-sm text-soft">{meta.description}</p>
+        </div>
+        <label class="flex shrink-0 items-center gap-2.5 text-sm text-muted">
+          {cfg.enabled ? "Shown" : "Hidden"}
           <Toggle
-            checked={wc.enabled}
-            label={`Enable ${w.name}`}
+            checked={cfg.enabled}
+            label="Enabled"
             onchange={(v) => {
-              wc.enabled = v;
+              cfg.enabled = v;
               saveConfig();
             }}
           />
-        </div>
-      {/each}
-    </div>
-
-    <div class="min-w-0 card-accent p-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="section-title">{meta.name}</h2>
-          <p class="mt-0.5 text-sm text-soft">{meta.description}</p>
-        </div>
-        <Toggle
-          checked={cfg.enabled}
-          label="Enabled"
-          onchange={(v) => {
-            cfg.enabled = v;
-            saveConfig();
-          }}
-        />
-      </div>
-
-      <div class="mt-5">
+        </label>
+      </header>
+      <div class="p-6">
         <WidgetPreview {meta} />
+        <div class="mt-6">
+          <WidgetSettings {meta} />
+        </div>
       </div>
-
-      <div class="mt-6 grid max-w-lg grid-cols-[160px_1fr_60px] items-center gap-x-4 gap-y-4 text-sm">
-        <span class="text-muted">Position</span>
-        <span class="col-span-2 text-muted tnum">x {Math.round(cfg.x)} · y {Math.round(cfg.y)}</span>
-
-        <span class="text-muted">Size</span>
-        <input type="range" min="0.4" max="3" step="0.05" bind:value={cfg.size} oninput={saveConfig} class="accent-accent" />
-        <span class="text-right tnum">{Math.round(cfg.size * 100)}%</span>
-
-        <span class="text-muted">Opacity</span>
-        <input type="range" min="0.2" max="1" step="0.01" bind:value={cfg.alpha} oninput={saveConfig} class="accent-accent" />
-        <span class="text-right tnum">{Math.round(cfg.alpha * 100)}%</span>
-
-        {#each meta.options as o (o.key)}
-          <span class="text-muted">{o.label}</span>
-          {#if o.type === "boolean"}
-            <div class="col-span-2">
-              <Toggle
-                checked={!!cfg.options[o.key]}
-                label={o.label}
-                onchange={(v) => {
-                  cfg.options[o.key] = v;
-                  saveConfig();
-                }}
-              />
-            </div>
-          {:else if o.type === "number"}
-            <input
-              type="range"
-              min={o.min}
-              max={o.max}
-              step={o.step}
-              bind:value={cfg.options[o.key]}
-              oninput={saveConfig}
-              class="accent-accent"
-            />
-            <span class="text-right tnum">{cfg.options[o.key]}</span>
-          {:else}
-            <select
-              class="col-span-2 field"
-              bind:value={cfg.options[o.key]}
-              onchange={saveConfig}
-            >
-              {#each o.choices as c}<option value={c.value}>{c.label}</option>{/each}
-            </select>
-          {/if}
-        {/each}
-      </div>
-    </div>
+    </section>
   </div>
 </div>

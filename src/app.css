@@ -198,14 +198,6 @@
   border-radius: 10px;
 }
 
-/* Card with the red top edge used for feature blocks on the website. Use instead of `card`. */
-@utility card-accent {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-top: 3px solid var(--color-accent);
-  border-radius: 10px;
-}
-
 @utility btn {
   display: inline-flex;
   align-items: center;

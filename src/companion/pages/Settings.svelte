@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "../components/Select.svelte";
   import { api } from "../../lib/api";
   import { config, DEFAULT_SHORTCUTS, saveConfig } from "../../lib/config.svelte";
   import type { MonitorInfo } from "../../lib/types";
@@ -50,15 +51,19 @@
             <div class="font-medium">Overlay monitor</div>
             <div class="text-muted">Screen the widgets are shown on. Pick the one Le Mans Ultimate runs on.</div>
           </div>
-          <select class="field" bind:value={g.monitor} onchange={saveConfig} onfocus={refreshMonitors}>
-            <option value="">Primary monitor</option>
-            {#each monitors as m (m.name)}
-              <option value={m.name}>{monitorLabel(m)}</option>
-            {/each}
-            {#if g.monitor && !monitors.some((m) => m.name === g.monitor)}
-              <option value={g.monitor}>{g.monitor} (not connected, using primary)</option>
-            {/if}
-          </select>
+          <Select
+            bind:value={g.monitor}
+            onchange={saveConfig}
+            onopen={refreshMonitors}
+            label="Overlay monitor"
+            options={[
+              { value: "", label: "Primary monitor" },
+              ...monitors.map((m) => ({ value: m.name, label: monitorLabel(m) })),
+              ...(g.monitor && !monitors.some((m) => m.name === g.monitor)
+                ? [{ value: g.monitor, label: `${g.monitor} (not connected, using primary)` }]
+                : []),
+            ]}
+          />
         </div>
         <div class="flex items-center justify-between gap-6 p-4">
           <div>
@@ -125,10 +130,15 @@
             <div class="font-medium">Units</div>
             <div class="text-muted">Speed, temperature, pressure and fuel.</div>
           </div>
-          <select class="field" bind:value={g.units} onchange={saveConfig}>
-            <option value="metric">Metric (km/h, °C, kPa, L)</option>
-            <option value="imperial">Imperial (mph, °F, psi, gal)</option>
-          </select>
+          <Select
+            bind:value={g.units}
+            onchange={saveConfig}
+            label="Units"
+            options={[
+              { value: "metric", label: "Metric (km/h, °C, kPa, L)" },
+              { value: "imperial", label: "Imperial (mph, °F, psi, gal)" },
+            ]}
+          />
         </div>
         <div class="flex items-center justify-between gap-6 p-4">
           <div>

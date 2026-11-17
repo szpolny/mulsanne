@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "../components/Select.svelte";
   import { api } from "../../lib/api";
   import { config } from "../../lib/config.svelte";
   import { classColor, classLabel, classOrder, dateTime, lapTime, sectorTime } from "../../lib/format";
@@ -208,7 +209,6 @@
                 role="tab"
                 aria-selected={active}
                 class={["flex items-center gap-2 rounded-t-md border-x border-t px-3.5 py-2 font-display text-[15px] font-semibold tracking-[0.04em] uppercase", active ? "border-line bg-bg" : "border-transparent text-muted hover:text-fg"]}
-                style:box-shadow={active ? `inset 0 3px 0 ${classColor(b.carClass)}` : undefined}
                 onclick={() => (board = b)}
               >
                 <span class="h-2 w-2 rounded-full" style:background={classColor(b.carClass)}></span>
@@ -229,15 +229,22 @@
               {board.drivers === 1 ? "driver" : "drivers"} in {classLabel(board.carClass)}
             </div>
             <div class="flex gap-2">
-              <select class="field text-sm" bind:value={sessionType} aria-label="Session type">
-                <option value="">All sessions</option>
-                {#each SESSION_TYPES as t}<option value={t}>{t}</option>{/each}
-              </select>
+              <Select
+                class="min-w-40 text-sm"
+                bind:value={sessionType}
+                label="Session type"
+                options={[{ value: "", label: "All sessions" }, ...SESSION_TYPES.map((t) => ({ value: t, label: t }))]}
+              />
               {#if board.gameVersions.length}
-                <select class="field text-sm" bind:value={gameVersion} aria-label="Game version">
-                  <option value="">All game versions</option>
-                  {#each board.gameVersions as v}<option value={String(v)}>Game version {v}</option>{/each}
-                </select>
+                <Select
+                  class="min-w-44 text-sm"
+                  bind:value={gameVersion}
+                  label="Game version"
+                  options={[
+                    { value: "", label: "All game versions" },
+                    ...board.gameVersions.map((v) => ({ value: String(v), label: `Game version ${v}` })),
+                  ]}
+                />
               {/if}
             </div>
           </div>
@@ -250,15 +257,24 @@
                   {@const color = PODIUM[e.rank - 1] ?? PODIUM[2]}
                   {@const first = e.rank === 1}
                   <div
-                    class={["card relative overflow-hidden px-4 pb-3 text-center", first ? "pt-3" : "pt-2", mine.has(e.lapId) && "ring-1 ring-accent"]}
-                    style:background-image="linear-gradient(to bottom, {color}33, transparent 70%)"
-                    style:box-shadow="inset 0 3px 0 {color}"
+                    class={["card relative flex flex-col overflow-hidden text-center", mine.has(e.lapId) && "ring-1 ring-accent"]}
+                    style:background-image="radial-gradient(ellipse 90% 70% at 50% 0%, {color}2e, transparent 70%)"
                   >
+                    <!-- Big faded position numeral behind the car. -->
                     <span
-                      class="absolute top-3 left-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-black"
-                      style:background={color}>{e.rank}</span
+                      class="pointer-events-none absolute inset-0 flex items-center justify-center font-display leading-none font-extrabold text-transparent italic select-none"
+                      style:font-size={first ? "460px" : "400px"}
+                      style:-webkit-text-stroke="1.5px {color}2b"
+                      style:padding-bottom="0.1em"
+                      aria-hidden="true">{e.rank}</span
                     >
-                    <div class={["flex items-center justify-center", first ? "h-32" : "h-24"]}>
+                    <span
+                      class="absolute top-3 left-3 rounded-full border px-2.5 py-0.5 font-display text-sm font-bold tracking-[0.08em] uppercase"
+                      style:color={color}
+                      style:border-color="{color}66"
+                      style:background="{color}1a">{["1st", "2nd", "3rd"][e.rank - 1] ?? `${e.rank}th`}</span
+                    >
+                    <div class={["relative flex items-center justify-center px-4", first ? "h-32 pt-6" : "h-24 pt-6"]}>
                       <CarRender
                         file={liveries(e)}
                         view="front"
@@ -268,12 +284,14 @@
                         {#snippet fallback()}<CarSilhouette class="h-2/3 w-2/3 text-muted" />{/snippet}
                       </CarRender>
                     </div>
-                    <div class="mt-1 truncate font-semibold">
-                      {#if e.driver}{e.driver}{:else}<span class="font-normal text-muted">Anonymous</span>{/if}
+                    <div class="relative px-4 pb-4">
+                      <div class="mt-1 truncate font-semibold">
+                        {#if e.driver}{e.driver}{:else}<span class="font-normal text-muted">Anonymous</span>{/if}
+                      </div>
+                      <div class="truncate text-xs text-muted">{e.car}{teamName(e) ? ` · ${teamName(e)}` : ""}</div>
+                      <div class={["mt-1.5 font-bold tnum", first ? "text-2xl text-best" : "text-lg"]}>{lapTime(e.lapTime)}</div>
+                      <div class="text-xs text-muted tnum">{first ? "Fastest lap" : `+${(e.lapTime - podium[0].lapTime).toFixed(3)}`}</div>
                     </div>
-                    <div class="truncate text-xs text-muted">{e.car}{teamName(e) ? ` · ${teamName(e)}` : ""}</div>
-                    <div class={["mt-1.5 font-bold tnum", first ? "text-2xl text-best" : "text-lg"]}>{lapTime(e.lapTime)}</div>
-                    <div class="text-xs text-muted tnum">{first ? "Fastest lap" : `+${(e.lapTime - podium[0].lapTime).toFixed(3)}`}</div>
                   </div>
                 {:else}
                   <div></div>

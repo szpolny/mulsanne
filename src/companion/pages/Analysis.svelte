@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "../components/Select.svelte";
   import { onMount } from "svelte";
   import { align, brakeZones, type Aligned, type BrakeZone } from "../../lib/analysis";
   import { api } from "../../lib/api";
@@ -219,25 +220,25 @@
   <div class="mb-5 flex flex-wrap items-end gap-3">
     <label class="flex flex-col gap-1 text-xs text-muted">
       Track
-      <select class="min-w-[200px] field text-sm text-fg" bind:value={nav.track}>
-        {#each tracks as t}<option value={t}>{t}</option>{/each}
-      </select>
+      <Select class="min-w-[200px] text-sm text-fg" bind:value={nav.track} label="Track" options={tracks.map((t) => ({ value: t, label: t }))} />
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style:background={A}></span>Lap A</span>
-      <select class="w-[360px] field text-sm text-fg" bind:value={nav.lapA}>
-        {#each laps as l (l.id)}<option value={l.id}>{lapLabel(l)}</option>{/each}
-      </select>
+      <Select class="w-[360px] text-sm text-fg" bind:value={nav.lapA} label="Lap A" options={laps.map((l) => ({ value: l.id, label: lapLabel(l) }))} />
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style:background={B}></span>Compare with (B)</span>
-      <select class="w-[360px] field text-sm text-fg" value={bValue} onchange={(e) => selectB(e.currentTarget.value)}>
-        <option value="">None</option>
-        {#if nav.remoteB}
-          <option value="remote">Ranked: {lapTime(nav.remoteB.lapTime)} · {nav.remoteB.label}</option>
-        {/if}
-        {#each laps as l (l.id)}{#if l.id !== nav.lapA}<option value={String(l.id)}>{lapLabel(l)}</option>{/if}{/each}
-      </select>
+      <Select
+        class="w-[360px] text-sm text-fg"
+        value={bValue}
+        label="Compare with"
+        onchange={selectB}
+        options={[
+          { value: "", label: "None" },
+          ...(nav.remoteB ? [{ value: "remote", label: `Ranked: ${lapTime(nav.remoteB.lapTime)} · ${nav.remoteB.label}` }] : []),
+          ...laps.filter((l) => l.id !== nav.lapA).map((l) => ({ value: String(l.id), label: lapLabel(l) })),
+        ]}
+      />
     </label>
     {#if nav.lapB != null}
       <button

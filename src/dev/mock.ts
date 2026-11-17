@@ -5,27 +5,31 @@
 // changelog as if updating from that version, ?screenshot for website screenshots
 // (no demo labels), ?sharing to start with online features
 // on and live timing being shared, ?launches=2 to show the GitHub
-// star popup as if the app had been opened that many times before).
+// star popup as if the app had been opened that many times before, ?page=rankings to
+// open a page directly).
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { version } from "../../package.json";
 
-export async function install() {
+/** `inApp`: inside the real Tauri window (`VITE_DEMO=1 pnpm tauri dev`), where the demo-tauri shims route commands here. */
+export async function install(inApp = false) {
   const res = await fetch(new URL("./fixtures/fixtures.json", import.meta.url));
   if (!res.ok) {
     console.warn("dev mock: fixtures missing, run the export_fixtures example");
     return;
   }
   const params = new URLSearchParams(location.search);
+  // ?page=overlays opens that page directly.
+  if (params.has("page")) (await import("../companion/nav.svelte")).nav.page = params.get("page") as never;
   // ?screenshot presents the demo as a real session at Le Mans, for website and
   // README screenshots: no "Demo data" labels and the game's own track name.
   let text = await res.text();
   if (params.has("screenshot"))
     text = text.replaceAll('"source":"demo"', '"source":"lmu"').replaceAll("Le Mans (Demo)", "Circuit de la Sarthe");
   const fx = JSON.parse(text);
-  const sharing = params.has("sharing");
+  const sharing = params.has("sharing") || inApp;
   let config: unknown = {
     ...(sharing && { online: { enabled: true } }),
     general: {
@@ -51,10 +55,11 @@ export async function install() {
   let share: ReturnType<typeof newShare> | null = sharing ? newShare() : null;
   const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null; trace: string | null }>();
 
-  mockWindows("main");
-  mockConvertFileSrc("linux");
-  mockIPC(
-    (cmd, args: any) => {
+  if (!inApp) {
+    mockWindows("main");
+    mockConvertFileSrc("linux");
+  }
+  const handler = (cmd: string, args: any) => {
       switch (cmd) {
         case "plugin:app|version":
           return version;
@@ -209,9 +214,9 @@ export async function install() {
         default:
           return null;
       }
-    },
-    { shouldMockEvents: true },
-  );
+    };
+  if (inApp) (globalThis as any).__MULSANNE_DEMO_IPC__ = handler;
+  else mockIPC(handler, { shouldMockEvents: true });
 
   if (noLive) return;
   let i = 0;

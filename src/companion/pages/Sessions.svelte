@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "../components/Select.svelte";
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
   import { classLabel, dateTime, lapTime } from "../../lib/format";
@@ -92,14 +93,20 @@
     <div class="flex flex-col gap-3 border-b border-line p-4">
       <div class="eyebrow">Sessions <span class="text-faint">{sessions.length || ""}</span></div>
       <div class="flex gap-2">
-        <select class="min-w-0 flex-1 field text-sm" bind:value={track} onchange={loadSessions}>
-          <option value="">All tracks</option>
-          {#each filters.tracks as t}<option value={t}>{t}</option>{/each}
-        </select>
-        <select class="min-w-0 flex-1 field text-sm" bind:value={car} onchange={loadSessions}>
-          <option value="">All cars</option>
-          {#each filters.cars as c}<option value={c}>{c}</option>{/each}
-        </select>
+        <Select
+          class="min-w-0 flex-1 text-sm"
+          bind:value={track}
+          onchange={loadSessions}
+          label="Track"
+          options={[{ value: "", label: "All tracks" }, ...filters.tracks.map((t) => ({ value: t, label: t }))]}
+        />
+        <Select
+          class="min-w-0 flex-1 text-sm"
+          bind:value={car}
+          onchange={loadSessions}
+          label="Car"
+          options={[{ value: "", label: "All cars" }, ...filters.cars.map((c) => ({ value: c, label: c }))]}
+        />
       </div>
     </div>
     <div class="flex-1 overflow-y-auto">

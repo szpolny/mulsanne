@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "./Select.svelte";
   import { api } from "../../lib/api";
   import { config, saveConfig } from "../../lib/config.svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
@@ -109,10 +110,15 @@
             automatically as you drive.
           </div>
         </div>
-        <select class="field" bind:value={online.lapUpload} onchange={saveConfig}>
-          <option value="manual">Manually</option>
-          <option value="auto">Every lap automatically</option>
-        </select>
+        <Select
+          bind:value={online.lapUpload}
+          onchange={saveConfig}
+          label="Upload laps"
+          options={[
+            { value: "manual", label: "Manually" },
+            { value: "auto", label: "Every lap automatically" },
+          ]}
+        />
       </div>
       <div class="flex items-center justify-between gap-6 p-4">
         <div>

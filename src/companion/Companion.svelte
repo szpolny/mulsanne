@@ -22,6 +22,25 @@
   import Settings from "./pages/Settings.svelte";
 
   let maximized = $state(false);
+
+  // Sidebar can shrink to icons only; remembered per machine.
+  const SIDEBAR_KEY = "mulsanne.sidebarCollapsed";
+  let collapsed = $state(readCollapsed());
+  function readCollapsed() {
+    try {
+      return localStorage.getItem(SIDEBAR_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+  function toggleSidebar() {
+    collapsed = !collapsed;
+    try {
+      localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0");
+    } catch {
+      // Not persisted; still toggles for this run.
+    }
+  }
   let reportIssueError = $state(false);
   const ISSUE_URL = "https://github.com/szpolny/mulsanne/issues/new/choose";
 
@@ -138,42 +157,79 @@
   </header>
 
   <div class="flex min-h-0 flex-1">
-    <nav class="flex w-[220px] shrink-0 flex-col border-r border-line bg-surface">
+    <nav
+      class={[
+        "flex shrink-0 flex-col overflow-hidden border-r border-line bg-surface transition-[width] duration-150",
+        collapsed ? "w-[60px]" : "w-[220px]",
+      ]}
+    >
       <div class="flex flex-col gap-0.5 px-2 pt-3">
         {#each PAGES as p}
           <button
             class={[
-              "relative flex items-center gap-3 rounded-md px-3 py-2 text-left font-display text-[15px] font-semibold tracking-[0.08em] uppercase transition-colors",
+              "relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-left font-display text-[15px] font-semibold tracking-[0.08em] uppercase transition-colors",
               nav.page === p.id
                 ? "bg-surface-3 text-fg before:absolute before:top-2 before:bottom-2 before:left-0 before:w-[3px] before:rounded-full before:bg-accent"
                 : "text-muted hover:bg-surface-2 hover:text-fg",
             ]}
+            title={collapsed ? p.label : undefined}
+            aria-label={collapsed ? p.label : undefined}
+            aria-current={nav.page === p.id ? "page" : undefined}
             onclick={() => (nav.page = p.id)}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={p.icon} /></svg>
-            {p.label}
+            <svg class="shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={p.icon} /></svg>
+            <span class={["whitespace-nowrap transition-opacity duration-150", collapsed && "opacity-0"]}>{p.label}</span>
           </button>
         {/each}
       </div>
       <div class="mt-auto">
+        <button
+          class={[
+            "mx-2 mb-1 flex items-center gap-3 rounded-md py-2 font-display text-[15px] font-semibold tracking-[0.08em] whitespace-nowrap text-muted uppercase transition-colors hover:bg-surface-2 hover:text-fg",
+            "w-[calc(100%-1rem)] overflow-hidden px-3",
+          ]}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          onclick={toggleSidebar}
+        >
+          <svg class="shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+            ><path d="M4 5h16v14H4z M9 5v14" /><path d={collapsed ? "m13 10 2 2-2 2" : "m16 10-2 2 2 2"} /></svg
+          >
+          <span class={["whitespace-nowrap transition-opacity duration-150", collapsed && "opacity-0"]}>Collapse</span>
+        </button>
         <a
-          class="mx-2 mb-2 flex items-center gap-3 rounded-md px-3 py-2 font-display text-[15px] font-semibold tracking-[0.08em] text-muted uppercase transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+          class={[
+            "mx-2 mb-2 flex items-center gap-3 rounded-md py-2 font-display text-[15px] font-semibold tracking-[0.08em] text-muted uppercase transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent",
+            "overflow-hidden px-3",
+          ]}
           href={ISSUE_URL}
           target="_blank"
           rel="noopener noreferrer"
           title="Report an issue on GitHub (opens in your browser)"
+          aria-label={collapsed ? "Report issue" : undefined}
           onclick={reportIssue}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4 M12 16h.01" /></svg>
-          Report issue
-          <svg class="ml-auto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7 M21 3 10 14 M10 3H3v18h18v-7" /></svg>
+          <svg class="shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4 M12 16h.01" /></svg>
+          <span class={["whitespace-nowrap transition-opacity duration-150", collapsed && "opacity-0"]}>Report issue</span>
+          <svg class={["ml-auto shrink-0 transition-opacity duration-150", collapsed && "opacity-0"]} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7 M21 3 10 14 M10 3H3v18h18v-7" /></svg>
         </a>
-        {#if reportIssueError}
+        {#if reportIssueError && !collapsed}
           <p class="mx-4 mb-3 select-text break-words text-xs text-bad" role="alert">
             Couldn't open your browser. Visit {ISSUE_URL} to report an issue.
           </p>
         {/if}
-        {#if updater.phase === "available" || updater.phase === "downloading"}
+        {#if collapsed && (updater.phase === "available" || updater.phase === "downloading" || updater.phase === "outdated")}
+          <button
+            class="relative mx-2 mb-2 flex w-[calc(100%-1rem)] rounded-md px-3 py-2 text-accent-hi transition-colors hover:bg-surface-2"
+            title={updater.phase === "outdated" ? `Version ${updater.available} is out. Update Mulsanne with your package manager.` : `Update to ${updater.available}`}
+            aria-label="Update available"
+            onclick={toggleSidebar}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14" /></svg>
+            <span class="absolute top-1.5 left-[30px] h-1.5 w-1.5 rounded-full bg-accent"></span>
+          </button>
+        {:else if updater.phase === "available" || updater.phase === "downloading"}
           <div class="mx-2 mb-2 rounded-md border border-line border-t-accent border-t-2 bg-surface-2 p-3 text-xs">
             <div class="eyebrow text-[11px] tracking-[0.16em] text-fg">Update available</div>
             <div class="mt-1 text-muted">Version {updater.available} is ready to install.</div>
@@ -182,16 +238,16 @@
             </button>
           </div>
         {/if}
-        {#if updater.phase === "outdated"}
+        {#if updater.phase === "outdated" && !collapsed}
           <div class="mx-2 mb-2 rounded-md border border-line border-t-accent border-t-2 bg-surface-2 p-3 text-xs">
             <div class="eyebrow text-[11px] tracking-[0.16em] text-fg">Update available</div>
             <div class="mt-1 text-muted">Version {updater.available} is out. Update Mulsanne with your package manager.</div>
           </div>
         {/if}
-        <div class="border-t border-line px-4 py-3 text-xs">
+        <div class="overflow-hidden border-t border-line px-[26px] py-3 text-xs" title={collapsed ? statusText : undefined}>
           <div class="flex items-center gap-2">
-            <span class={["h-2 w-2 rounded-full", statusColor]}></span>
-            <span class="truncate text-muted" title={statusText}>{statusText}</span>
+            <span class={["h-2 w-2 shrink-0 rounded-full", statusColor]}></span>
+            <span class={["truncate text-muted transition-opacity duration-150", collapsed && "opacity-0"]} title={statusText}>{statusText}</span>
           </div>
         </div>
       </div>
