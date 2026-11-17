@@ -72,7 +72,13 @@ Run checks with `pnpm check` and `cargo test --manifest-path src-tauri/Cargo.tom
 
 Download the installer from [GitHub Releases](https://github.com/szpolny/lm-overlay/releases). The app checks for updates on launch and offers to install them.
 
-Releases are automated with [release-please](https://github.com/googleapis/release-please). Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `feat!:`) on `master`. release-please keeps a release PR open with the next version and changelog, and merging that PR tags the release and builds the signed installer. The version lives in `package.json` only.
+Releases are automated with [release-please](https://github.com/googleapis/release-please). Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `feat!:`) on `master`. release-please keeps a release PR open with the next version and changelog, and merging that PR tags the release and builds the signed installer. The version lives in `package.json`; release-please also updates the copy in `src-tauri/Cargo.toml`.
+
+Versions follow [Semantic Versioning](https://semver.org/):
+
+- **Patch** (`1.0.1`): only `fix:` commits.
+- **Minor** (`1.1.0`): at least one `feat:` commit.
+- **Major** (`2.0.0`): a breaking change, marked `feat!:` / `fix!:` or with a `BREAKING CHANGE:` footer. A change is breaking when it drops support for existing saved data or settings, needs a newer game or online server than users may have, or removes a feature.
 
 ## License
 
