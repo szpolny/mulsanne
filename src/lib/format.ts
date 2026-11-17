@@ -25,6 +25,15 @@ export function lapTime(s: number | null | undefined, digits = 3): string {
   return m > 0 ? `${m}:${sec}` : rest.toFixed(digits);
 }
 
+/** Total race time: 2533.456 -> "42:13.456", 3725.1 -> "1:02:05.100". */
+export function raceTime(s: number | null | undefined): string {
+  if (s == null || !isFinite(s) || s <= 0) return "–";
+  const h = Math.floor(s / 3600);
+  if (h === 0) return lapTime(s);
+  const rest = lapTime(s - h * 3600);
+  return `${h}:${rest.includes(":") ? rest.padStart(9, "0") : `00:${rest.padStart(6, "0")}`}`;
+}
+
 export function sectorTime(s: number | null | undefined): string {
   if (s == null || !isFinite(s) || s <= 0) return "--.---";
   return lapTime(s);

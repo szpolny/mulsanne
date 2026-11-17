@@ -245,6 +245,11 @@ impl Recorder {
         }
     }
 
+    /// The session being recorded, if any.
+    pub fn session(&self) -> Option<&SessionRecord> {
+        self.session.as_ref().map(|s| &s.record)
+    }
+
     /// Forces the personal best reference to be reloaded (e.g. after laps were deleted).
     pub fn invalidate_reference(&mut self) {
         self.reference_key = None;

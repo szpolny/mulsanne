@@ -11,6 +11,9 @@ pub mod lmu;
 pub mod model;
 pub mod online;
 pub mod recorder;
+pub mod results;
+#[cfg(test)]
+mod results_e2e;
 pub mod schedule;
 mod shortcuts;
 
@@ -228,6 +231,7 @@ pub fn run() {
             commands::get_track_map,
             commands::delete_lap,
             commands::delete_session,
+            commands::session_results,
             commands::daily_races,
             commands::online_register,
             commands::online_me,

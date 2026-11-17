@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::db::{Filters, LapRecord, LapTrace, PersonalBest, SessionSummary, TrackMap, UploadState};
 use crate::engine::PreviewSim;
 use crate::live_share::ShareStatus;
+use crate::results::ResultEntry;
 use crate::model::Snapshot;
 use crate::online::{BoardSummary, Leaderboard, LeaderboardQuery, Me};
 use crate::schedule::Schedule;
@@ -203,6 +204,12 @@ pub fn list_sessions(
 #[tauri::command]
 pub fn list_laps(state: State<AppState>, session_id: i64) -> CmdResult<Vec<LapRecord>> {
     state.db.list_laps(session_id)
+}
+
+/// A race session's classification; empty when none was saved.
+#[tauri::command]
+pub fn session_results(state: State<AppState>, session_id: i64) -> CmdResult<Vec<ResultEntry>> {
+    state.db.session_results(session_id)
 }
 
 #[tauri::command]

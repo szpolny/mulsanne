@@ -26,6 +26,7 @@ Mulsanne is a free, open-source in-game overlay and telemetry app for **Le Mans 
 
 - A movable, scalable HUD with live timing, standings, relative gaps, fuel and energy estimates, tyres, flags, and a track map.
 - Automatic lap recording with personal bests, telemetry traces, and lap comparison in the companion app.
+- Full race results: where every driver finished, with laps, best laps and gaps, filterable by class.
 - Live timing sharing: send a link and others follow your session in a browser, with standings, the track map and your fuel and tyres.
 - An upcoming daily race schedule from RaceControl, shown in your local time without running the game.
 - Demo data for arranging the overlay without running the game.

@@ -39,7 +39,7 @@ export async function install(inApp = false) {
   };
   let editMode = location.hash.includes("edit");
   const noLive = params.has("nolive");
-  if (params.has("nolaps")) Object.assign(fx, { sessions: [], laps: [], traces: {}, personalBests: [], filters: { tracks: [], cars: [] } });
+  if (params.has("nolaps")) Object.assign(fx, { sessions: [], laps: [], traces: {}, results: {}, personalBests: [], filters: { tracks: [], cars: [] } });
   let previewFrame = 0;
   let onlineMe: { id: string; displayName: string | null; createdAt: number } | null = sharing
     ? { id: "mock-user", displayName: "Late_Apex_4821", createdAt: Math.floor(Date.now() / 1000) }
@@ -92,6 +92,8 @@ export async function install(inApp = false) {
           return fx.sessions.map((s: any) => ({ ...s, source: "lmu", gameVersion: 1124 }));
         case "list_laps":
           return fx.laps;
+        case "session_results":
+          return fx.results?.[String(args.sessionId)] ?? [];
         case "list_track_laps":
           return [...fx.laps].sort((a: any, b: any) => a.lapTime - b.lapTime);
         case "get_lap_trace":
