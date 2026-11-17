@@ -12,6 +12,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
 use crate::online::LapUpload;
+use crate::results::{FinishStatus, RaceResults, ResultEntry};
 
 pub type DbResult<T> = Result<T, String>;
 
@@ -105,6 +106,13 @@ pub struct SessionSummary {
     pub lap_count: i64,
     pub valid_laps: i64,
     pub best_lap: Option<f64>,
+    /// Race classification saved for this session: `None` when there is none
+    /// (older sessions, other session types), `"complete"` or `"partial"`
+    /// (the race was left before the finish).
+    pub results: Option<String>,
+    /// The player's finishing position, overall and in class, when results were saved.
+    pub position: Option<i32>,
+    pub class_position: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -196,7 +204,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     car_class     TEXT NOT NULL,
     driver        TEXT NOT NULL,
     game_version  INTEGER,
-    veh_file      TEXT NOT NULL DEFAULT ''
+    veh_file      TEXT NOT NULL DEFAULT '',
+    results       TEXT
 );
 CREATE TABLE IF NOT EXISTS laps (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -226,6 +235,27 @@ CREATE TABLE IF NOT EXISTS track_maps (
     length  REAL NOT NULL,
     lap_id  INTEGER,
     data    TEXT NOT NULL
+);
+-- Race classification, one row per car. `sessions.results` says whether it is complete.
+CREATE TABLE IF NOT EXISTS session_results (
+    session_id     INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    position       INTEGER NOT NULL,
+    class_position INTEGER NOT NULL,
+    driver         TEXT NOT NULL,
+    team           TEXT NOT NULL,
+    vehicle_name   TEXT NOT NULL,
+    car            TEXT NOT NULL,
+    car_class      TEXT NOT NULL,
+    number         TEXT NOT NULL,
+    veh_file       TEXT NOT NULL,
+    is_player      INTEGER NOT NULL,
+    laps           INTEGER NOT NULL,
+    best_lap       REAL,
+    gap            REAL NOT NULL,
+    pit_stops      INTEGER NOT NULL,
+    status         TEXT NOT NULL,       -- running | finished | dnf | dq
+    race_time      REAL,
+    PRIMARY KEY (session_id, position)
 );
 -- Laps queued for or sent to the online rankings.
 CREATE TABLE IF NOT EXISTS lap_uploads (
@@ -297,6 +327,7 @@ impl Db {
         add_column(&conn, "sessions", "game_version", "INTEGER")?;
         add_column(&conn, "sessions", "veh_file", "TEXT NOT NULL DEFAULT ''")?;
         add_column(&conn, "lap_uploads", "trace", "TEXT")?;
+        add_column(&conn, "sessions", "results", "TEXT")?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
@@ -304,17 +335,22 @@ impl Db {
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    pub fn insert_lap(&self, lap: &NewLap) -> DbResult<i64> {
-        let blob = lap.trace.encode()?;
-        let max_speed = lap.trace.speed.iter().cloned().fold(0.0f32, f32::max) as f64;
-        let s = &lap.session;
-        let conn = self.conn();
+    fn ensure_session(conn: &Connection, s: &SessionRecord) -> DbResult<()> {
         conn.execute(
             "INSERT OR IGNORE INTO sessions (id, started_at, source, track, track_length, session_type, car, vehicle_name, car_class, driver, game_version, veh_file)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version, s.veh_file],
         )
         .map_err(err)?;
+        Ok(())
+    }
+
+    pub fn insert_lap(&self, lap: &NewLap) -> DbResult<i64> {
+        let blob = lap.trace.encode()?;
+        let max_speed = lap.trace.speed.iter().cloned().fold(0.0f32, f32::max) as f64;
+        let s = &lap.session;
+        let conn = self.conn();
+        Self::ensure_session(&conn, s)?;
         conn.execute(
             "INSERT INTO laps (session_id, lap_number, lap_time, s1, s2, s3, valid, out_lap, in_lap, fuel_used, ve_used, max_speed, track, car, car_class, recorded_at, sample_count, trace)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
@@ -343,14 +379,92 @@ impl Db {
         Ok(conn.last_insert_rowid())
     }
 
+    /// Replaces a session's race classification, creating the session if no lap was stored yet.
+    pub fn save_results(&self, results: &RaceResults) -> DbResult<()> {
+        let mut conn = self.conn();
+        let tx = conn.transaction().map_err(err)?;
+        let s = &results.session;
+        Self::ensure_session(&tx, s)?;
+        tx.execute("DELETE FROM session_results WHERE session_id = ?1", params![s.id]).map_err(err)?;
+        {
+            let mut stmt = tx
+                .prepare(
+                    "INSERT INTO session_results (session_id, position, class_position, driver, team, vehicle_name, car, car_class, number, veh_file, is_player, laps, best_lap, gap, pit_stops, status, race_time)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+                )
+                .map_err(err)?;
+            for e in &results.entries {
+                stmt.execute(params![
+                    s.id,
+                    e.position,
+                    e.class_position,
+                    e.driver,
+                    e.team,
+                    e.vehicle_name,
+                    e.car,
+                    e.car_class,
+                    e.number,
+                    e.veh_file,
+                    e.is_player,
+                    e.laps,
+                    e.best_lap,
+                    e.gap,
+                    e.pit_stops,
+                    e.status.as_str(),
+                    e.race_time
+                ])
+                .map_err(err)?;
+            }
+        }
+        let state = if results.complete { "complete" } else { "partial" };
+        tx.execute("UPDATE sessions SET results = ?2 WHERE id = ?1", params![s.id, state]).map_err(err)?;
+        tx.commit().map_err(err)
+    }
+
+    /// A session's race classification in finishing order; empty when none was saved.
+    pub fn session_results(&self, session_id: i64) -> DbResult<Vec<ResultEntry>> {
+        let conn = self.conn();
+        let mut stmt = conn
+            .prepare(
+                "SELECT position, class_position, driver, team, vehicle_name, car, car_class, number, veh_file, is_player, laps, best_lap, gap, pit_stops, status, race_time
+                 FROM session_results WHERE session_id = ?1 ORDER BY position",
+            )
+            .map_err(err)?;
+        let rows = stmt
+            .query_map(params![session_id], |r| {
+                Ok(ResultEntry {
+                    position: r.get(0)?,
+                    class_position: r.get(1)?,
+                    driver: r.get(2)?,
+                    team: r.get(3)?,
+                    vehicle_name: r.get(4)?,
+                    car: r.get(5)?,
+                    car_class: r.get(6)?,
+                    number: r.get(7)?,
+                    veh_file: r.get(8)?,
+                    is_player: r.get(9)?,
+                    laps: r.get(10)?,
+                    best_lap: r.get(11)?,
+                    gap: r.get(12)?,
+                    pit_stops: r.get(13)?,
+                    status: FinishStatus::parse(&r.get::<_, String>(14)?),
+                    race_time: r.get(15)?,
+                })
+            })
+            .map_err(err)?;
+        rows.collect::<Result<_, _>>().map_err(err)
+    }
+
     pub fn list_sessions(&self, track: Option<&str>, car: Option<&str>, limit: i64, offset: i64) -> DbResult<Vec<SessionSummary>> {
         let conn = self.conn();
         let mut stmt = conn
             .prepare(
                 "SELECT s.id, s.started_at, s.source, s.track, s.track_length, s.session_type, s.car, s.vehicle_name, s.car_class, s.driver, s.game_version, s.veh_file,
                         COUNT(l.id), COALESCE(SUM(l.valid), 0),
-                        MIN(CASE WHEN l.valid = 1 AND l.out_lap = 0 AND l.in_lap = 0 THEN l.lap_time END)
+                        MIN(CASE WHEN l.valid = 1 AND l.out_lap = 0 AND l.in_lap = 0 THEN l.lap_time END),
+                        s.results, r.position, r.class_position
                  FROM sessions s LEFT JOIN laps l ON l.session_id = s.id
+                 LEFT JOIN session_results r ON r.session_id = s.id AND r.is_player = 1
                  WHERE (?1 IS NULL OR s.track = ?1) AND (?2 IS NULL OR s.car = ?2)
                  GROUP BY s.id ORDER BY s.started_at DESC LIMIT ?3 OFFSET ?4",
             )
@@ -375,6 +489,9 @@ impl Db {
                     lap_count: r.get(12)?,
                     valid_laps: r.get(13)?,
                     best_lap: r.get(14)?,
+                    results: r.get(15)?,
+                    position: r.get(16)?,
+                    class_position: r.get(17)?,
                 })
             })
             .map_err(err)?;
@@ -509,6 +626,7 @@ impl Db {
     pub fn delete_session(&self, session_id: i64) -> DbResult<()> {
         let conn = self.conn();
         conn.execute("DELETE FROM laps WHERE session_id = ?1", params![session_id]).map_err(err)?;
+        conn.execute("DELETE FROM session_results WHERE session_id = ?1", params![session_id]).map_err(err)?;
         conn.execute("DELETE FROM sessions WHERE id = ?1", params![session_id]).map_err(err)?;
         Ok(())
     }
@@ -802,6 +920,62 @@ mod tests {
 
         db.delete_session(7).unwrap();
         assert!(db.list_sessions(None, None, 10, 0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn race_results_replace_earlier_saves() {
+        let dir = std::env::temp_dir().join(format!("lmo-results-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("t.db");
+        let _ = std::fs::remove_file(&path);
+        let db = Db::open(&path).unwrap();
+        db.insert_lap(&lap(1, 95.0, true)).unwrap();
+        // Older sessions have no results.
+        let summary = &db.list_sessions(None, None, 10, 0).unwrap()[0];
+        assert_eq!((summary.results.as_deref(), summary.position), (None, None));
+        assert!(db.session_results(7).unwrap().is_empty());
+
+        let entry = |position: i32, player: bool, status: FinishStatus| ResultEntry {
+            position,
+            class_position: position,
+            driver: format!("D{position}"),
+            team: "Team".into(),
+            vehicle_name: "Team #1".into(),
+            car: "Car".into(),
+            car_class: "GT3".into(),
+            number: "1".into(),
+            veh_file: String::new(),
+            is_player: player,
+            laps: 10,
+            best_lap: Some(95.0),
+            gap: position as f64,
+            pit_stops: 1,
+            race_time: (status == FinishStatus::Finished).then_some(1000.0 + position as f64),
+            status,
+        };
+        let running = FinishStatus::Running;
+        let partial = RaceResults { session: session(7), complete: false, entries: vec![entry(1, true, running), entry(2, false, running)] };
+        db.save_results(&partial).unwrap();
+        let summary = &db.list_sessions(None, None, 10, 0).unwrap()[0];
+        assert_eq!((summary.results.as_deref(), summary.position, summary.lap_count), (Some("partial"), Some(1), 1));
+
+        let done = RaceResults {
+            session: session(7),
+            complete: true,
+            entries: vec![entry(1, false, FinishStatus::Finished), entry(2, true, FinishStatus::Finished), entry(3, false, FinishStatus::Dnf)],
+        };
+        db.save_results(&done).unwrap();
+        let summary = &db.list_sessions(None, None, 10, 0).unwrap()[0];
+        assert_eq!((summary.results.as_deref(), summary.position), (Some("complete"), Some(2)));
+        let rows = db.session_results(7).unwrap();
+        assert_eq!(rows, done.entries);
+
+        // Results alone create the session (no lap recorded).
+        db.save_results(&RaceResults { session: session(8), ..done.clone() }).unwrap();
+        assert_eq!(db.list_sessions(None, None, 10, 0).unwrap().len(), 2);
+
+        db.delete_session(7).unwrap();
+        assert!(db.session_results(7).unwrap().is_empty());
     }
 
     #[test]

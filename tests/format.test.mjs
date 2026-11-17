@@ -23,3 +23,11 @@ test("series-spec classes read as the class itself", () => {
   assert.equal(classLabel("Hypercar"), "Hypercar");
   assert.ok(classOrder("Hypercar") < classOrder("LMP2") && classOrder("LMP2") < classOrder("LMP2_ELMS") && classOrder("LMP2_ELMS") < classOrder("GT3"));
 });
+
+test("race times show hours only when a race runs past one", async () => {
+  const { raceTime } = await import("../src/lib/format.ts");
+  assert.equal(raceTime(2533.456), "42:13.456");
+  assert.equal(raceTime(3725.1), "1:02:05.100");
+  assert.equal(raceTime(3600 + 5.25), "1:00:05.250");
+  assert.equal(raceTime(null), "–");
+});

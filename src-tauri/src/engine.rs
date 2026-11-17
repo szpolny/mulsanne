@@ -16,6 +16,7 @@ use crate::demo::DemoSim;
 use crate::lmu::{self, layout, penalties::PenaltyTracker, shm::{self, LmuSharedMemory}};
 use crate::model::Snapshot;
 use crate::recorder::Recorder;
+use crate::results::{RaceResults, ResultsTracker};
 use crate::AppState;
 
 pub struct Shared {
@@ -71,6 +72,15 @@ pub fn spawn(app: AppHandle, shared: Arc<Shared>, db: Arc<Db>) {
             .spawn(move || run_writer(app, db, rx))
             .expect("spawn lap writer");
     }
+    let (results_tx, results_rx) = mpsc::channel::<RaceResults>();
+    {
+        let app = app.clone();
+        let db = db.clone();
+        thread::Builder::new()
+            .name("results-writer".into())
+            .spawn(move || run_results_writer(app, db, results_rx))
+            .expect("spawn results writer");
+    }
     {
         let app = app.clone();
         let shared = shared.clone();
@@ -81,7 +91,7 @@ pub fn spawn(app: AppHandle, shared: Arc<Shared>, db: Arc<Db>) {
     }
     thread::Builder::new()
         .name("telemetry".into())
-        .spawn(move || run_loop(app, shared, Recorder::new(db, tx)))
+        .spawn(move || run_loop(app, shared, Recorder::new(db, tx), results_tx))
         .expect("spawn telemetry loop");
 }
 
@@ -123,6 +133,17 @@ fn run_writer(app: AppHandle, db: Arc<Db>, rx: Receiver<NewLap>) {
     }
 }
 
+fn run_results_writer(app: AppHandle, db: Arc<Db>, rx: Receiver<RaceResults>) {
+    for results in rx {
+        match db.save_results(&results) {
+            Ok(()) => {
+                let _ = app.emit("results-saved", results.session.id);
+            }
+            Err(e) => eprintln!("failed to store race results: {e}"),
+        }
+    }
+}
+
 /// Queues a new lap for the online rankings when automatic uploads are on.
 /// Laps that don't qualify (demo data, missing sectors) are skipped.
 fn queue_auto_upload(app: &AppHandle, lap_id: i64, now: i64) {
@@ -159,7 +180,8 @@ fn run_focus_watch(app: AppHandle, shared: Arc<Shared>) {
     }
 }
 
-fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
+fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder, results_tx: mpsc::Sender<RaceResults>) {
+    let mut results = ResultsTracker::default();
     let mut buf = vec![0u8; layout::TOTAL_SIZE];
     let mut shm: Option<LmuSharedMemory> = None;
     let mut next_open = Instant::now();
@@ -241,6 +263,10 @@ fn run_loop(app: AppHandle, shared: Arc<Shared>, mut recorder: Recorder) {
         }
         snap.frame = frame;
         recorder.update(&mut snap);
+        // Demo data is never a race, so only game sessions end up here.
+        if let Some(r) = results.update(&snap, recorder.session()) {
+            let _ = results_tx.send(r);
+        }
 
         let hz = shared.emit_hz.load(Ordering::Relaxed).clamp(1, 120);
         if last_emit.elapsed() >= Duration::from_secs_f64(1.0 / hz as f64) {

@@ -288,6 +288,36 @@ export interface SessionSummary {
   lapCount: number;
   validLaps: number;
   bestLap: number | null;
+  /** Saved race classification: null when there is none, "partial" when the race was left before the finish. */
+  results: "complete" | "partial" | null;
+  /** The player's finishing position, when results were saved. */
+  position: number | null;
+  classPosition: number | null;
+}
+
+export type FinishStatus = "running" | "finished" | "dnf" | "dq";
+
+/** One car's line in a race classification. */
+export interface ResultEntry {
+  position: number;
+  classPosition: number;
+  driver: string;
+  team: string;
+  vehicleName: string;
+  /** Car model; empty when the game did not report it. */
+  car: string;
+  carClass: string;
+  number: string;
+  vehFile: string;
+  isPlayer: boolean;
+  laps: number;
+  bestLap: number | null;
+  /** Time behind the overall leader; only meaningful between cars on the same lap. */
+  gap: number;
+  pitStops: number;
+  status: FinishStatus;
+  /** Green flag to chequered flag; null when the start or finish was not seen. */
+  raceTime: number | null;
 }
 
 export interface LapRecord {

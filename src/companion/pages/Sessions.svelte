@@ -3,13 +3,14 @@
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
   import { classLabel, dateTime, lapTime } from "../../lib/format";
-  import type { Filters, LapRecord, SessionSummary } from "../../lib/types";
+  import type { Filters, LapRecord, ResultEntry, SessionSummary } from "../../lib/types";
   import { config } from "../../lib/config.svelte";
   import { confirm } from "../../lib/confirm.svelte";
   import { uploadable, uploads } from "../../lib/uploads.svelte";
   import CarRender from "../../lib/CarRender.svelte";
   import TrackHero from "../../lib/TrackHero.svelte";
   import LapTable from "../components/LapTable.svelte";
+  import ResultsTable from "../components/ResultsTable.svelte";
   import { nav } from "../nav.svelte";
 
   let filters = $state<Filters>({ tracks: [], cars: [] });
@@ -17,6 +18,7 @@
   let car = $state<string>("");
   let sessions = $state<SessionSummary[]>([]);
   let laps = $state<LapRecord[]>([]);
+  let results = $state<ResultEntry[]>([]);
   let selected = $state<number[]>([]);
 
   const current = $derived(sessions.find((s) => s.id === nav.sessionId) ?? null);
@@ -31,6 +33,11 @@
     laps = id == null ? [] : await api.listLaps(id);
   }
 
+  async function loadResults(id: number | null) {
+    const saved = sessions.find((s) => s.id === id)?.results;
+    results = id == null || !saved ? [] : await api.sessionResults(id);
+  }
+
   onMount(async () => {
     filters = await api.getFilters();
     await loadSessions();
@@ -38,6 +45,10 @@
 
   $effect(() => {
     loadLaps(nav.sessionId);
+  });
+
+  $effect(() => {
+    loadResults(current?.id ?? null);
   });
 
   function toggle(l: LapRecord) {
@@ -49,7 +60,7 @@
     if (!current) return;
     const ok = await confirm({
       title: "Delete this session?",
-      message: `${current.track} · ${current.car}. All ${current.lapCount} laps and their telemetry will be removed from this PC. This can't be undone.`,
+      message: `${current.track} · ${current.car}. All ${current.lapCount} laps and their telemetry${current.results ? ", and the race results," : ""} will be removed from this PC. This can't be undone.`,
       confirmLabel: "Delete session",
       danger: true,
     });
@@ -122,7 +133,13 @@
           <div class="flex items-center gap-2">
             <div class="min-w-0 flex-1">
               <div class="truncate text-xs text-muted">{s.car} · {s.sessionType}{s.source === "demo" ? " · demo" : ""}</div>
-              <div class="text-xs text-faint">{dateTime(s.startedAt)} · {s.lapCount} laps</div>
+              <div class="text-xs text-faint">
+                {dateTime(s.startedAt)} · {s.lapCount} laps
+                {#if s.position != null}
+                  · <span class="font-semibold text-soft">P{s.position}</span>
+                  {#if s.classPosition != null && s.classPosition !== s.position}(P{s.classPosition} in class){/if}
+                {/if}
+              </div>
             </div>
             <CarRender file={s.vehFile} view="thumb" class="h-9 w-[90px] shrink-0 object-contain" />
           </div>
@@ -146,6 +163,10 @@
           </div>
         </TrackHero>
       </div>
+      {#if results.length}
+        <ResultsTable {results} complete={current.results === "complete"} />
+        <h2 class="eyebrow mb-3">Your laps</h2>
+      {/if}
       {#if uploadNote}<p class="mb-2 text-xs text-bad">{uploadNote}</p>{/if}
       <div class="mb-3 flex items-center justify-between gap-4">
         <p class="text-sm text-muted">Click laps to select (A, then B) for comparison.</p>
