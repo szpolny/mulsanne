@@ -6,15 +6,9 @@ state=${XDG_STATE_HOME:-$HOME/.local/state}/mulsanne
 mkdir -p -- "$state"
 exec 9>"$state/launcher.lock"
 flock -n 9 || exit 0
-if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
-  hyprctl eval "$(cat "$base/hyprland.lua")" >>"$state/app.log" 2>&1 || true
-fi
 app_pid='' bridge_pid=''
 cleanup() {
   trap - EXIT INT TERM
-  if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
-    hyprctl eval 'if _G.mulsanne_linux_timer then _G.mulsanne_linux_timer:set_enabled(false) end; if _G.mulsanne_linux_rule then _G.mulsanne_linux_rule:set_enabled(false) end' >>"$state/app.log" 2>&1 || true
-  fi
   for child in "$bridge_pid" "$app_pid"; do
     [[ -n $child ]] || continue
     kill -TERM -- "-$child" 2>/dev/null || true
@@ -22,7 +16,7 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 0' INT TERM
-setsid env GDK_BACKEND=x11 "${MULSANNE_BINARY:-lm-overlay}" >>"$state/app.log" 2>&1 9>&- &
+setsid "${MULSANNE_BINARY:-lm-overlay}" >>"$state/app.log" 2>&1 9>&- &
 app_pid=$!
 mirror=${MULSANNE_LMU_SHM:-/dev/shm/LMU_Data}
 windows_mirror="Z:${mirror//\//\\}"

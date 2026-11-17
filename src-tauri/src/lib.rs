@@ -7,6 +7,8 @@ mod engine;
 pub mod live_share;
 #[cfg(target_os = "linux")]
 mod viewport;
+#[cfg(target_os = "linux")]
+mod wayland;
 pub mod lmu;
 pub mod model;
 pub mod online;
@@ -62,7 +64,7 @@ fn needs_full_repaint() -> bool {
 
 /// Transparent, click-through, always-on-top window covering the primary
 /// monitor, following the game client on Linux. All widgets render inside it at their configured positions.
-/// Linux fullscreen stacking is supplied by the experimental compositor integration.
+/// On Wayland compositors with layer shell it is a layer surface above fullscreen windows.
 fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     #[cfg(target_os = "linux")]
     let full_repaint = needs_full_repaint();
@@ -86,9 +88,13 @@ fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     {
         use gtk::prelude::*;
         let gtk_window = window.gtk_window()?;
-        // Tiling compositors need a dock hint before mapping the window; an
-        // always-on-top hint alone does not keep a normal client out of tiling.
-        gtk_window.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+        if wayland::active() {
+            wayland::init_overlay(&gtk_window);
+        } else {
+            // Tiling X11 window managers need a dock hint before mapping the window; an
+            // always-on-top hint alone does not keep a normal client out of tiling.
+            gtk_window.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+        }
     }
     place_overlay(app.handle(), monitor)?;
     // GTK creates the underlying GdkWindow on show. Tao's input-shape call
@@ -103,6 +109,12 @@ fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
 /// falling back to the primary monitor when it's empty or not connected.
 pub(crate) fn place_overlay(app: &tauri::AppHandle, monitor: &str) -> tauri::Result<()> {
     let Some(window) = app.get_webview_window("overlay") else { return Ok(()) };
+    #[cfg(target_os = "linux")]
+    if wayland::active() {
+        wayland::place(&window.gtk_window()?, monitor);
+        *app.state::<AppState>().overlay_monitor.lock().unwrap_or_else(|e| e.into_inner()) = monitor.to_string();
+        return Ok(());
+    }
     let chosen = match monitor {
         "" => None,
         name => window.available_monitors()?.into_iter().find(|m| m.name().is_some_and(|n| n == name)),
@@ -118,13 +130,10 @@ pub(crate) fn place_overlay(app: &tauri::AppHandle, monitor: &str) -> tauri::Res
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Overlay placement, stacking, click-through, and global shortcuts use X11.
-    // Wayland sessions can run the app through XWayland; select it before GTK
-    // initializes rather than silently creating an unsupported native surface.
+    // Wayland compositors with layer shell get a native HUD; everything else
+    // runs on X11, directly or through XWayland.
     #[cfg(target_os = "linux")]
-    if std::env::var_os("GDK_BACKEND").is_none() {
-        std::env::set_var("GDK_BACKEND", "x11");
-    }
+    wayland::select_backend();
 
     // Keep the compositing renderer, but transport buffers through shared
     // memory to avoid NVIDIA/XWayland DMA-BUF allocation failures. Disabling

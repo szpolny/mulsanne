@@ -24,6 +24,9 @@ pub struct Status {
     game_focused: bool,
     data_dir: String,
     experimental_linux: bool,
+    /// The HUD is a Wayland layer surface. Global shortcuts reach the app only
+    /// through XWayland, so its own windows handle them while focused.
+    wayland_overlay: bool,
 }
 
 #[tauri::command]
@@ -40,6 +43,10 @@ pub fn get_status(state: State<AppState>) -> Status {
         game_focused: state.shared.game_focused.load(Ordering::Acquire),
         data_dir: state.data_dir.display().to_string(),
         experimental_linux: cfg!(target_os = "linux"),
+        #[cfg(target_os = "linux")]
+        wayland_overlay: crate::wayland::active(),
+        #[cfg(not(target_os = "linux"))]
+        wayland_overlay: false,
     }
 }
 
@@ -109,6 +116,15 @@ pub fn apply_edit_mode(app: &AppHandle, enabled: bool) {
     let state = app.state::<AppState>();
     state.edit_mode.store(enabled, Ordering::Release);
     if let Some(overlay) = app.get_webview_window("overlay") {
+        #[cfg(target_os = "linux")]
+        if crate::wayland::active() {
+            let window = overlay.clone();
+            let _ = app.run_on_main_thread(move || {
+                if let Ok(window) = window.gtk_window() {
+                    crate::wayland::set_keyboard(&window, enabled);
+                }
+            });
+        }
         let _ = overlay.set_ignore_cursor_events(!enabled);
         if enabled {
             let _ = overlay.show();

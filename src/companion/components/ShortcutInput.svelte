@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { accelerator } from "../../lib/shortcuts";
+
   let {
     value,
     fallback,
@@ -16,15 +18,6 @@
   let recording = $state(false);
   let error = $state("");
 
-  const MODIFIERS = ["Control", "Shift", "Alt", "Meta", "OS"];
-
-  // KeyboardEvent.code → key name understood by the global shortcut parser.
-  function keyName(code: string) {
-    if (/^Key[A-Z]$/.test(code)) return code.slice(3);
-    if (/^Digit\d$/.test(code)) return code.slice(5);
-    return code;
-  }
-
   async function apply(accelerator: string) {
     error = "";
     try {
@@ -38,11 +31,11 @@
     if (!recording) return;
     e.preventDefault();
     e.stopPropagation();
-    if (MODIFIERS.includes(e.key)) return;
+    const pressed = accelerator(e);
+    if (!pressed) return;
     recording = false;
-    if (e.key === "Escape" && !(e.ctrlKey || e.altKey || e.shiftKey || e.metaKey)) return;
-    const parts = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Super"].filter(Boolean);
-    apply([...parts, keyName(e.code)].join("+"));
+    if (pressed === "Escape") return;
+    apply(pressed);
   }
 </script>
 

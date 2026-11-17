@@ -1,8 +1,12 @@
 # Experimental Linux support
 
 Mulsanne runs natively on x86-64 Linux while LMU runs through Steam/Proton.
-Fullscreen has been tested on NixOS with Hyprland/XWayland. Other desktops are
-experimental; native Wayland and Flatpak Steam have not been verified.
+
+The HUD is drawn above the fullscreen game on Wayland desktops that support the
+layer shell protocol, such as Hyprland, Sway and other wlroots compositors, KDE
+Plasma, niri and COSMIC. It has been tested on NixOS with Hyprland. GNOME and
+X11 sessions aren't supported yet: the app starts there, but the HUD may not
+stay above the game. Flatpak Steam has not been verified.
 
 ## NixOS / Home Manager
 
@@ -47,15 +51,15 @@ know to update through your package manager.
 ## Run
 
 Start **Mulsanne** from the app menu and LMU through Steam, in either order.
-The launcher attaches the bridge automatically. On Hyprland it also configures
-fullscreen stacking, alignment and transparency without changing config files.
-XWayland must be enabled. The HUD stays visible while using another monitor and
-hides when switching away from the game on its monitor.
+The launcher attaches the bridge automatically. No compositor configuration is
+needed. XWayland must be enabled, because the game runs through it. The HUD
+covers the game's window and hides while the game isn't focused.
 
 - **Ctrl+Shift+F9**: edit the layout.
 - **Ctrl+Shift+F10**: hide/show the HUD.
 
-Both shortcuts can be changed in Settings.
+Both shortcuts can be changed in Settings. They work while the game or a
+Mulsanne window is focused, not in other apps.
 - Widgets are hidden off track by default; enter a session or open the editor.
 
 Logs are in `${XDG_STATE_HOME:-$HOME/.local/state}/mulsanne/`. Settings and laps

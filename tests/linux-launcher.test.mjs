@@ -31,12 +31,6 @@ test('bridge selects game process and forwards only runtime variables', {skip: !
     bash('source "$LAUNCHER"; if find_game "$FIXTURE"; then exit 1; fi', {LAUNCHER:join(root,'scripts/run-lmu-bridge.sh'),FIXTURE:dir});
   } finally { rmSync(dir,{recursive:true,force:true}); }
 });
-test('Hyprland HUD policy handles fullscreen, other monitors, covered game and workspace switches', {skip:!linux}, t => {
-  const version=spawnSync('lua',['-v']);
-  if(version.error?.code==='ENOENT') return t.skip('Lua is not installed');
-  const result=spawnSync('lua',['tests/hyprland.lua'],{cwd:root,encoding:'utf8'});
-  assert.equal(result.status,0,result.stderr);
-});
 test('native launcher starts packaged UI and bridge with the same mirror', {skip:!linux}, () => {
   const dir=mkdtempSync(join(tmpdir(),'mulsanne-package-'));
   try {
@@ -45,7 +39,7 @@ test('native launcher starts packaged UI and bridge with the same mirror', {skip
     writeFileSync(join(dir,'run-lmu-bridge.sh'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$TEST_ROOT/bridge-args"\n');
     bash('chmod +x "$TEST_ROOT/ui"; bash "$ROOT/packaging/linux/launch.sh"', {
       TEST_ROOT:dir,ROOT:root,MULSANNE_LIBEXEC:dir,MULSANNE_BINARY:join(dir,'ui'),
-      MULSANNE_LMU_SHM:'/dev/shm/custom mirror',XDG_STATE_HOME:join(dir,'state'),HYPRLAND_INSTANCE_SIGNATURE:''
+      MULSANNE_LMU_SHM:'/dev/shm/custom mirror',XDG_STATE_HOME:join(dir,'state')
     });
     assert.equal(readFileSync(join(dir,'ui-mirror'),'utf8'),'/dev/shm/custom mirror');
     assert.equal(readFileSync(join(dir,'bridge-args'),'utf8'),`${dir}/lmu-bridge.exe\nZ:\\dev\\shm\\custom mirror\n`);

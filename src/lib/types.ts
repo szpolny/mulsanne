@@ -257,6 +257,8 @@ export interface Status {
   gameFocused: boolean;
   dataDir: string;
   experimentalLinux: boolean;
+  /** The Linux HUD is a Wayland layer surface. */
+  waylandOverlay: boolean;
 }
 
 /** A connected display the overlay can cover. */

@@ -5,6 +5,7 @@
   import { loadConfig } from "../lib/config.svelte";
   import { watchUploads } from "../lib/uploads.svelte";
   import { live, startLive } from "../lib/live.svelte";
+  import { handleLocalShortcuts } from "../lib/shortcuts";
   import Logo from "../lib/Logo.svelte";
   import { initStarPrompt } from "../lib/star.svelte";
   import { initUpdater, installUpdate, updater } from "../lib/updater.svelte";
@@ -59,8 +60,9 @@
     startLive();
     void loadConfig().then(initUpdater).then(initStarPrompt);
     watchUploads();
+    const stopShortcuts = handleLocalShortcuts();
 
-    if (!("__TAURI_INTERNALS__" in window)) return;
+    if (!("__TAURI_INTERNALS__" in window)) return stopShortcuts;
 
     const appWindow = getCurrentWindow();
     void appWindow.isMaximized().then((value) => (maximized = value));
@@ -69,7 +71,10 @@
       void appWindow.isMaximized().then((value) => (maximized = value));
     }).then((unlisten) => (unlistenResize = unlisten));
 
-    return () => unlistenResize?.();
+    return () => {
+      unlistenResize?.();
+      stopShortcuts();
+    };
   });
 
   function startDragging(event: MouseEvent) {

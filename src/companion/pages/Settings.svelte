@@ -39,7 +39,7 @@
     {#if live.status.experimentalLinux}
       <div class="card border-warn/40 p-4 text-sm">
         <div class="font-medium text-warn">Experimental Linux support</div>
-        <p class="mt-1 text-muted">Linux support is experimental. Fullscreen HUD integration has been tested on Hyprland with XWayland; other desktops may need additional setup.</p>
+        <p class="mt-1 text-muted">Linux support is experimental. The HUD needs a Wayland desktop with layer shell, such as Hyprland, Sway or KDE Plasma. It hides while the game isn't focused.</p>
       </div>
     {/if}
 

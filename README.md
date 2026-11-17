@@ -59,7 +59,7 @@ Use **Demo data** on the **Live** page to arrange the overlay without running th
 
 ## Experimental Linux support
 
-Experimental native Linux packages include the Proton bridge and fullscreen HUD integration tested on Hyprland/XWayland. Install with the Nix flake, `.deb`, or `.rpm`; see [Linux installation](docs/linux.md).
+Experimental native Linux packages include the Proton bridge and a fullscreen HUD for Wayland desktops with layer shell (tested on Hyprland). Install with the Nix flake, `.deb`, or `.rpm`; see [Linux installation](docs/linux.md).
 
 ## Feedback
 

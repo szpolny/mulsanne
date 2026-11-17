@@ -102,6 +102,22 @@ impl Tracker {
         if self.previous == Some(bounds) {
             return;
         }
+        if crate::wayland::active() {
+            let app_ = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                if let Some(window) = app_.get_webview_window("overlay").and_then(|w| w.gtk_window().ok()) {
+                    let size = |v: u32| i32::try_from(v).unwrap_or(i32::MAX);
+                    crate::wayland::follow(&window, bounds.x, bounds.y, size(bounds.width), size(bounds.height));
+                }
+                if let Some(window) = app_.get_webview_window("overlay") {
+                    let editing = app_.state::<crate::AppState>().edit_mode
+                        .load(std::sync::atomic::Ordering::Acquire);
+                    let _ = window.set_ignore_cursor_events(!editing);
+                }
+            });
+            self.previous = Some(bounds);
+            return;
+        }
         if let Some(window) = app.get_webview_window("overlay") {
             if window
                 .set_position(PhysicalPosition::new(bounds.x, bounds.y))

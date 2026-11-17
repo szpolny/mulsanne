@@ -4,6 +4,7 @@
   import { api } from "../lib/api";
   import { config, loadConfig, resetLayout, switchProfile, WIDGETS } from "../lib/config.svelte";
   import { live, startLive } from "../lib/live.svelte";
+  import { handleLocalShortcuts } from "../lib/shortcuts";
   import SoftwareRepaint from "./SoftwareRepaint.svelte";
   import Logo from "../lib/Logo.svelte";
   import WidgetFrame from "./WidgetFrame.svelte";
@@ -12,12 +13,16 @@
   onMount(() => {
     startLive();
     loadConfig();
+    return handleLocalShortcuts();
   });
 
   const edit = $derived(live.status.editMode);
   const onTrack = $derived(!!live.snap?.player && live.snap.inRealtime);
   const trackOk = $derived(!config.value.general.onlyOnTrack || onTrack);
-  const focusOk = $derived(!config.value.general.hideUnfocused || live.status.gameFocused || live.status.demo);
+  // A Wayland HUD sits above every window on its monitor, so it always hides
+  // with the game in the background.
+  const hideUnfocused = $derived(config.value.general.hideUnfocused || live.status.waylandOverlay);
+  const focusOk = $derived(!hideUnfocused || live.status.gameFocused || live.status.demo);
   const show = $derived(config.loaded && (edit || (trackOk && focusOk)));
 </script>
 
