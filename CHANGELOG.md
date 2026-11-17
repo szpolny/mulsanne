@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.0](https://github.com/szpolny/mulsanne/compare/v0.14.0...v1.0.0) (2026-11-17)
+
+
+### Features
+
+* allow changing the global shortcuts ([#47](https://github.com/szpolny/mulsanne/issues/47)) ([19c5b36](https://github.com/szpolny/mulsanne/commit/19c5b366d42e249f2a47d9cf44ac331fcfb3ff97))
+* companion app redesign ([#48](https://github.com/szpolny/mulsanne/issues/48)) ([26d5fc5](https://github.com/szpolny/mulsanne/commit/26d5fc53f17fa1e4ae89d26ddf7b2580f141683b))
+* tidier default overlay layout ([#44](https://github.com/szpolny/mulsanne/issues/44)) ([c3da69f](https://github.com/szpolny/mulsanne/commit/c3da69fbb7d8d9a29121a7c0184c7a792dc1acba))
+
+
+### Bug Fixes
+
+* delay GitHub star prompt until after app usage ([#50](https://github.com/szpolny/mulsanne/issues/50)) ([4c35204](https://github.com/szpolny/mulsanne/commit/4c352049c6ecbf4192fc4219e98c3be8e6589e42))
+* **release:** keep Cargo lockfile version synchronized ([6b9f973](https://github.com/szpolny/mulsanne/commit/6b9f9733459c92731e1667789e2f78d305bfa2bf))
+
 ## [0.14.0](https://github.com/szpolny/mulsanne/compare/v0.13.0...v0.14.0) (2026-11-15)
 
 
