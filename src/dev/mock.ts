@@ -4,8 +4,8 @@
 // ?nolaps for a fresh install with nothing recorded, ?seen=0.6.0 to show the
 // changelog as if updating from that version, ?screenshot for website screenshots
 // (no demo labels), ?sharing to start with online features
-// on and live timing being shared, ?launches=2 to show the GitHub
-// star popup as if the app had been opened that many times before, ?page=rankings to
+// on and live timing being shared, ?usageMinutes=30 to show the GitHub
+// star popup after the usage threshold, ?page=rankings to
 // open a page directly).
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
@@ -34,7 +34,7 @@ export async function install(inApp = false) {
     ...(sharing && { online: { enabled: true } }),
     general: {
       ...(params.has("seen") && { lastSeenVersion: params.get("seen") }),
-      ...(params.has("launches") && { launches: Number(params.get("launches")) }),
+      ...(params.has("usageMinutes") && { starPromptUsageMs: Number(params.get("usageMinutes")) * 60_000 }),
     },
   };
   let editMode = location.hash.includes("edit");
