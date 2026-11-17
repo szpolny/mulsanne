@@ -39,8 +39,8 @@
 </script>
 
 <div class="card overflow-hidden">
-  <table class="w-full text-sm tnum">
-    <thead class="bg-surface-2 text-left text-xs text-muted">
+  <table class="data-table">
+    <thead>
       <tr>
         <th class="px-3 py-2 font-medium">Lap</th>
         <th class="px-3 py-2 font-medium">Time</th>
@@ -58,7 +58,7 @@
         {@const sel = selected.indexOf(l.id)}
         <tr
           class={[
-            "border-t border-line transition-colors",
+            "transition-colors",
             sel >= 0 ? "bg-accent/15" : "hover:bg-surface-2",
             onselect && "cursor-pointer",
           ]}
@@ -100,7 +100,7 @@
             {/if}
             {#if onopen}
               <button
-                class="rounded px-2 py-0.5 text-xs text-accent hover:bg-surface-3"
+                class="btn-link text-accent-hi"
                 onclick={(e) => {
                   e.stopPropagation();
                   onopen(l);
@@ -109,7 +109,7 @@
             {/if}
             {#if ondelete}
               <button
-                class="rounded px-2 py-0.5 text-xs text-muted hover:bg-surface-3 hover:text-bad"
+                class="btn-link text-muted hover:text-bad"
                 title="Delete lap"
                 onclick={(e) => {
                   e.stopPropagation();

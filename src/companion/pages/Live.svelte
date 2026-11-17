@@ -10,6 +10,7 @@
   import TrackHero from "../../lib/TrackHero.svelte";
   import LapTable from "../components/LapTable.svelte";
   import LiveShare from "../components/LiveShare.svelte";
+  import PageHeader from "../components/PageHeader.svelte";
   import Toggle from "../components/Toggle.svelte";
   import { nav } from "../nav.svelte";
 
@@ -40,20 +41,21 @@
   onDestroy(() => unlisten.then((f) => f()));
 </script>
 
-<div class="mx-auto max-w-6xl p-6">
-  <div class="mb-5 flex items-center justify-between">
-    <h1 class="page-title">Live</h1>
-    {#if toast}
-      <div class="rounded-full bg-best/15 px-3 py-1 text-sm font-semibold text-best">{toast}</div>
-    {/if}
-  </div>
+<div class="page">
+  <PageHeader title="Live" description="What's happening in the game right now, and quick controls for the overlay.">
+    {#snippet actions()}
+      {#if toast}
+        <div class="rounded-full bg-best/15 px-3 py-1 text-sm font-semibold text-best">{toast}</div>
+      {/if}
+    {/snippet}
+  </PageHeader>
 
   <div class="grid gap-4 lg:grid-cols-3">
     <section class="card overflow-hidden lg:col-span-2">
       {#if !snap || snap.source === "none"}
         <div class="p-5">
-          <div class="text-xl font-semibold">Waiting for Le Mans Ultimate</div>
-          <p class="mt-2 max-w-xl text-sm text-muted">
+          <div class="section-title">Waiting for Le Mans Ultimate</div>
+          <p class="mt-2 max-w-xl text-sm text-soft">
             Start the game and get on track. Run it in <b class="text-fg">borderless</b> or windowed mode so the overlay can
             draw on top. No game plugin is needed: Mulsanne reads LMU's built-in shared memory.
           </p>
@@ -66,7 +68,7 @@
               <span class="rounded-full bg-warn/15 px-2.5 py-0.5 text-xs font-semibold text-warn">Demo data</span>
             {/if}
           </div>
-          <div class="mt-2 truncate text-2xl font-bold">{snap.session.track || "—"}</div>
+          <div class="mt-2 truncate font-display text-[24px] leading-tight font-bold uppercase">{snap.session.track || "—"}</div>
           <div class="mt-1 flex items-center gap-2 text-sm text-muted">
             {#if p}
               <CarLogo model={p.vehicleModel} entry={p.vehicleName} size={15} />
@@ -85,7 +87,7 @@
               ["Fuel", fuel(p.fuel, units).toFixed(1), fuelUnit(units)],
             ] as [label, value, unit]}
               <div class="rounded-lg bg-surface-2 px-3 py-2.5">
-                <div class="text-xs text-muted">{label}</div>
+                <div class="eyebrow text-[11px] tracking-[0.14em]">{label}</div>
                 <div class="mt-0.5 font-display text-2xl font-semibold whitespace-nowrap">{value} <span class="text-xs font-medium text-muted">{unit}</span></div>
               </div>
             {/each}
@@ -96,7 +98,7 @@
 
     <div class="flex flex-col gap-4">
       <section class="flex flex-col gap-3 card p-4 text-sm">
-        <div class="section-title text-sm text-muted">Overlay</div>
+        <div class="eyebrow">Overlay</div>
         <div class="flex items-center justify-between">
           <span>Show overlay</span>
           <Toggle checked={live.status.overlayVisible} onchange={(v) => api.setOverlayVisible(v)} label="Show overlay" />
@@ -120,13 +122,13 @@
     </div>
   </div>
 
-  <div class="mt-6 mb-2 flex items-baseline justify-between">
+  <div class="mt-8 mb-3 flex items-baseline justify-between gap-4">
     <h2 class="section-title">
       Latest session
-      {#if session}<span class="ml-2 text-sm font-normal text-muted">{session.track} · {session.car} · {session.sessionType}</span>{/if}
+      {#if session}<span class="ml-2 font-sans text-sm font-normal tracking-normal text-muted normal-case">{session.track} · {session.car} · {session.sessionType}</span>{/if}
     </h2>
     {#if session}
-      <button class="text-sm text-accent hover:underline" onclick={() => { nav.sessionId = session!.id; nav.page = "sessions"; }}>Open session</button>
+      <button class="btn-link text-accent-hi" onclick={() => { nav.sessionId = session!.id; nav.page = "sessions"; }}>Open session</button>
     {/if}
   </div>
   <LapTable {laps} onopen={(l) => nav.openAnalysis(l.track, l.id)} />

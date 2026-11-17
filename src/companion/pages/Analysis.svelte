@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "../components/Select.svelte";
   import { onMount } from "svelte";
   import { align, brakeZones, type Aligned, type BrakeZone } from "../../lib/analysis";
   import { api } from "../../lib/api";
@@ -204,6 +205,7 @@
     { id: "gear", label: "Gear" },
     { id: "delta", label: "Time gain" },
   ];
+  import PageHeader from "../components/PageHeader.svelte";
 </script>
 
 <svelte:window
@@ -212,29 +214,31 @@
   }}
 />
 
-<div class="p-5">
-  <div class="mb-4 flex flex-wrap items-end gap-3">
+<div class="page">
+  <PageHeader title="Analysis" description="Compare a lap's telemetry with another lap, your best lap, or a ranked lap from another driver." />
+
+  <div class="mb-5 flex flex-wrap items-end gap-3">
     <label class="flex flex-col gap-1 text-xs text-muted">
       Track
-      <select class="min-w-[200px] field text-sm text-fg" bind:value={nav.track}>
-        {#each tracks as t}<option value={t}>{t}</option>{/each}
-      </select>
+      <Select class="min-w-[200px] text-sm text-fg" bind:value={nav.track} label="Track" options={tracks.map((t) => ({ value: t, label: t }))} />
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style:background={A}></span>Lap A</span>
-      <select class="w-[360px] field text-sm text-fg" bind:value={nav.lapA}>
-        {#each laps as l (l.id)}<option value={l.id}>{lapLabel(l)}</option>{/each}
-      </select>
+      <Select class="w-[360px] text-sm text-fg" bind:value={nav.lapA} label="Lap A" options={laps.map((l) => ({ value: l.id, label: lapLabel(l) }))} />
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style:background={B}></span>Compare with (B)</span>
-      <select class="w-[360px] field text-sm text-fg" value={bValue} onchange={(e) => selectB(e.currentTarget.value)}>
-        <option value="">None</option>
-        {#if nav.remoteB}
-          <option value="remote">Ranked: {lapTime(nav.remoteB.lapTime)} · {nav.remoteB.label}</option>
-        {/if}
-        {#each laps as l (l.id)}{#if l.id !== nav.lapA}<option value={String(l.id)}>{lapLabel(l)}</option>{/if}{/each}
-      </select>
+      <Select
+        class="w-[360px] text-sm text-fg"
+        value={bValue}
+        label="Compare with"
+        onchange={selectB}
+        options={[
+          { value: "", label: "None" },
+          ...(nav.remoteB ? [{ value: "remote", label: `Ranked: ${lapTime(nav.remoteB.lapTime)} · ${nav.remoteB.label}` }] : []),
+          ...laps.filter((l) => l.id !== nav.lapA).map((l) => ({ value: String(l.id), label: lapLabel(l) })),
+        ]}
+      />
     </label>
     {#if nav.lapB != null}
       <button
@@ -257,11 +261,11 @@
   {/if}
 
   {#if nav.remoteB && nav.track && !tracks.includes(nav.track)}
-    <div class="card p-10 text-center text-muted">You have no laps on {nav.track} yet. Drive some to compare with this ranked lap.</div>
+    <div class="card empty-state">You have no laps on {nav.track} yet. Drive some to compare with this ranked lap.</div>
   {:else if !tracks.length}
-    <div class="card p-10 text-center text-muted">No laps recorded yet.</div>
+    <div class="card empty-state">No laps recorded yet.</div>
   {:else if !data}
-    <div class="card p-10 text-center text-muted">{loading ? "Loading…" : "Select a lap."}</div>
+    <div class="card empty-state">{loading ? "Loading…" : "Select a lap."}</div>
   {:else}
     <div class="grid grid-cols-[minmax(0,1fr)_440px] gap-4">
       <div class="flex min-w-0 flex-col gap-2">
@@ -283,7 +287,7 @@
 
       <div class="flex flex-col gap-3">
         <div class="sticky top-0 flex flex-col gap-3">
-          <div class="flex gap-1 rounded-lg bg-surface p-1 text-sm">
+          <div class="flex gap-1 rounded-lg border border-line bg-surface p-1 font-display text-[14px] font-semibold tracking-[0.06em] uppercase">
             {#each COLOR_MODES as m}
               <button
                 class={["flex-1 rounded-md py-1", colorBy === m.id ? "bg-surface-3 text-fg" : "text-muted hover:text-fg"]}
@@ -325,7 +329,7 @@
               {@const lap = l as LapRecord | null}
               {#if lap}
                 <div class="card p-3">
-                  <div class="text-xs font-semibold" style:color={color as string}>Lap {name}</div>
+                  <div class="eyebrow text-[11px] tracking-[0.14em]" style:color={color as string}>Lap {name}</div>
                   <div class={["font-display text-xl font-semibold", !lap.valid && "text-bad"]}>{lapTime(lap.lapTime)}</div>
                   <div class="text-xs text-muted">{sectorTime(lap.s1)} · {sectorTime(lap.s2)} · {sectorTime(lap.s3)}</div>
                   <div class="text-xs text-muted">Top {Math.round(toSpeed(lap.maxSpeed, units))} {speedUnit(units)}</div>
@@ -335,7 +339,7 @@
             {#if nav.remoteB && traceB}
               {@const r = nav.remoteB}
               <div class="card p-3">
-                <div class="truncate text-xs font-semibold" style:color={B}>Lap B · {r.label}</div>
+                <div class="eyebrow truncate text-[11px] tracking-[0.14em]" style:color={B}>Lap B · {r.label}</div>
                 <div class="font-display text-xl font-semibold">{lapTime(r.lapTime)}</div>
                 <div class="text-xs text-muted">{sectorTime(r.s1)} · {sectorTime(r.s2)} · {sectorTime(r.s3)}</div>
                 <div class="text-xs text-muted">Top {Math.round(toSpeed(Math.max(...traceB.speed), units))} {speedUnit(units)}</div>
@@ -347,10 +351,10 @@
     </div>
 
     {#if corners.length}
-      <h2 class="mt-6 mb-2 section-title">Braking zones</h2>
-      <div class="overflow-hidden rounded-lg border border-line">
-        <table class="w-full text-sm tnum">
-          <thead class="bg-surface-2 text-left text-xs text-muted">
+      <h2 class="mt-8 mb-3 section-title">Braking zones</h2>
+      <div class="card overflow-hidden">
+        <table class="data-table">
+          <thead>
             <tr>
               <th class="px-3 py-2 font-medium">#</th>
               <th class="px-3 py-2 font-medium">Brake point A</th>
@@ -363,7 +367,7 @@
           </thead>
           <tbody>
             {#each corners as c (c.n)}
-              <tr class="cursor-pointer border-t border-line hover:bg-surface-2" onclick={() => (cursorIdx = c.za.start)}>
+              <tr class="cursor-pointer hover:bg-surface-2" onclick={() => (cursorIdx = c.za.start)}>
                 <td class="px-3 py-1.5 font-semibold">{c.n}</td>
                 <td class="px-3 py-1.5">{Math.round(data.d[c.za.start])} m</td>
                 <td class="px-3 py-1.5">

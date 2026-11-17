@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Select from "../companion/components/Select.svelte";
   import { onMount } from "svelte";
   import { api } from "../lib/api";
   import { config, loadConfig, resetLayout, switchProfile, WIDGETS } from "../lib/config.svelte";
@@ -40,14 +41,14 @@
       <button class="btn px-3! py-1.5! text-xs!" onclick={() => api.setDemoMode(true)}>Demo data</button>
     {/if}
     {#if Object.keys(config.value.profiles).length > 1}
-      <select
-        class="field py-1.5! text-xs!"
+      <Select
+        size="sm"
+        label="Profile"
         title="Profile"
         value={config.value.activeProfile}
-        onchange={(e) => switchProfile(e.currentTarget.value)}
-      >
-        {#each Object.entries(config.value.profiles) as [id, p] (id)}<option value={id}>{p.name}</option>{/each}
-      </select>
+        options={Object.entries(config.value.profiles).map(([id, p]) => ({ value: id, label: p.name }))}
+        onchange={switchProfile}
+      />
     {/if}
     <button class="btn px-3! py-1.5! text-xs!" onclick={resetLayout}>Reset</button>
     <button class="btn btn-primary px-4! py-1.5! text-xs!" onclick={() => api.setEditMode(false)}>Done</button>

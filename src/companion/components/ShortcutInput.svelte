@@ -49,7 +49,7 @@
 <div class="flex flex-col items-end gap-1">
   <div class="flex items-center gap-2">
     <button
-      class={["btn min-w-40 justify-center font-mono", recording && "ring-2 ring-accent"]}
+      class={["btn min-w-40 justify-center font-mono! tracking-normal! normal-case!", recording && "ring-2 ring-accent"]}
       aria-label={label}
       onclick={() => {
         error = "";

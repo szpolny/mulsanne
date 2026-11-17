@@ -5,27 +5,31 @@
 // changelog as if updating from that version, ?screenshot for website screenshots
 // (no demo labels), ?sharing to start with online features
 // on and live timing being shared, ?launches=2 to show the GitHub
-// star popup as if the app had been opened that many times before).
+// star popup as if the app had been opened that many times before, ?page=rankings to
+// open a page directly).
 // Generate fixtures first:
 //   cd src-tauri && cargo run --example export_fixtures -- ../src/dev/fixtures
 import { emit } from "@tauri-apps/api/event";
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { version } from "../../package.json";
 
-export async function install() {
+/** `inApp`: inside the real Tauri window (`VITE_DEMO=1 pnpm tauri dev`), where the demo-tauri shims route commands here. */
+export async function install(inApp = false) {
   const res = await fetch(new URL("./fixtures/fixtures.json", import.meta.url));
   if (!res.ok) {
     console.warn("dev mock: fixtures missing, run the export_fixtures example");
     return;
   }
   const params = new URLSearchParams(location.search);
+  // ?page=overlays opens that page directly.
+  if (params.has("page")) (await import("../companion/nav.svelte")).nav.page = params.get("page") as never;
   // ?screenshot presents the demo as a real session at Le Mans, for website and
   // README screenshots: no "Demo data" labels and the game's own track name.
   let text = await res.text();
   if (params.has("screenshot"))
     text = text.replaceAll('"source":"demo"', '"source":"lmu"').replaceAll("Le Mans (Demo)", "Circuit de la Sarthe");
   const fx = JSON.parse(text);
-  const sharing = params.has("sharing");
+  const sharing = params.has("sharing") || inApp;
   let config: unknown = {
     ...(sharing && { online: { enabled: true } }),
     general: {
@@ -51,10 +55,11 @@ export async function install() {
   let share: ReturnType<typeof newShare> | null = sharing ? newShare() : null;
   const uploadStates = new Map<number, { lapId: number; status: string; remoteId: string | null; error: string | null; trace: string | null }>();
 
-  mockWindows("main");
-  mockConvertFileSrc("linux");
-  mockIPC(
-    (cmd, args: any) => {
+  if (!inApp) {
+    mockWindows("main");
+    mockConvertFileSrc("linux");
+  }
+  const handler = (cmd: string, args: any) => {
       switch (cmd) {
         case "plugin:app|version":
           return version;
@@ -184,13 +189,48 @@ export async function install() {
           const q = args.query;
           const pb = (fx.personalBests as any[]).find((b) => b.track === q.track && b.carClass === q.carClass);
           const names = ["T. Kristensen", null, "J. Ickx", "F. Alonso", null, "A. McNish", "S. Buemi", "D. Bell"];
+          // A different car, team and livery per driver, from the game's 2026 renders: [veh file, car, vehicle name].
+          const oreca = "Oreca 07 Gibson";
+          const cars: Record<string, [string, string, string][]> = {
+            Hypercar: [
+              ["50_26_FERR45066807", "Ferrari 499P", "Ferrari AF Corse 2026 #50:LM"],
+              ["7_26_TOYOT18793560", "Toyota TR010 Hybrid", "Toyota Gazoo Racing 2026 #7:LM"],
+              // Older uploads carry no livery file, only the vehicle name.
+              ["", "Ferrari 499P", "AF Corse 2026 #83:LM"],
+              ["12_26_JOTA50003117", "Cadillac V-Series.R", "Cadillac Hertz Team Jota 2026 #12:LM"],
+              ["36_26_ALPI20490502", "Alpine A424", "Alpine Endurance Team 2026 #36:LM"],
+              ["20_26_WRT_40613364", "BMW M Hybrid V8", "BMW M Team WRT 2026 #20:LM"],
+              ["007_26_THO22699059", "Aston Martin Valkyrie", "Aston Martin THOR Team 2026 #007:LM"],
+              ["93_26_PEUG26011673", "Peugeot 9X8", "Peugeot TotalEnergies 2026 #93:LM"],
+            ],
+            LMP2: [
+              ["24_26_NIEL37A85D27", oreca, "Nielsen Racing 2026 #24:ELMS"],
+              ["43_26_INTEBFEF5F1A", oreca, "Inter Europol Competition 2026 #43:ELMS"],
+              ["22_26_UNIT48490510", oreca, "United Autosports 2026 #22:ELMS"],
+              ["30_26_DUQU13852371", oreca, "Duqueine Team 2026 #30:ELMS"],
+              ["28_26_IDEC52704256", oreca, "IDEC Sport 2026 #28:ELMS"],
+              ["25_26_APR_14077374", oreca, "Algarve Pro Racing 2026 #25:ELMS"],
+              ["37_26_CLX_55395349", oreca, "CLX Motorsport 2026 #37:ELMS"],
+              ["47_26_CLX_33830875", oreca, "CLX Motorsport 2026 #47:ELMS"],
+            ],
+            GT3: [
+              ["92_26_MANT22466058", "Porsche 911 GT3 R", "Manthey 2026 #92:LM"],
+              ["33_26_TFSP74306766", "Corvette Z06 GT3.R", "TF Sport 2026 #33:LM"],
+              ["21_26_AFCO31910023", "Ferrari 296 GT3", "Vista AF Corse 2026 #21:LM"],
+              ["87_26_AKKO35783817", "Lexus RC F GT3", "Akkodis ASP Team 2026 #87:LM"],
+              ["88_26_PROT11517799", "Ford Mustang GT3", "Proton Competition 2026 #88:LM"],
+              ["69_26_WRT_29233637", "BMW M4 GT3", "Team WRT 2026 #69:LM"],
+              ["27_26_THOR22130173", "Aston Martin Vantage AMR GT3", "Heart of Racing Team 2026 #27:LM"],
+              ["61_26_IRON17109319", "Mercedes-AMG GT3", "Iron Lynx 2026 #61:LM"],
+            ],
+          };
+          const pool = cars[q.carClass === "LMP2_ELMS" ? "LMP2" : q.carClass] ?? cars.Hypercar;
           const entries = names.map((driver, i) => {
             const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
+            const [vehFile, car, vehicleName] = pool[i];
             return {
-              rank: i + 1, lapId: `other-${i}`, driver, car: pb?.car ?? "Car",
-              // Older uploads carry no livery file, only the vehicle name.
-              vehicleName: i % 3 === 2 ? "AF Corse 2026 #83:LM" : "",
-              vehFile: i % 3 === 2 ? "" : ["83_26_AFCO45368276", "51_25_AFCO7A98A690"][i % 3], sessionType: i % 2 ? "Race" : "Practice",
+              rank: i + 1, lapId: `other-${i}`, driver, car, vehicleName,
+              vehFile, sessionType: i % 2 ? "Race" : "Practice",
               gameVersion: i < 5 ? 1124 : 1123,
               hasTrace: i !== 2,
               lapTime: t, s1: t * 0.3, s2: t * 0.4, s3: t * 0.3, recordedAt: Math.floor(Date.now() / 1000) - i * 86400,
@@ -209,9 +249,9 @@ export async function install() {
         default:
           return null;
       }
-    },
-    { shouldMockEvents: true },
-  );
+    };
+  if (inApp) (globalThis as any).__MULSANNE_DEMO_IPC__ = handler;
+  else mockIPC(handler, { shouldMockEvents: true });
 
   if (noLive) return;
   let i = 0;

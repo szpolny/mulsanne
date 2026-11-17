@@ -34,7 +34,7 @@
           </div>
         {/if}
         <div class="min-w-0 space-y-2">
-          <h2 id="confirm-title" class="section-title text-[17px]">{pending.title}</h2>
+          <h2 id="confirm-title" class="section-title">{pending.title}</h2>
           {#if pending.message}
             <p id="confirm-message" class="text-sm leading-relaxed text-muted">{pending.message}</p>
           {/if}
