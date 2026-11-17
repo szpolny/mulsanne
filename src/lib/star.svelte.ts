@@ -3,21 +3,51 @@ import { config, saveConfig } from "./config.svelte";
 
 export const REPO_URL = "https://github.com/szpolny/mulsanne";
 
-/** Give people a few sessions with the app before asking. */
-const LAUNCHES_BEFORE_PROMPT = 3;
+/** Give people half an hour with the companion before asking. */
+const USAGE_BEFORE_PROMPT_MS = 30 * 60 * 1000;
+const TICK_MS = 15 * 1000;
 
 export const starPrompt = $state({ open: false });
 
-/** Counts this launch and opens the popup once the user has had time to try the app. */
+let stopTracking: (() => void) | undefined;
+
+/** Accumulates visible companion time across runs; hidden or suspended time doesn't count. */
 export function initStarPrompt() {
+  if (stopTracking) return;
   const general = config.value.general;
   if (general.starPromptDone) return;
-  general.launches += 1;
-  saveConfig();
-  starPrompt.open = general.launches >= LAUNCHES_BEFORE_PROMPT;
+  let lastTick = performance.now();
+  let visible = document.visibilityState === "visible";
+  const tick = () => {
+    const now = performance.now();
+    const elapsed = Math.min(TICK_MS, Math.max(0, now - lastTick));
+    lastTick = now;
+    const general = config.value.general;
+    if (general.starPromptDone) {
+      stopTracking?.();
+      return;
+    }
+    if (visible && elapsed > 0) {
+      general.starPromptUsageMs += elapsed;
+      saveConfig();
+    }
+    visible = document.visibilityState === "visible";
+    if (visible && general.starPromptUsageMs >= USAGE_BEFORE_PROMPT_MS) {
+      starPrompt.open = true;
+      stopTracking?.();
+    }
+  };
+  const timer = setInterval(tick, TICK_MS);
+  document.addEventListener("visibilitychange", tick);
+  stopTracking = () => {
+    clearInterval(timer);
+    document.removeEventListener("visibilitychange", tick);
+    stopTracking = undefined;
+  };
 }
 
 function markStarPromptDone() {
+  stopTracking?.();
   config.value.general.starPromptDone = true;
   saveConfig();
 }
