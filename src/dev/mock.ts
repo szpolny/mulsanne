@@ -189,32 +189,47 @@ export async function install(inApp = false) {
           const q = args.query;
           const pb = (fx.personalBests as any[]).find((b) => b.track === q.track && b.carClass === q.carClass);
           const names = ["T. Kristensen", null, "J. Ickx", "F. Alonso", null, "A. McNish", "S. Buemi", "D. Bell"];
-          // A different car and livery per driver, from the game's 2026 renders.
+          // A different car, team and livery per driver, from the game's 2026 renders: [veh file, car, vehicle name].
           const oreca = "Oreca 07 Gibson";
-          const cars: Record<string, [string, string][]> = {
+          const cars: Record<string, [string, string, string][]> = {
             Hypercar: [
-              ["50_26_FERR45066807", "Ferrari 499P"], ["7_26_TOYOT18793560", "Toyota TR010 Hybrid"], ["", "Ferrari 499P"],
-              ["12_26_JOTA50003117", "Cadillac V-Series.R"], ["36_26_ALPI20490502", "Alpine A424"], ["20_26_WRT_40613364", "BMW M Hybrid V8"],
-              ["007_26_THO22699059", "Aston Martin Valkyrie"], ["93_26_PEUG26011673", "Peugeot 9X8"],
+              ["50_26_FERR45066807", "Ferrari 499P", "Ferrari AF Corse 2026 #50:LM"],
+              ["7_26_TOYOT18793560", "Toyota TR010 Hybrid", "Toyota Gazoo Racing 2026 #7:LM"],
+              // Older uploads carry no livery file, only the vehicle name.
+              ["", "Ferrari 499P", "AF Corse 2026 #83:LM"],
+              ["12_26_JOTA50003117", "Cadillac V-Series.R", "Cadillac Hertz Team Jota 2026 #12:LM"],
+              ["36_26_ALPI20490502", "Alpine A424", "Alpine Endurance Team 2026 #36:LM"],
+              ["20_26_WRT_40613364", "BMW M Hybrid V8", "BMW M Team WRT 2026 #20:LM"],
+              ["007_26_THO22699059", "Aston Martin Valkyrie", "Aston Martin THOR Team 2026 #007:LM"],
+              ["93_26_PEUG26011673", "Peugeot 9X8", "Peugeot TotalEnergies 2026 #93:LM"],
             ],
             LMP2: [
-              ["24_26_NIEL37A85D27", oreca], ["43_26_INTEBFEF5F1A", oreca], ["22_26_UNIT48490510", oreca], ["30_26_DUQU13852371", oreca],
-              ["28_26_IDEC52704256", oreca], ["25_26_APR_14077374", oreca], ["37_26_CLX_55395349", oreca], ["47_26_CLX_33830875", oreca],
+              ["24_26_NIEL37A85D27", oreca, "Nielsen Racing 2026 #24:ELMS"],
+              ["43_26_INTEBFEF5F1A", oreca, "Inter Europol Competition 2026 #43:ELMS"],
+              ["22_26_UNIT48490510", oreca, "United Autosports 2026 #22:ELMS"],
+              ["30_26_DUQU13852371", oreca, "Duqueine Team 2026 #30:ELMS"],
+              ["28_26_IDEC52704256", oreca, "IDEC Sport 2026 #28:ELMS"],
+              ["25_26_APR_14077374", oreca, "Algarve Pro Racing 2026 #25:ELMS"],
+              ["37_26_CLX_55395349", oreca, "CLX Motorsport 2026 #37:ELMS"],
+              ["47_26_CLX_33830875", oreca, "CLX Motorsport 2026 #47:ELMS"],
             ],
             GT3: [
-              ["92_26_MANT22466058", "Porsche 911 GT3 R"], ["33_26_TFSP74306766", "Corvette Z06 GT3.R"], ["21_26_AFCO31910023", "Ferrari 296 GT3"],
-              ["87_26_AKKO35783817", "Lexus RC F GT3"], ["88_26_PROT11517799", "Ford Mustang GT3"], ["69_26_WRT_29233637", "BMW M4 GT3"],
-              ["27_26_THOR22130173", "Aston Martin Vantage AMR GT3"], ["61_26_IRON17109319", "Mercedes-AMG GT3"],
+              ["92_26_MANT22466058", "Porsche 911 GT3 R", "Manthey 2026 #92:LM"],
+              ["33_26_TFSP74306766", "Corvette Z06 GT3.R", "TF Sport 2026 #33:LM"],
+              ["21_26_AFCO31910023", "Ferrari 296 GT3", "Vista AF Corse 2026 #21:LM"],
+              ["87_26_AKKO35783817", "Lexus RC F GT3", "Akkodis ASP Team 2026 #87:LM"],
+              ["88_26_PROT11517799", "Ford Mustang GT3", "Proton Competition 2026 #88:LM"],
+              ["69_26_WRT_29233637", "BMW M4 GT3", "Team WRT 2026 #69:LM"],
+              ["27_26_THOR22130173", "Aston Martin Vantage AMR GT3", "Heart of Racing Team 2026 #27:LM"],
+              ["61_26_IRON17109319", "Mercedes-AMG GT3", "Iron Lynx 2026 #61:LM"],
             ],
           };
           const pool = cars[q.carClass === "LMP2_ELMS" ? "LMP2" : q.carClass] ?? cars.Hypercar;
           const entries = names.map((driver, i) => {
             const t = (pb?.lapTime ?? 100) - 1.234 + i * 0.41;
-            const [vehFile, car] = pool[i];
+            const [vehFile, car, vehicleName] = pool[i];
             return {
-              rank: i + 1, lapId: `other-${i}`, driver, car,
-              // Older uploads carry no livery file, only the vehicle name.
-              vehicleName: vehFile ? "" : "AF Corse 2026 #83:LM",
+              rank: i + 1, lapId: `other-${i}`, driver, car, vehicleName,
               vehFile, sessionType: i % 2 ? "Race" : "Practice",
               gameVersion: i < 5 ? 1124 : 1123,
               hasTrace: i !== 2,
