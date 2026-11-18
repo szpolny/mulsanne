@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0](https://github.com/szpolny/mulsanne/compare/v1.0.0...v1.1.0) (2026-11-18)
+
+
+### Features
+
+* **linux:** draw the HUD with Wayland layer shell ([#53](https://github.com/szpolny/mulsanne/issues/53)) ([9adcea3](https://github.com/szpolny/mulsanne/commit/9adcea3776bd349be3138be364589b1d2cc27c65))
+* save full race results and show where every driver finished ([#52](https://github.com/szpolny/mulsanne/issues/52)) ([50a641b](https://github.com/szpolny/mulsanne/commit/50a641b30b081a7947d40c55a034b4d4389e8b6a))
+
+
+### Bug Fixes
+
+* **companion:** use a gear icon for Settings ([bd0f1bc](https://github.com/szpolny/mulsanne/commit/bd0f1bc2069dca6519ea746f492d248dc609d013))
+* **release:** drop one-time release-as override ([45527ea](https://github.com/szpolny/mulsanne/commit/45527eab162b4120a01edf17c67a2d1a11a05a13))
+
 ## [1.0.0](https://github.com/szpolny/mulsanne/compare/v0.14.0...v1.0.0) (2026-11-17)
 
 
