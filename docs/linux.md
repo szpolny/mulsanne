@@ -10,11 +10,11 @@ stay above the game. Flatpak Steam has not been verified.
 
 ## NixOS / Home Manager
 
-Add Mulsanne to your flake (use the branch below until the PR is merged):
+Add Mulsanne to your flake:
 
 ```nix
 inputs.mulsanne = {
-  url = "github:szpolny/mulsanne/feat/linux-support";
+  url = "github:szpolny/mulsanne";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
@@ -64,7 +64,7 @@ Mulsanne window is focused, not in other apps.
 
 The companion uses a GTK title bar by default and follows your GTK button theme
 and layout. If a compositor plugin such as hyprbars adds its own bar, choose
-**None** under **Settings → Title bar**, or exclude the `lm-overlay` window from
+**None** under **Settings → General → Title bar**, or exclude the `lm-overlay` window from
 the plugin to keep the GTK bar. Title bar changes take effect on restart.
 
 Logs are in `${XDG_STATE_HOME:-$HOME/.local/state}/mulsanne/`. Settings and laps
