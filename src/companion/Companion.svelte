@@ -5,6 +5,7 @@
   import { loadConfig } from "../lib/config.svelte";
   import { watchUploads } from "../lib/uploads.svelte";
   import { live, startLive } from "../lib/live.svelte";
+  import { handleLocalShortcuts } from "../lib/shortcuts";
   import Logo from "../lib/Logo.svelte";
   import { initStarPrompt } from "../lib/star.svelte";
   import { initUpdater, installUpdate, updater } from "../lib/updater.svelte";
@@ -59,8 +60,9 @@
     startLive();
     void loadConfig().then(initUpdater).then(initStarPrompt);
     watchUploads();
+    const stopShortcuts = handleLocalShortcuts();
 
-    if (!("__TAURI_INTERNALS__" in window)) return;
+    if (!("__TAURI_INTERNALS__" in window)) return stopShortcuts;
 
     const appWindow = getCurrentWindow();
     void appWindow.isMaximized().then((value) => (maximized = value));
@@ -69,7 +71,10 @@
       void appWindow.isMaximized().then((value) => (maximized = value));
     }).then((unlisten) => (unlistenResize = unlisten));
 
-    return () => unlistenResize?.();
+    return () => {
+      unlistenResize?.();
+      stopShortcuts();
+    };
   });
 
   function startDragging(event: MouseEvent) {
@@ -77,6 +82,19 @@
       void getCurrentWindow().startDragging();
     }
   }
+
+  type WindowButton = "minimize" | "maximize" | "close";
+  const BUTTONS: WindowButton[] = ["minimize", "maximize", "close"];
+
+  /** Window buttons per side, following GTK's layout on Linux (e.g. "close,minimize,maximize:"). */
+  const buttons = $derived.by(() => {
+    const layout = live.status.decorationLayout;
+    if (!layout) return { left: [] as WindowButton[], right: BUTTONS };
+    const side = (part = "") =>
+      part.split(",").map((b) => b.trim()).filter((b): b is WindowButton => BUTTONS.includes(b as WindowButton));
+    const [left, right] = layout.split(":");
+    return { left: side(left), right: side(right) };
+  });
 
   async function toggleMaximize() {
     if (!("__TAURI_INTERNALS__" in window)) return;
@@ -111,50 +129,59 @@
   );
 </script>
 
-<div class="flex h-full flex-col">
-  <header class="flex h-11 shrink-0 items-stretch border-b border-line bg-bg">
-    <div
-      class="flex min-w-0 flex-1 cursor-default items-center gap-2.5 px-4"
-      onmousedown={startDragging}
-      ondblclick={toggleMaximize}
+{#snippet windowButton(kind: WindowButton)}
+  {#if kind === "minimize"}
+    <button
+      class="flex w-12 items-center justify-center text-muted transition-colors hover:bg-surface-3 hover:text-fg"
+      aria-label="Minimize window"
+      title="Minimize"
+      onclick={() => {
+        if ("__TAURI_INTERNALS__" in window) void getCurrentWindow().minimize();
+      }}
     >
-      <Logo size={22} tagline />
-    </div>
-    <div class="flex shrink-0 items-stretch">
-      <button
-        class="flex w-12 items-center justify-center text-muted transition-colors hover:bg-surface-3 hover:text-fg"
-        aria-label="Minimize window"
-        title="Minimize"
-        onclick={() => {
-          if ("__TAURI_INTERNALS__" in window) void getCurrentWindow().minimize();
-        }}
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 7h8" stroke="currentColor" stroke-width="1.2" /></svg>
+    </button>
+  {:else if kind === "maximize"}
+    <button
+      class="flex w-12 items-center justify-center text-muted transition-colors hover:bg-surface-3 hover:text-fg"
+      aria-label={maximized ? "Restore window" : "Maximize window"}
+      title={maximized ? "Restore" : "Maximize"}
+      onclick={toggleMaximize}
+    >
+      {#if maximized}
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4.5 3.5h6v6h-6zM3.5 5.5v5h5" stroke="currentColor" stroke-width="1.1" /></svg>
+      {:else}
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" stroke="currentColor" stroke-width="1.1" /></svg>
+      {/if}
+    </button>
+  {:else}
+    <button
+      class="flex w-12 items-center justify-center text-muted transition-colors hover:bg-red-600 hover:text-white"
+      aria-label="Close window"
+      title="Close"
+      onclick={() => {
+        if ("__TAURI_INTERNALS__" in window) void getCurrentWindow().close();
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m3.5 3.5 7 7m0-7-7 7" stroke="currentColor" stroke-width="1.2" /></svg>
+    </button>
+  {/if}
+{/snippet}
+
+<div class="flex h-full flex-col">
+  {#if live.status.titleBar === "app"}
+    <header class="flex h-11 shrink-0 items-stretch border-b border-line bg-bg">
+      {#each buttons.left as kind (kind)}{@render windowButton(kind)}{/each}
+      <div
+        class="flex min-w-0 flex-1 cursor-default items-center gap-2.5 px-4"
+        onmousedown={startDragging}
+        ondblclick={toggleMaximize}
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 7h8" stroke="currentColor" stroke-width="1.2" /></svg>
-      </button>
-      <button
-        class="flex w-12 items-center justify-center text-muted transition-colors hover:bg-surface-3 hover:text-fg"
-        aria-label={maximized ? "Restore window" : "Maximize window"}
-        title={maximized ? "Restore" : "Maximize"}
-        onclick={toggleMaximize}
-      >
-        {#if maximized}
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4.5 3.5h6v6h-6zM3.5 5.5v5h5" stroke="currentColor" stroke-width="1.1" /></svg>
-        {:else}
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" stroke="currentColor" stroke-width="1.1" /></svg>
-        {/if}
-      </button>
-      <button
-        class="flex w-12 items-center justify-center text-muted transition-colors hover:bg-red-600 hover:text-white"
-        aria-label="Close window"
-        title="Close"
-        onclick={() => {
-          if ("__TAURI_INTERNALS__" in window) void getCurrentWindow().close();
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m3.5 3.5 7 7m0-7-7 7" stroke="currentColor" stroke-width="1.2" /></svg>
-      </button>
-    </div>
-  </header>
+        <Logo size={22} tagline />
+      </div>
+      {#each buttons.right as kind (kind)}{@render windowButton(kind)}{/each}
+    </header>
+  {/if}
 
   <div class="flex min-h-0 flex-1">
     <nav

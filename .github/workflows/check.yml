@@ -52,7 +52,7 @@ jobs:
           path: src-tauri/resources
       - run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libdbus-1-dev patchelf xvfb openbox xcompmgr xdotool imagemagick x11-utils libx11-dev libxext-dev lua5.4
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-layer-shell-dev libappindicator3-dev librsvg2-dev libdbus-1-dev patchelf xvfb openbox xcompmgr xdotool imagemagick x11-utils libx11-dev libxext-dev
       - uses: pnpm/action-setup@v4
         with:
           version: 12.8.1

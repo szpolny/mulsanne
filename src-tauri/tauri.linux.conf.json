@@ -1,4 +1,20 @@
 {
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Mulsanne",
+        "backgroundColor": "#09090b",
+        "url": "index.html",
+        "width": 1360,
+        "height": 860,
+        "decorations": false,
+        "minWidth": 960,
+        "minHeight": 600,
+        "visible": false
+      }
+    ]
+  },
   "bundle": {
     "targets": [
       "deb",
@@ -9,12 +25,12 @@
         "depends": [
           "bash",
           "coreutils",
-          "util-linux"
+          "util-linux",
+          "libgtk-layer-shell0"
         ],
         "files": {
           "/usr/bin/mulsanne": "../packaging/linux/launch.sh",
           "/usr/lib/mulsanne/run-lmu-bridge.sh": "../scripts/run-lmu-bridge.sh",
-          "/usr/lib/mulsanne/hyprland.lua": "../packaging/linux/hyprland.lua",
           "/usr/lib/mulsanne/lmu-bridge.exe": "resources/lmu-bridge.exe"
         },
         "desktopTemplate": "../packaging/linux/mulsanne.desktop"
@@ -23,12 +39,12 @@
         "depends": [
           "bash",
           "coreutils",
-          "util-linux"
+          "util-linux",
+          "gtk-layer-shell"
         ],
         "files": {
           "/usr/bin/mulsanne": "../packaging/linux/launch.sh",
           "/usr/lib/mulsanne/run-lmu-bridge.sh": "../scripts/run-lmu-bridge.sh",
-          "/usr/lib/mulsanne/hyprland.lua": "../packaging/linux/hyprland.lua",
           "/usr/lib/mulsanne/lmu-bridge.exe": "resources/lmu-bridge.exe"
         },
         "desktopTemplate": "../packaging/linux/mulsanne.desktop"

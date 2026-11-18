@@ -7,6 +7,8 @@ mod engine;
 pub mod live_share;
 #[cfg(target_os = "linux")]
 mod viewport;
+#[cfg(target_os = "linux")]
+mod wayland;
 pub mod lmu;
 pub mod model;
 pub mod online;
@@ -40,6 +42,10 @@ pub struct AppState {
     pub overlay_monitor: Mutex<String>,
     /// Global shortcuts bound to the layout editor and overlay visibility.
     pub shortcuts: shortcuts::Shortcuts,
+    /// Title bar the companion window was opened with (`general.titleBar`, Linux only).
+    pub title_bar: String,
+    /// GTK's window button layout, which Mulsanne's own title bar follows on Linux.
+    pub decoration_layout: Option<String>,
 }
 
 /// Detect the non-composited GTK path before constructing the overlay. Keep
@@ -62,7 +68,7 @@ fn needs_full_repaint() -> bool {
 
 /// Transparent, click-through, always-on-top window covering the primary
 /// monitor, following the game client on Linux. All widgets render inside it at their configured positions.
-/// Linux fullscreen stacking is supplied by the experimental compositor integration.
+/// On Wayland compositors with layer shell it is a layer surface above fullscreen windows.
 fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     #[cfg(target_os = "linux")]
     let full_repaint = needs_full_repaint();
@@ -86,9 +92,13 @@ fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     {
         use gtk::prelude::*;
         let gtk_window = window.gtk_window()?;
-        // Tiling compositors need a dock hint before mapping the window; an
-        // always-on-top hint alone does not keep a normal client out of tiling.
-        gtk_window.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+        if wayland::active() {
+            wayland::init_overlay(&gtk_window);
+        } else {
+            // Tiling X11 window managers need a dock hint before mapping the window; an
+            // always-on-top hint alone does not keep a normal client out of tiling.
+            gtk_window.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+        }
     }
     place_overlay(app.handle(), monitor)?;
     // GTK creates the underlying GdkWindow on show. Tao's input-shape call
@@ -99,10 +109,66 @@ fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Installs a GTK header bar before mapping the companion so GTK draws and
+/// themes the window controls on both Wayland and X11.
+#[cfg(target_os = "linux")]
+fn open_companion(app: &tauri::App, title_bar: &str) -> tauri::Result<()> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    if title_bar == "system" {
+        use gtk::gdk::prelude::GdkPixbufExt;
+        use gtk::prelude::*;
+        let gtk_window = window.gtk_window()?;
+        let title = gtk_window.title();
+        if gtk_window.is_realized() {
+            gtk_window.unrealize();
+        }
+        let header = gtk::HeaderBar::new();
+        header.set_has_subtitle(false);
+        header.set_show_close_button(true);
+
+        // Match the companion header surface. GTK styles its own title buttons.
+        let css = gtk::CssProvider::new();
+        css.load_from_data(b"headerbar { min-height: 43px; padding: 0 10px; background: #0b0b0e; border: 0; border-bottom: 1px solid #2a2a31; border-radius: 0; box-shadow: none; }")
+            .map_err(std::io::Error::other)?;
+        header.style_context().add_provider(&css, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+        // The 4× raster of the existing companion wordmark and tagline stays
+        // the same logical size on both standard- and high-DPI monitors.
+        let bytes = gtk::glib::Bytes::from_static(include_bytes!("../icons/source/companion-title.png"));
+        let stream = gtk::gio::MemoryInputStream::from_bytes(&bytes);
+        let pixbuf = gtk::gdk_pixbuf::Pixbuf::from_stream(&stream, gtk::gio::Cancellable::NONE)
+            .map_err(std::io::Error::other)?;
+        let surface = pixbuf.create_surface(4, None::<&gtk::gdk::Window>);
+        let logo = gtk::Image::from_surface(surface.as_ref());
+        logo.set_margin_start(6);
+        // Suppress the centered GTK label while keeping the window's title
+        // available to the compositor and window switcher.
+        header.set_custom_title(Some(&gtk::Box::new(gtk::Orientation::Horizontal, 0)));
+        header.pack_start(&logo);
+        logo.show();
+
+        gtk_window.set_titlebar(Some(&header));
+        if let Some(title) = title {
+            gtk_window.set_title(&title);
+        }
+        gtk_window.set_decorated(true);
+        header.show();
+    }
+    window.show()
+}
+
 /// Moves the overlay to cover the monitor named `monitor` (`general.monitor`),
 /// falling back to the primary monitor when it's empty or not connected.
 pub(crate) fn place_overlay(app: &tauri::AppHandle, monitor: &str) -> tauri::Result<()> {
     let Some(window) = app.get_webview_window("overlay") else { return Ok(()) };
+    #[cfg(target_os = "linux")]
+    if wayland::active() {
+        wayland::place(&window.gtk_window()?, monitor);
+        *app.state::<AppState>().overlay_monitor.lock().unwrap_or_else(|e| e.into_inner()) = monitor.to_string();
+        return Ok(());
+    }
     let chosen = match monitor {
         "" => None,
         name => window.available_monitors()?.into_iter().find(|m| m.name().is_some_and(|n| n == name)),
@@ -118,13 +184,10 @@ pub(crate) fn place_overlay(app: &tauri::AppHandle, monitor: &str) -> tauri::Res
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Overlay placement, stacking, click-through, and global shortcuts use X11.
-    // Wayland sessions can run the app through XWayland; select it before GTK
-    // initializes rather than silently creating an unsupported native surface.
+    // Wayland compositors with layer shell get a native HUD; everything else
+    // runs on X11, directly or through XWayland.
     #[cfg(target_os = "linux")]
-    if std::env::var_os("GDK_BACKEND").is_none() {
-        std::env::set_var("GDK_BACKEND", "x11");
-    }
+    wayland::select_backend();
 
     // Keep the compositing renderer, but transport buffers through shared
     // memory to avoid NVIDIA/XWayland DMA-BUF allocation failures. Disabling
@@ -174,6 +237,19 @@ pub fn run() {
                 shared.emit_hz.store(hz as u32, Ordering::Relaxed);
             }
             let monitor = general("monitor").and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
+            #[cfg(target_os = "linux")]
+            let (title_bar, decoration_layout) = {
+                let mode = match stored.as_ref().and_then(|c| c.pointer("/general/titleBar")).and_then(|v| v.as_str()) {
+                    Some("app") => "app",
+                    Some("none") => "none",
+                    _ => "system",
+                };
+                use gtk::prelude::*;
+                let layout = gtk::Settings::default().and_then(|s| s.gtk_decoration_layout()).map(|l| l.to_string());
+                (mode.to_string(), layout)
+            };
+            #[cfg(not(target_os = "linux"))]
+            let (title_bar, decoration_layout) = ("app".to_string(), None);
 
             app.manage(AppState {
                 shared: shared.clone(),
@@ -187,8 +263,12 @@ pub fn run() {
                 live: Default::default(),
                 overlay_monitor: Mutex::new(String::new()),
                 shortcuts: Default::default(),
+                title_bar,
+                decoration_layout,
             });
 
+            #[cfg(target_os = "linux")]
+            open_companion(app, &app.state::<AppState>().title_bar)?;
             create_overlay(app, &monitor)?;
 
             let shortcut = |key| general(key).and_then(|v| v.as_str().map(str::to_owned));

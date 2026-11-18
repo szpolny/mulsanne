@@ -13,6 +13,7 @@
   makeWrapper,
   gtk3,
   webkitgtk_4_1,
+  gtk-layer-shell,
   openssl,
   bash,
   coreutils,
@@ -85,6 +86,7 @@ let
     buildInputs = [
       gtk3
       webkitgtk_4_1
+      gtk-layer-shell
       openssl
     ];
     env.TAURI_CONFIG = builtins.toJSON { build.frontendDist = "${frontend}"; };
@@ -102,7 +104,6 @@ stdenvNoCC.mkDerivation {
     mkdir -p $out/bin
     ln -s ${ui}/bin/lm-overlay $out/bin/lm-overlay
     install -Dm755 ${../scripts/run-lmu-bridge.sh} $out/lib/mulsanne/run-lmu-bridge.sh
-    install -Dm644 ${../packaging/linux/hyprland.lua} $out/lib/mulsanne/hyprland.lua
     install -Dm644 ${bridge}/bin/lmu-bridge.exe $out/lib/mulsanne/lmu-bridge.exe
     install -Dm644 ${../packaging/linux/mulsanne.desktop} $out/share/applications/mulsanne.desktop
     install -Dm644 ${../src-tauri/icons/128x128.png} $out/share/icons/hicolor/128x128/apps/lm-overlay.png
