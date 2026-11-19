@@ -134,3 +134,15 @@ jobs:
           tagName: ${{ needs.release-please.outputs.tag_name }}
           releaseName: Mulsanne ${{ needs.release-please.outputs.tag_name }}
           includeUpdaterJson: false
+
+  linux-packages:
+    needs: [release-please, linux]
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/linux-packages.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit

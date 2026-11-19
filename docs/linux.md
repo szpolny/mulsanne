@@ -28,25 +28,68 @@ inputs.mulsanne.packages.${pkgs.stdenv.hostPlatform.system}.default
 Updates follow your normal flake input updates. No AppImage or separate bridge
 installation is needed. To try it from the checkout: `nix run .`.
 
-## Debian / Ubuntu and Fedora / openSUSE
+## Debian / Ubuntu
 
-Install the matching release package:
+Add the Mulsanne repository once, then install:
 
 ```sh
-sudo apt install ./Mulsanne_VERSION_amd64.deb
-# Fedora:
-sudo dnf install ./Mulsanne-VERSION-1.x86_64.rpm
-# openSUSE:
-sudo zypper install ./Mulsanne-VERSION-1.x86_64.rpm
+sudo curl -fsSLo /usr/share/keyrings/mulsanne.gpg https://repo.mulsanne.xyz/mulsanne.gpg
+echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mulsanne.gpg] https://repo.mulsanne.xyz/deb stable main' \
+  | sudo tee /etc/apt/sources.list.d/mulsanne.list
+sudo apt update && sudo apt install mulsanne
 ```
 
-The packages include the app, launcher and bridge. They can be upgraded/removed
-with the package manager. Automatic apt/dnf update discovery requires a package
-repository; one is not provided yet.
+New releases arrive with `sudo apt update && sudo apt upgrade`.
 
-Mulsanne does not update itself on Linux. It checks GitHub for a newer release on
-launch and shows an "Update available" notice in the sidebar and Settings, so you
-know to update through your package manager.
+## Fedora
+
+```sh
+sudo curl -fsSLo /etc/yum.repos.d/mulsanne.repo https://repo.mulsanne.xyz/mulsanne.repo
+sudo dnf install mulsanne
+```
+
+New releases arrive with `sudo dnf upgrade`.
+
+## openSUSE
+
+```sh
+sudo zypper addrepo https://repo.mulsanne.xyz/mulsanne.repo
+sudo zypper refresh && sudo zypper install mulsanne
+```
+
+New releases arrive with `sudo zypper update`.
+
+## Arch Linux
+
+There is no AUR package yet, because AUR account registration is currently
+closed. A `mulsanne-bin` package will be added once registration reopens. Until
+then, use the Nix flake above, or build the package yourself from the AUR
+recipe in this repository (in bash or zsh):
+
+```sh
+git clone --depth 1 https://github.com/szpolny/mulsanne
+cd mulsanne/packaging/aur
+version=$(curl -fsSL https://api.github.com/repos/szpolny/mulsanne/releases/latest \
+  | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+sed -e "s/@VERSION@/$version/" -e 's/@[A-Z_]*SHA256@/SKIP/' PKGBUILD.in > PKGBUILD
+makepkg -si
+```
+
+This installs the latest release as `mulsanne-bin`, which pacman can remove like
+any other package. It doesn't update on its own: repeat these steps in a fresh
+clone to install a new release.
+
+## Manual install
+
+Each [release](https://github.com/szpolny/mulsanne/releases/latest) also has the
+`.deb` and `.rpm` files, which you can install directly (for example,
+`sudo apt install ./Mulsanne_VERSION_amd64.deb`). These won't update
+automatically.
+
+The packages include the app, launcher and bridge, and can be removed with the
+package manager. Mulsanne does not update itself on Linux. It checks GitHub for
+a newer release on launch and shows an "Update available" notice in the sidebar
+and Settings, so you know to update through your package manager.
 
 ## Run
 

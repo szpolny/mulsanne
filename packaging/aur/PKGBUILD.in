@@ -1,0 +1,23 @@
+# Maintainer: Szymon Polny
+# Generated from the Mulsanne release workflow; edit packaging/aur/PKGBUILD.in.
+pkgname=mulsanne-bin
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Overlay and telemetry companion for Le Mans Ultimate (runs LMU through Steam/Proton)'
+arch=('x86_64')
+url='https://mulsanne.xyz'
+license=('MIT')
+depends=('bash' 'coreutils' 'util-linux' 'dbus' 'glib2' 'gtk3' 'gtk-layer-shell' 'hicolor-icon-theme' 'webkit2gtk-4.1')
+provides=('mulsanne')
+conflicts=('mulsanne')
+options=('!strip' '!debug')
+source=("https://github.com/szpolny/mulsanne/releases/download/v${pkgver}/Mulsanne_${pkgver}_amd64.deb"
+        "LICENSE-${pkgver}::https://raw.githubusercontent.com/szpolny/mulsanne/v${pkgver}/LICENSE")
+noextract=("Mulsanne_${pkgver}_amd64.deb")
+sha256sums=('@DEB_SHA256@'
+            '@LICENSE_SHA256@')
+
+package() {
+  bsdtar -xOf "Mulsanne_${pkgver}_amd64.deb" 'data.tar.*' | bsdtar -xf - -C "$pkgdir"
+  install -Dm644 "LICENSE-${pkgver}" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -40,7 +40,7 @@
           "bash",
           "coreutils",
           "util-linux",
-          "gtk-layer-shell"
+          "libgtk-layer-shell.so.0()(64bit)"
         ],
         "files": {
           "/usr/bin/mulsanne": "../packaging/linux/launch.sh",
