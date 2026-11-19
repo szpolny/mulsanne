@@ -15,6 +15,7 @@
   webkitgtk_4_1,
   gtk-layer-shell,
   openssl,
+  sqlite,
   bash,
   coreutils,
   util-linux,
@@ -88,6 +89,9 @@ let
       webkitgtk_4_1
       gtk-layer-shell
       openssl
+      # nixpkgs sets LIBSQLITE3_SYS_USE_PKG_CONFIG, so rusqlite links the
+      # system library instead of its bundled copy.
+      sqlite
     ];
     env.TAURI_CONFIG = builtins.toJSON { build.frontendDist = "${frontend}"; };
     installPhase = ''
