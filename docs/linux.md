@@ -63,7 +63,21 @@ New releases arrive with `sudo zypper update`.
 
 There is no AUR package yet, because AUR account registration is currently
 closed. A `mulsanne-bin` package will be added once registration reopens. Until
-then, you can install it with the Nix package manager using the flake above.
+then, use the Nix flake above, or build the package yourself from the AUR
+recipe in this repository (in bash or zsh):
+
+```sh
+git clone --depth 1 https://github.com/szpolny/mulsanne
+cd mulsanne/packaging/aur
+version=$(curl -fsSL https://api.github.com/repos/szpolny/mulsanne/releases/latest \
+  | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+sed -e "s/@VERSION@/$version/" -e 's/@[A-Z_]*SHA256@/SKIP/' PKGBUILD.in > PKGBUILD
+makepkg -si
+```
+
+This installs the latest release as `mulsanne-bin`, which pacman can remove like
+any other package. It doesn't update on its own: repeat these steps in a fresh
+clone to install a new release.
 
 ## Manual install
 
