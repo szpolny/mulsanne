@@ -1,0 +1,115 @@
+name: Linux packages
+
+# Publishes a release's .deb and .rpm to the apt/dnf repositories on GitHub
+# Pages and updates the mulsanne-bin AUR package. The release workflow calls
+# this after the Linux build; run it by hand to republish a release.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (defaults to the latest release)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-packages
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  REPO_URL: https://szpolny.github.io/mulsanne
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      aur: ${{ steps.tag.outputs.aur }}
+    steps:
+      - id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          # The AUR job runs once its deploy key has been added.
+          HAS_AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY != '' }}
+        run: |
+          tag=$INPUT_TAG
+          tag=${tag:-$(gh release view -R "$GITHUB_REPOSITORY" --json tagName -q .tagName)}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "aur=$HAS_AUR_KEY" >> "$GITHUB_OUTPUT"
+
+  repository:
+    needs: release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-utils createrepo-c rpm
+      - name: Download the release packages
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+        run: gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p '*.deb' -p '*.rpm' -D "$RUNNER_TEMP/packages"
+      - name: Import the signing key
+        env:
+          KEY: ${{ secrets.LINUX_REPO_GPG_PRIVATE_KEY }}
+        run: |
+          gpg --batch --import <<< "$KEY"
+          fingerprint=$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')
+          echo "MULSANNE_REPO_KEY=$fingerprint" >> "$GITHUB_ENV"
+      - run: packaging/linux/build-repo.sh "$RUNNER_TEMP/packages" "$RUNNER_TEMP/site" "$REPO_URL"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site
+
+  pages:
+    needs: repository
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
+
+  aur:
+    needs: release
+    if: ${{ needs.release.outputs.aur == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+          path: release
+      - uses: actions/checkout@v4
+        with:
+          path: current
+      - name: Write the PKGBUILD
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          tag=$TAG
+          version=${tag#v}
+          gh release download "$tag" -R "$GITHUB_REPOSITORY" -p "Mulsanne_${version}_amd64.deb" -D "$RUNNER_TEMP"
+          mkdir -p aur
+          current/packaging/aur/render.sh "$version" "$RUNNER_TEMP/Mulsanne_${version}_amd64.deb" release/LICENSE aur/PKGBUILD
+          cat aur/PKGBUILD
+      - uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: mulsanne-bin
+          pkgbuild: aur/PKGBUILD
+          test: true
+          commit_username: Szymon Polny
+          commit_email: szymonpolny@outlook.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update to ${{ needs.release.outputs.tag }}
