@@ -14,10 +14,14 @@ Add Mulsanne to your flake:
 
 ```nix
 inputs.mulsanne = {
-  url = "github:szpolny/mulsanne";
+  url = "github:szpolny/mulsanne/release";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
+
+The `release` tag always points at the latest release, so
+`nix flake update mulsanne` never pulls unreleased changes from `master`. To
+stay on one version, use a tag such as `github:szpolny/mulsanne/v1.2.0`.
 
 Then add the package to `environment.systemPackages` or `home.packages`:
 
@@ -25,7 +29,7 @@ Then add the package to `environment.systemPackages` or `home.packages`:
 inputs.mulsanne.packages.${pkgs.stdenv.hostPlatform.system}.default
 ```
 
-Updates follow your normal flake input updates. No AppImage or separate bridge
+Updates follow your normal flake input updates, which move the lock to each new release. No AppImage or separate bridge
 installation is needed. To try it from the checkout: `nix run .`.
 
 ## Debian / Ubuntu
