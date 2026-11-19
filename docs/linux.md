@@ -33,8 +33,8 @@ installation is needed. To try it from the checkout: `nix run .`.
 Add the Mulsanne repository once, then install:
 
 ```sh
-sudo curl -fsSLo /usr/share/keyrings/mulsanne.gpg https://szpolny.github.io/mulsanne/mulsanne.gpg
-echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mulsanne.gpg] https://szpolny.github.io/mulsanne/deb stable main' \
+sudo curl -fsSLo /usr/share/keyrings/mulsanne.gpg https://repo.mulsanne.xyz/mulsanne.gpg
+echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mulsanne.gpg] https://repo.mulsanne.xyz/deb stable main' \
   | sudo tee /etc/apt/sources.list.d/mulsanne.list
 sudo apt update && sudo apt install mulsanne
 ```
@@ -44,7 +44,7 @@ New releases arrive with `sudo apt update && sudo apt upgrade`.
 ## Fedora
 
 ```sh
-sudo curl -fsSLo /etc/yum.repos.d/mulsanne.repo https://szpolny.github.io/mulsanne/mulsanne.repo
+sudo curl -fsSLo /etc/yum.repos.d/mulsanne.repo https://repo.mulsanne.xyz/mulsanne.repo
 sudo dnf install mulsanne
 ```
 
@@ -53,7 +53,7 @@ New releases arrive with `sudo dnf upgrade`.
 ## openSUSE
 
 ```sh
-sudo zypper addrepo https://szpolny.github.io/mulsanne/mulsanne.repo
+sudo zypper addrepo https://repo.mulsanne.xyz/mulsanne.repo
 sudo zypper refresh && sudo zypper install mulsanne
 ```
 
