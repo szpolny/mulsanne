@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/szpolny/mulsanne/compare/v1.1.0...v1.2.0) (2026-11-19)
+
+
+### Features
+
+* **linux:** publish apt and dnf repositories on GitHub Pages ([#55](https://github.com/szpolny/mulsanne/issues/55)) ([71c39ca](https://github.com/szpolny/mulsanne/commit/71c39caef9fd5ed409d7133666af42efe0a2ff3a))
+
+
+### Bug Fixes
+
+* **nix:** provide sqlite to the UI build ([d96ce69](https://github.com/szpolny/mulsanne/commit/d96ce6978a2834108a65051ef6970b7252578823))
+
 ## [1.1.0](https://github.com/szpolny/mulsanne/compare/v1.0.0...v1.1.0) (2026-11-18)
 
 
