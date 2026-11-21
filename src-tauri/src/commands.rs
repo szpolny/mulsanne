@@ -125,10 +125,13 @@ pub fn apply_edit_mode(app: &AppHandle, enabled: bool) {
             let window = overlay.clone();
             let _ = app.run_on_main_thread(move || {
                 if let Ok(window) = window.gtk_window() {
-                    crate::wayland::set_keyboard(&window, enabled);
+                    crate::wayland::set_editing(&window, enabled);
                 }
             });
+        } else {
+            let _ = overlay.set_ignore_cursor_events(!enabled);
         }
+        #[cfg(not(target_os = "linux"))]
         let _ = overlay.set_ignore_cursor_events(!enabled);
         if enabled {
             let _ = overlay.show();

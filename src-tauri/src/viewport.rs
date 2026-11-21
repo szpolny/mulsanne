@@ -152,11 +152,6 @@ impl Tracker {
                 if let Some(window) = app_.get_webview_window("overlay").and_then(|w| w.gtk_window().ok()) {
                     crate::wayland::follow(&window, x, y, width, height);
                 }
-                if let Some(window) = app_.get_webview_window("overlay") {
-                    let editing = app_.state::<crate::AppState>().edit_mode
-                        .load(std::sync::atomic::Ordering::Acquire);
-                    let _ = window.set_ignore_cursor_events(!editing);
-                }
             });
             self.previous = Some(bounds);
             return;
