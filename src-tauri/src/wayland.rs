@@ -4,6 +4,8 @@
 //! is a layer-shell surface on the overlay layer: drawn above fullscreen
 //! windows, never tiled or decorated, on a chosen monitor. Compositors without
 //! layer shell (GNOME) and X11 sessions keep the X11 window path.
+pub mod focus;
+
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use gtk::prelude::*;
@@ -63,6 +65,10 @@ pub fn init_overlay(window: &gtk::ApplicationWindow) {
     // Cover the whole monitor, ignoring panels' exclusive zones.
     window.set_exclusive_zone(-1);
     window.set_keyboard_mode(KeyboardMode::None);
+    // Moving a mapped layer surface to a different output remaps it.
+    window.connect_map(|window| {
+        set_click_through(window, window.keyboard_mode() == KeyboardMode::None);
+    });
 }
 
 /// Covers `monitor` (matched by GDK model, as Tauri names monitors; the
@@ -104,10 +110,16 @@ fn set_margins(window: &gtk::ApplicationWindow, margins: [i32; 4]) {
     }
 }
 
-/// Lets the HUD take keyboard focus while the layout is being edited.
-pub fn set_keyboard(window: &gtk::ApplicationWindow, editing: bool) {
+/// Restores pointer and keyboard input while the layout editor is open.
+pub fn set_editing(window: &gtk::ApplicationWindow, editing: bool) {
     let mode = if editing { KeyboardMode::OnDemand } else { KeyboardMode::None };
     window.set_keyboard_mode(mode);
+    set_click_through(window, !editing);
+}
+
+fn set_click_through(window: &gtk::ApplicationWindow, enabled: bool) {
+    let region = enabled.then(gtk::cairo::Region::create);
+    window.input_shape_combine_region(region.as_ref());
 }
 
 /// An output's connector name (e.g. "DP-1") and its rectangle in the

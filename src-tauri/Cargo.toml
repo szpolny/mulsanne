@@ -58,3 +58,4 @@ x11rb = { version = "0.13", features = ["randr"] }
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
 wayland-client = "0.31"
 wayland-protocols = { version = "0.32", features = ["client", "unstable"] }
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }

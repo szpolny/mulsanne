@@ -105,6 +105,10 @@ fn create_overlay(app: &tauri::App, monitor: &str) -> tauri::Result<()> {
     // requires that window to exist, so enabling click-through before show
     // panics on Linux.
     window.show()?;
+    #[cfg(target_os = "linux")]
+    if wayland::active() {
+        return Ok(());
+    }
     window.set_ignore_cursor_events(true)?;
     Ok(())
 }

@@ -167,12 +167,21 @@ fn queue_auto_upload(app: &AppHandle, lap_id: i64, now: i64) {
 fn run_focus_watch(app: AppHandle, shared: Arc<Shared>) {
     #[cfg(target_os = "linux")]
     let mut viewport = crate::viewport::Tracker::new();
+    #[cfg(target_os = "linux")]
+    let mut desktop_focus = crate::wayland::focus::Tracker::new();
     loop {
         #[cfg(target_os = "linux")]
         if let Some(tracker) = viewport.as_mut() {
             tracker.update(&app);
         }
-        let focused = shm::is_foreground(shared.game_window.load(Ordering::Acquire));
+        let bridge_focus = || shm::is_foreground(shared.game_window.load(Ordering::Acquire));
+        #[cfg(target_os = "linux")]
+        let focused = desktop_focus
+            .as_mut()
+            .and_then(crate::wayland::focus::Tracker::game_focused)
+            .unwrap_or_else(bridge_focus);
+        #[cfg(not(target_os = "linux"))]
+        let focused = bridge_focus();
         if shared.game_focused.swap(focused, Ordering::AcqRel) != focused {
             let _ = app.emit("game-focused", focused);
         }
