@@ -1,4 +1,6 @@
-//! Follow LMU's X11 client rectangle, including moves between monitors.
+//! Follow LMU's client rectangle, including moves between monitors.
+mod hyprland;
+
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
 use x11rb::{
     connection::Connection,
@@ -15,13 +17,19 @@ struct Bounds {
 }
 
 pub struct Tracker {
+    x11: Option<X11>,
+    compositor: Option<hyprland::Compositor>,
+    previous: Option<(Bounds, bool)>,
+}
+
+struct X11 {
     connection: RustConnection,
     root: u32,
     clients: u32,
-    previous: Option<Bounds>,
 }
-impl Tracker {
-    pub fn new() -> Option<Self> {
+
+impl X11 {
+    fn new() -> Option<Self> {
         let (connection, screen) = x11rb::connect(None).ok()?;
         let root = connection.setup().roots[screen].root;
         let clients = connection
@@ -34,7 +42,6 @@ impl Tracker {
             connection,
             root,
             clients,
-            previous: None,
         })
     }
     fn bounds(&self) -> Option<Bounds> {
@@ -137,28 +144,71 @@ impl Tracker {
             })
             .collect()
     }
+}
 
-    pub fn update(&mut self, app: &AppHandle) {
-        let Some(bounds) = self.bounds() else {
+impl Tracker {
+    pub fn new() -> Self {
+        let compositor = if crate::wayland::active() {
+            hyprland::Compositor::new()
+        } else {
+            None
+        };
+        Self {
+            x11: X11::new(),
+            compositor,
+            previous: None,
+        }
+    }
+
+    /// Hyprland can see the outer Gamescope window, which is absent from the
+    /// desktop's X11 client list. Focus inside Gamescope is independent of it.
+    pub fn update(&mut self, app: &AppHandle) -> Option<bool> {
+        if let Some((bounds, focused)) = self
+            .compositor
+            .as_ref()
+            .and_then(hyprland::Compositor::game_window)
+        {
+            self.place(app, bounds, true);
+            return Some(focused);
+        }
+        let bounds = self.x11.as_ref().and_then(X11::bounds);
+        self.place(app, bounds, false);
+        None
+    }
+
+    fn place(&mut self, app: &AppHandle, bounds: Option<Bounds>, logical: bool) {
+        let Some(bounds) = bounds else {
+            self.previous = None;
             return;
         };
-        if self.previous == Some(bounds) {
+        let placement = Some((bounds, logical));
+        if self.previous == placement {
             return;
         }
         if crate::wayland::active() {
-            let [x, y, width, height] = self.logical(bounds);
+            let [x, y, width, height] = if logical {
+                [bounds.x, bounds.y, bounds.width as i32, bounds.height as i32]
+            } else if let Some(x11) = &self.x11 {
+                x11.logical(bounds)
+            } else {
+                return;
+            };
             let app_ = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                if let Some(window) = app_.get_webview_window("overlay").and_then(|w| w.gtk_window().ok()) {
-                    crate::wayland::follow(&window, x, y, width, height);
-                }
-                if let Some(window) = app_.get_webview_window("overlay") {
-                    let editing = app_.state::<crate::AppState>().edit_mode
-                        .load(std::sync::atomic::Ordering::Acquire);
-                    let _ = window.set_ignore_cursor_events(!editing);
-                }
-            });
-            self.previous = Some(bounds);
+            if app
+                .run_on_main_thread(move || {
+                    if let Some(window) = app_.get_webview_window("overlay") {
+                        if let Ok(gtk_window) = window.gtk_window() {
+                            crate::wayland::follow(&gtk_window, x, y, width, height);
+                        }
+                        let editing = app_.state::<crate::AppState>().edit_mode
+                            .load(std::sync::atomic::Ordering::Acquire);
+                        let _ = window.set_ignore_cursor_events(!editing);
+                    }
+                })
+                .is_ok()
+            {
+                self.previous = placement;
+            }
             return;
         }
         if let Some(window) = app.get_webview_window("overlay") {
@@ -173,7 +223,7 @@ impl Tracker {
                 let editing = app.state::<crate::AppState>().edit_mode
                     .load(std::sync::atomic::Ordering::Acquire);
                 let _ = window.set_ignore_cursor_events(!editing);
-                self.previous = Some(bounds);
+                self.previous = placement;
             }
         }
     }

@@ -49,7 +49,9 @@
         <div class="flex items-center justify-between gap-6 p-4">
           <div>
             <div class="font-medium">Overlay monitor</div>
-            <div class="text-muted">Screen the widgets are shown on. Pick the one Le Mans Ultimate runs on.</div>
+            <div class="text-muted">{live.status.experimentalLinux
+              ? "Screen to use before the game window is detected. The HUD follows the game once it opens."
+              : "Screen the widgets are shown on. Pick the one Le Mans Ultimate runs on."}</div>
           </div>
           <Select
             bind:value={g.monitor}
@@ -75,9 +77,13 @@
         <div class="flex items-center justify-between gap-6 p-4">
           <div>
             <div class="font-medium">Hide overlay when game is not focused</div>
-            <div class="text-muted">Hide widgets while you alt-tab to another window (always shown in the layout editor and demo mode).</div>
+            <div class="text-muted">{live.status.waylandOverlay
+              ? "The Wayland overlay hides when Le Mans Ultimate loses focus. The layout editor and demo mode can show it."
+              : "Hide widgets while you alt-tab to another window (always shown in the layout editor and demo mode)."}</div>
           </div>
-          <Toggle checked={g.hideUnfocused} label="Hide when unfocused" onchange={(v) => { g.hideUnfocused = v; saveConfig(); }} />
+          {#if !live.status.waylandOverlay}
+            <Toggle checked={g.hideUnfocused} label="Hide when unfocused" onchange={(v) => { g.hideUnfocused = v; saveConfig(); }} />
+          {/if}
         </div>
         <div class="flex items-center justify-between gap-6 p-4">
           <div>
