@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/szpolny/mulsanne/compare/v1.2.0...v1.2.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **linux:** preserve Wayland HUD click-through and Gamescope focus ([#57](https://github.com/szpolny/mulsanne/issues/57)) ([8dbd245](https://github.com/szpolny/mulsanne/commit/8dbd24543c10f0c0ca099aae51f808bcae6141b1))
+
 ## [1.2.0](https://github.com/szpolny/mulsanne/compare/v1.1.0...v1.2.0) (2026-11-19)
 
 
